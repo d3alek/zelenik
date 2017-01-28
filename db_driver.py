@@ -5,6 +5,12 @@ import json
 import json_delta
 from datetime import datetime
 
+def pretty_json(d):
+    return json.dumps(d, sort_keys=True, indent=4, separators=(',', ': '))
+
+def to_compact_json(s):
+    return json.dumps(json.loads(s))
+
 def pretty_list(l):
     return ', '.join(map(str, l))
 
@@ -36,8 +42,6 @@ class DatabaseDriver:
         state_file = state_path.with_suffix(".json")
 
         if state_file.exists():
-            with state_file.open() as f:
-                previous_value = f.read()
             history_path = thing_directory / "history"
             if not history_path.is_dir():
                 history_path.mkdir()
@@ -52,14 +56,16 @@ class DatabaseDriver:
                 self.archive_history(thing, state)
                 log_updated.append('archive')
 
+            with state_file.open() as f:
+                previous_value = f.read()
             with history_state_file.open('a+') as f:
-                f.write(previous_value)
+                f.write(to_compact_json(previous_value))
                 f.write('\n')
                 log_updated.append('history')
 
         encapsulated_value = self.encapsulate_and_timestamp(value)
         with state_file.open('w') as f:
-            f.write(json.dumps(encapsulated_value))
+            f.write(pretty_json(encapsulated_value))
             log_updated.append('state')
         info("update", "[%s] updated %s" % (thing, pretty_list(log_updated)))
 
