@@ -92,6 +92,16 @@ class TestDatabaseDriver(unittest.TestCase):
         self.then_history_exists("state", JSN % "old")
         self.then_state_exists("state", JSN % "new")
 
+    def test_get_delta_no_desired(self):
+        json_string = FORMAT % BASE_STATE % '{}'
+
+        self.given_thing()
+        self.given_state("reported", json_string)
+
+        self.when_getting_delta("reported", "desired")
+
+        self.then_delta_is("{}")
+
     def test_get_delta_no_difference(self):
         same_json_string = FORMAT % BASE_STATE % '{}'
 

@@ -5,7 +5,13 @@ import json
 import json_delta
 from datetime import datetime
 
+def pretty_list(l):
+    return ', '.join(map(str, l))
+
 def info(method, message):
+    print("  db_driver/%s: %s" % (method, message))
+
+def error(method, message):
     print("! db_driver/%s: %s" % (method, message))
 
 class DatabaseDriver:
@@ -14,16 +20,17 @@ class DatabaseDriver:
     
     def update(self, thing, state, value):
         if not type(value) is dict:
-            info("update", "Called with a non-dict value - %s %s %s. Raising exception" % (thing, state, value))
+            error("update", "Called with a non-dict value - %s %s %s. Raising exception" % (thing, state, value))
             raise Exception("Expected value to be dict, got %s instead" % type(value))
-        if value.get('state'):
-            info("update", "Called with wrongly formatted value as 'state' object is not expected at top level, going to be added here - %s %s %s. Raising exception" % (thing, state, value))
+        if value.get('state') and not isinstance(value.get('state'), str): # there is a string state attribute that can get confused with a top level state object
             raise Exception('"state" object is not expected at top level, going to be added here. Got %s' % value)
+        log_updated = []
         
         thing_directory = self.directory / thing
         if not thing_directory.exists():
             thing_directory.mkdir()
-            info("update", "Created new state directory for %s" % thing)
+            info("update", "Created new thing directory for %s" % thing)
+            log_updated.append('new_thing')
 
         state_path = thing_directory / state
         state_file = state_path.with_suffix(".json")
@@ -35,6 +42,7 @@ class DatabaseDriver:
             if not history_path.is_dir():
                 history_path.mkdir()
                 info("update", "Created new history directory for %s" % thing)
+                log_updated.append('new_history_directory')
             history_state_path = history_path / state
             history_state_file = history_state_path.with_suffix('.%d.txt' % date.today().year)
 
@@ -42,14 +50,18 @@ class DatabaseDriver:
                 # if this is the beginning of a new year, put year-2 history in archive
                 info("update", "First record for %s for the new year. Archiving 2 years old history" % thing)
                 self.archive_history(thing, state)
+                log_updated.append('archive')
 
             with history_state_file.open('a+') as f:
                 f.write(previous_value)
                 f.write('\n')
+                log_updated.append('history')
 
         encapsulated_value = self.encapsulate_and_timestamp(value)
         with state_file.open('w') as f:
             f.write(json.dumps(encapsulated_value))
+            log_updated.append('state')
+        info("update", "[%s] updated %s" % (thing, pretty_list(log_updated)))
 
     def encapsulate_and_timestamp(self, value):
         return {"state": value, "timestamp": datetime.utcnow().isoformat(sep=' ')}
@@ -80,6 +92,9 @@ class DatabaseDriver:
         from_state, _ = self.load_state_timestamp(thing, from_state_name)
         to_state, _ = self.load_state_timestamp(thing, to_state_name)
 
+        if to_state == {}:
+            info("get_delta", "to_state %s of %s is empty. Assuming no delta needed." % (to_state_name, thing))
+            return "{}"
         delta_stanza = json_delta.diff(from_state, to_state, verbose=False)
 
         if delta_stanza == []:
@@ -92,11 +107,11 @@ class DatabaseDriver:
             try:
                 config_location = path_parts.index('config')
             except ValueError:
-                print("! get_delta: config is not in delta stanza: %s" % thing)
-                print("! get_delta: FROM")
-                print("! get_delta: %s" % from_state)
-                print("! get_delta: TO")
-                print("! get_delta: %s" % to_state)
+                error("get_delta", "config is not in delta stanza: %s" % thing)
+                error("get_delta", "FROM")
+                error("get_delta", "%s" % from_state)
+                error("get_delta", "TO")
+                error("get_delta", "%s" % to_state)
                 return '{"error":1}'
             d = value
             post_config = path_parts[config_location+1:]
@@ -120,8 +135,8 @@ class DatabaseDriver:
             deserialized = json.loads(contents)
             return deserialized['state'], deserialized['timestamp']
         else:
-            print("! load_state: Tried to load state that does not exist: %s/%s" % (thing, state_name))
+            info("load_state", "Tried to load state that does not exist: %s/%s" % (thing, state_name))
 
-            return {}, {}
+            return {}, ""
 
 

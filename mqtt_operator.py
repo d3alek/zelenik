@@ -9,10 +9,18 @@ MESSAGE_NOT_JSON = '{"reason": "Message not a valid json. See mqtt_operator logs
 WRONG_FORMAT_STATE = '{"reason": "Message payload did not begin with state object. See mqtt_operator logs for details"}'
 WRONG_FORMAT_REPORTED_DESIRED = '{"reason": "Message payload did not begin with state/reported or state/desired objects. See mqtt_operator logs for details"}'
 
+def info(method, message):
+    print("  mqtt_operator/%s: %s" % (method, message))
+
+def error(method, message):
+    print("! mqtt_operator/%s: %s" % (method, message))
+
+
+
 def parse_thing_action(topic):
     match = re.match(r'things\/([a-zA-Z0-9-]+)\/(\w+)', topic)
     if not match:
-        print("! parse_thing_action: Could not parse thing and action from topic %s" % topic)
+        info("parse_thing_action", "Could not parse thing and action from topic %s" % topic)
         return "", ""
     thing = match.group(1)
     action = match.group(2)
@@ -20,7 +28,7 @@ def parse_thing_action(topic):
 
 
 class MqttOperator:
-    def __init__(self, db_location = '/home/pi/zelenik/db'):
+    def __init__(self, db_location = 'db'): # assume db is in local directory by default. Intentional, close coupling of code with data
         self.db = db_driver.DatabaseDriver(db_location)
         self.client = mqtt.Client()
         self.client.on_connect = self.on_connect
@@ -31,7 +39,7 @@ class MqttOperator:
         self.client.loop_forever()
 
     def on_connect(self, client, userdata, flags, rc):
-        print("Connected with result code", str(rc))
+        info("on_connect", "Connected with result code %d" % rc)
         client.subscribe("/things/+/update")
         client.subscribe("/things/+/get")
 
@@ -42,7 +50,7 @@ class MqttOperator:
         try:
             payload = json.loads(payload_string)
         except ValueError:
-            print("! get_answer: Payload is not a valid json. %s - %s" % (topic, payload_string))
+            error("get_answer", "Payload is not a valid json. %s - %s" % (topic, payload_string))
             answer_topic = OPERATOR_ERROR_TOPIC
             answer_payload = MESSAGE_NOT_JSON
             return answer_topic, answer_payload
@@ -51,7 +59,7 @@ class MqttOperator:
 
         if action == "update":
             if not payload.get("state"):
-                print("! get_answer: Update payload does not begin with a state object. %s - %s" % (topic, payload))
+                error("get_answer", "Update payload does not begin with a state object. %s - %s" % (topic, payload))
                 answer_topic = OPERATOR_ERROR_TOPIC
                 answer_payload = WRONG_FORMAT_STATE
                 return answer_topic, answer_payload
@@ -63,7 +71,7 @@ class MqttOperator:
                 #TODO handle the case where update explodes with exception
                 db.update(thing, "desired", payload["state"]["desired"])
             else:
-                print("! get_answer: Update contains neither reported nor desired. %s - %s" % (topic, payload))
+                error("get_answer", "Update contains neither reported nor desired. %s - %s" % (topic, payload))
                 answer_topic = OPERATOR_ERROR_TOPIC
                 answer_payload = WRONG_FORMAT_REPORTED_DESIRED 
                 return answer_topic, answer_payload
@@ -76,7 +84,7 @@ class MqttOperator:
             answer_topic = "things/%s/delta" % thing
             answer_payload = str(delta)
         else:
-            print("! get_answer: We got a message on a topic we should not be listening to: %s - %s" % (topic, payload))
+            error("get_answer", "We got a message on a topic we should not be listening to: %s - %s" % (topic, payload))
             answer_topic = OPERATOR_ERROR_TOPIC
             answer_payload = MESSAGE_NOT_HANDLED
 
@@ -84,11 +92,11 @@ class MqttOperator:
 
     def on_message(self, client, userdata, msg):
         topic = msg.topic
-        payload = str(msg.payload)
-        print(topic, payload)
+        payload = msg.payload.decode('utf-8')
+        info("on_message", "[%s] %s" % (topic, payload))
         answer_topic, answer_payload = self.get_answer(topic, payload)
         if answer_topic:
-            mqtt.publish(answer_topic, answer_payload)
+            self.client.publish(answer_topic, answer_payload)
         
 
 if __name__ == '__main__':
