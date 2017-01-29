@@ -21,8 +21,16 @@ def error(method, message):
     print("! db_driver/%s: %s" % (method, message))
 
 class DatabaseDriver:
-    def __init__(self, directory="db"):
+    def __init__(self, directory="db", view='view'):
         self.directory = Path(directory)
+        self.view = Path(view).resolve() # need it to be absolute for symlinking to work
+
+    def prepare_directory(self, directory):
+        directory.mkdir()
+        index = directory / "index.html"
+        style = directory / "style.css"
+        index.symlink_to(self.view / "index.html")
+        style.symlink_to(self.view / "style.css")
     
     def update(self, thing, state, value):
         if not type(value) is dict:
@@ -34,7 +42,7 @@ class DatabaseDriver:
         
         thing_directory = self.directory / thing
         if not thing_directory.exists():
-            thing_directory.mkdir()
+            self.prepare_directory(thing_directory)
             info("update", "Created new thing directory for %s" % thing)
             log_updated.append('new_thing')
 

@@ -15,16 +15,30 @@ class TestDatabaseDriver(unittest.TestCase):
     def setUp(self):
         self.db_directory = TemporaryDirectory()
         self.db_location = self.db_directory.name
-        self.db = db_driver.DatabaseDriver(self.db_location)
+
+        self.view_directory = TemporaryDirectory()
+        view_location = self.view_directory.name
+        index = Path(view_location)  / "index.html"
+        index.touch()
+        style = Path(view_location) / "style.html"
+        style.touch()
+
+        self.db = db_driver.DatabaseDriver(self.db_location, view_location)
 
     def tearDown(self):
         self.db_directory.cleanup()
+        self.view_directory.cleanup()
 
     def test_update_creates_thing(self):
         self.when_updating("state", "{}")
 
         self.then_one_thing()
         self.then_thing_exists()
+
+    def test_created_thing_has_view(self):
+        self.when_updating("state", "{}")
+
+        self.then_thing_has_view()
 
     def test_update_creates_state(self):
         self.given_thing()
@@ -267,6 +281,10 @@ class TestDatabaseDriver(unittest.TestCase):
 
     def then_delta_is(self, delta_string):
         self.assertEqual(json.loads(self.delta), json.loads(delta_string))
+
+    def then_thing_has_view(self):
+        p = Path(self.db_location) / THING / "index.html"
+        self.assertTrue(p.exists())
 
 
 

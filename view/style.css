@@ -1,0 +1,14 @@
+#reported
+{
+    float: left;
+    width: 50%;
+}
+#desired
+{
+    float: left;
+    width: 50%;
+}
+
+.clear {
+    clear: both;
+}

@@ -1,0 +1,38 @@
+<link href="style.css" rel="stylesheet" type="text/css" />
+
+<!--# block name="none" -->
+None
+<!--# endblock -->
+
+<div id="header">
+<!--# echo var="thing" -->
+</div>
+
+<div id="reported">
+Reported
+<pre>
+<!--#include file="reported.json" -->
+</pre>
+</div>
+
+<div id="desired">
+Desired 
+<br>
+<textarea wrap="off" rows="30" cols="80">
+<!--#include file="desired.json" stub="none"-->
+</textarea>
+</div>
+
+<div class="clear"></div>
+
+<div id="graph">
+Graph: 
+<img src='<!--# include virtual="/$thing/graph.png" -->'>
+</div>
+
+<div id="alias">
+Alias:
+<br>
+<textarea wrap="off" rows="10" cols="80">
+<!--#include file="alias.json" stub="none"-->
+</textarea>
