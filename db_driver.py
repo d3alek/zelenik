@@ -75,6 +75,12 @@ class DatabaseDriver:
         with state_file.open('w') as f:
             f.write(pretty_json(encapsulated_value))
             log_updated.append('state')
+
+        graph = thing_directory / "graph.png"
+        if graph.exists():
+            graph.unlink()
+            log_updated.append('deleted_graph')
+
         info("update", "[%s] updated %s" % (thing, pretty_list(log_updated)))
 
     def encapsulate_and_timestamp(self, value):
@@ -152,5 +158,20 @@ class DatabaseDriver:
             info("load_state", "Tried to load state that does not exist: %s/%s" % (thing, state_name))
 
             return {}, ""
+
+    def load_history(self, thing, state_name):
+        thing_directory = self.directory / thing
+        state_path = thing_directory / "history"/ state_name
+        #TODO handle multiple years by loading year-1 as well
+        history_file = state_path.with_suffix(".%d.txt" % date.today().year)
+
+        if not history_file.exists():
+            info("load_history", "No history loaded as none exists for %s %s" % (thing, state_name))
+            return []
+        with history_file.open() as f:
+            lines = f.readlines()
+        states = list(map(json.loads, lines))
+        #TODO load only partial history - returning full now
+        return states
 
 

@@ -180,6 +180,15 @@ class TestDatabaseDriver(unittest.TestCase):
 
         self.then_delta_is(one_level % (2, 2))
 
+    def test_update_reported_deletes_graph(self):
+        self.given_thing()
+        self.given_state("reported", BASE_STATE % '{}')
+        self.given_graph()
+
+        self.when_updating("reported", JSN % 1)
+
+        self.then_no_graph()
+
     def given_thing(self):
         p = Path(self.db_location) / THING
         p.mkdir()
@@ -199,6 +208,10 @@ class TestDatabaseDriver(unittest.TestCase):
         with p.open('w') as f:
             f.write(value)
             f.write('\n')
+    
+    def given_graph(self):
+        p = Path(self.db_location) / THING / "graph.png"
+        p.touch()
 
     def when_updating(self, state, value):
         self.db.update(THING, state, json.loads(value)) 
@@ -285,6 +298,11 @@ class TestDatabaseDriver(unittest.TestCase):
     def then_thing_has_view(self):
         p = Path(self.db_location) / THING / "index.html"
         self.assertTrue(p.exists())
+
+    def then_no_graph(self):
+        p = Path(self.db_location) / THING / "graph.png"
+        self.assertFalse(p.exists())
+
 
 
 
