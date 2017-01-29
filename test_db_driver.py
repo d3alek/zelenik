@@ -8,7 +8,7 @@ import json
 
 THING="thing"
 BASE_STATE = '{"config": %s}'
-FORMAT = '{"state": %s, "timestamp": "2017-01-25 15:34:12.989202"}'
+FORMAT = '{"state": %s, "timestamp_utc": "2017-01-25 15:34:12.989202"}'
 JSN = '{"value": "%s"}' # separate case from BASE_STATE for convenience - notice the " surrounding %s
 
 class TestDatabaseDriver(unittest.TestCase):
@@ -229,18 +229,18 @@ class TestDatabaseDriver(unittest.TestCase):
         with p.open() as f:
             contents = json.loads(f.read())
 
-        self.assertTrue(contents.get('timestamp'))
+        self.assertTrue(contents.get('timestamp_utc'))
 
     def then_updated_more_recently(self, newer_state, older_state):
         p = Path(self.db_location) / THING / newer_state
         p = p.with_suffix('.json')
         with p.open() as f:
-            newer_timestamp = json.loads(f.read())['timestamp']
+            newer_timestamp = json.loads(f.read())['timestamp_utc']
 
         p = Path(self.db_location) / THING / older_state
         p = p.with_suffix('.json')
         with p.open() as f:
-            older_timestamp = json.loads(f.read())['timestamp']
+            older_timestamp = json.loads(f.read())['timestamp_utc']
 
         self.assertTrue(newer_timestamp > older_timestamp)
 

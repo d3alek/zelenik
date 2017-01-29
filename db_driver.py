@@ -70,7 +70,7 @@ class DatabaseDriver:
         info("update", "[%s] updated %s" % (thing, pretty_list(log_updated)))
 
     def encapsulate_and_timestamp(self, value):
-        return {"state": value, "timestamp": datetime.utcnow().isoformat(sep=' ')}
+        return {"state": value, "timestamp_utc": datetime.utcnow().isoformat(sep=' ')}
 
     def archive_history(self, thing, state):
         two_years_ago = date.today().year - 2
@@ -139,7 +139,7 @@ class DatabaseDriver:
                 contents = f.read()
 
             deserialized = json.loads(contents)
-            return deserialized['state'], deserialized['timestamp']
+            return deserialized['state'], deserialized['timestamp_utc']
         else:
             info("load_state", "Tried to load state that does not exist: %s/%s" % (thing, state_name))
 
