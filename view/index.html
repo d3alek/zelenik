@@ -18,9 +18,13 @@ Reported
 <div id="desired">
 Desired 
 <br>
-<textarea wrap="off" rows="30" cols="80">
+<form action="update" method="POST">
+<textarea name="desired" wrap="off" rows="15" cols="60">
 <!--#include file="desired.json" stub="none"-->
 </textarea>
+<br>
+<input type="submit" value="Update">
+</form>
 </div>
 
 <div class="clear"></div>
@@ -29,9 +33,12 @@ Desired
 <img src="/<!--# echo var='thing' -->/graph.png">
 </div>
 
-<div id="alias">
-Alias:
+<div id="aliases">
+Aliases:
 <br>
-<textarea wrap="off" rows="10" cols="80">
-<!--#include file="alias.json" stub="none"-->
+<form action="update" method="POST">
+<textarea name="aliases" wrap="off" rows="10" cols="80">
+<!--#include file="aliases.json" stub="none"-->
 </textarea>
+<input type="submit" value="Update">
+</form>

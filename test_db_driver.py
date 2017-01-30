@@ -11,6 +11,12 @@ BASE_STATE = '{"config": %s}'
 FORMAT = '{"state": %s, "timestamp_utc": "2017-01-25 15:34:12.989202"}'
 JSN = '{"value": "%s"}' # separate case from BASE_STATE for convenience - notice the " surrounding %s
 
+def timeless(d):
+    dc = d.copy()
+    if dc.get('timestamp_utc'):
+        dc.pop('timestamp_utc') 
+    return dc
+
 class TestDatabaseDriver(unittest.TestCase):
     def setUp(self):
         self.db_directory = TemporaryDirectory()
@@ -29,82 +35,87 @@ class TestDatabaseDriver(unittest.TestCase):
         self.db_directory.cleanup()
         self.view_directory.cleanup()
 
-    def test_update_creates_thing(self):
-        self.when_updating("state", "{}")
+    def test_update_reported_creates_thing_with_view(self):
+        self.when_updating_reported("{}")
 
         self.then_one_thing()
         self.then_thing_exists()
-
-    def test_created_thing_has_view(self):
-        self.when_updating("state", "{}")
-
         self.then_thing_has_view()
 
-    def test_update_creates_state(self):
+    def test_update_reported_applies_format(self):
         self.given_thing()
 
-        self.when_updating("state", JSN % 1)
+        self.when_updating_reported(BASE_STATE % JSN % 1)
 
-        self.then_one_state()
-        self.then_state_exists("state", JSN % 1) 
+        self.then_state_exists("reported", FORMAT % BASE_STATE % JSN % 1) 
 
-    def test_update_adds_timestamp(self):
+    def test_first_reported_creates_desired(self):
         self.given_thing()
 
-        self.when_updating("state", JSN % 1)
+        self.when_updating_reported(BASE_STATE % JSN % 1)
 
-        self.then_has_timestamp("state")
+        self.then_state_exists("desired", JSN % 1) 
 
-    def test_update_time_is_an_arrow(self):
+    def test_first_reported_creates_aliases(self):
         self.given_thing()
 
-        self.when_updating("desired", JSN % 1)
-        self.when_updating("reported", JSN % 2)
-        self.when_updating("another", JSN % 3)
+        self.when_updating_reported(BASE_STATE % JSN % 1)
 
-        self.then_updated_more_recently("reported", "desired")
-        self.then_updated_more_recently("another", "reported")
-        self.then_updated_more_recently("another", "desired")
+        self.then_state_exists("aliases", JSN % "") 
+
+    def test_update_reported_adds_timestamp(self):
+        self.given_thing()
+
+        self.when_updating_reported(JSN % 1)
+
+        self.then_has_timestamp("reported")
+
+    def test_update_reported_adds_timestamp(self):
+        self.given_thing()
+        self.given_state("desired", JSN % 1)
+
+        self.when_updating_desired(JSN % 2)
+
+        self.then_history_has_timestamp("desired")
 
     def test_update_updates_state(self):
         self.given_thing()
-        self.given_state("state", JSN % 1)
+        self.given_state("reported", FORMAT % JSN % 1)
 
-        self.when_updating("state", JSN % 2)
+        self.when_updating_reported(JSN % 2)
 
-        self.then_one_state()
-        self.then_state_exists("state", JSN % 2)
+        self.then_state_exists("reported", FORMAT % JSN % 2)
 
     def test_update_stores_history(self):
         self.given_thing()
-        self.given_state("state", JSN % 1)
+        self.given_state("reported", FORMAT % JSN % 1)
 
-        self.when_updating("state", JSN % 2)
+        self.when_updating_reported(JSN % 2)
 
-        self.then_history_exists("state", JSN % 1)
+        self.then_history_exists("reported", FORMAT % JSN % 1)
 
     def test_update_appends_to_history(self):
         self.given_thing()
-        self.given_state("state", JSN % 2)
-        self.given_history("state", JSN % 1)
+        self.given_state("reported", FORMAT % JSN % 2)
+        self.given_history("reported", FORMAT % JSN % 1)
 
-        self.when_updating("state", JSN % 3)
+        self.when_updating_reported(JSN % 3)
 
-        self.then_history_exists("state", "%s\n%s" % (JSN % 1, JSN % 2))
+        self.then_history_exists("reported", "%s\n%s" % (FORMAT % JSN % 1, FORMAT % JSN % 2))
 
     def test_update_archives_history_from_two_years_ago(self):
         year = date.today().year
         self.given_thing()
-        self.given_state("state", JSN % "old")
-        self.given_history("state", JSN % "oldest", year=year-2)
-        self.given_history("state", JSN % "older", year=year-1)
-        self.when_updating("state", JSN % "new")
+        self.given_state("reported", JSN % "old")
+        self.given_history("reported", JSN % "oldest", year=year-2)
+        self.given_history("reported", JSN % "older", year=year-1)
+        self.when_updating_reported(JSN % "new")
 
-        self.then_two_histories("state")
-        self.then_archive_exists("state", year-2, JSN % "oldest")
-        self.then_history_exists("state", JSN % "older", year=year-1)
-        self.then_history_exists("state", JSN % "old")
-        self.then_state_exists("state", JSN % "new")
+        self.then_two_histories("reported")
+        self.then_history_exists("reported", JSN % "older", year=year-1)
+        self.then_history_exists("reported", JSN % "old")
+        self.then_archive_exists("reported", year-2, JSN % "oldest")
+        self.then_state_exists("reported", FORMAT % JSN % "new")
 
     def test_get_delta_no_desired(self):
         json_string = FORMAT % BASE_STATE % '{}'
@@ -112,18 +123,16 @@ class TestDatabaseDriver(unittest.TestCase):
         self.given_thing()
         self.given_state("reported", json_string)
 
-        self.when_getting_delta("reported", "desired")
+        self.when_getting_delta()
 
         self.then_delta_is("{}")
 
     def test_get_delta_no_difference(self):
-        same_json_string = FORMAT % BASE_STATE % '{}'
-
         self.given_thing()
-        self.given_state("reported", same_json_string)
-        self.given_state("desired", same_json_string)
+        self.given_state("reported", FORMAT % BASE_STATE % '{}')
+        self.given_state("desired", '{}')
 
-        self.when_getting_delta("reported", "desired")
+        self.when_getting_delta()
 
         self.then_delta_is("{}")
 
@@ -134,7 +143,7 @@ class TestDatabaseDriver(unittest.TestCase):
         self.given_state("reported", missing_config_state % 1)
         self.given_state("desired", missing_config_state % 2)
 
-        self.when_getting_delta("reported", "desired")
+        self.when_getting_delta()
 
         self.then_delta_is('{"error":1}')
 
@@ -185,7 +194,7 @@ class TestDatabaseDriver(unittest.TestCase):
         self.given_state("reported", BASE_STATE % '{}')
         self.given_graph()
 
-        self.when_updating("reported", JSN % 1)
+        self.when_updating_reported(JSN % 1)
 
         self.then_no_graph()
 
@@ -213,19 +222,23 @@ class TestDatabaseDriver(unittest.TestCase):
         p = Path(self.db_location) / THING / "graph.png"
         p.touch()
 
-    def when_updating(self, state, value):
-        self.db.update(THING, state, json.loads(value)) 
+    def when_updating_desired(self, value):
+        self.db.update_desired(THING, json.loads(value)) 
 
-    def when_getting_delta(self, from_state, to_state):
-        self.delta = self.db.get_delta(THING, from_state, to_state)  
+    def when_updating_reported(self, value):
+        self.db.update_reported(THING, json.loads(value)) 
+
+    def when_getting_delta(self):
+        self.delta = self.db.get_delta(THING)  
     def when_getting_reported_desired_delta(self, base_state_supplement, reported_substitution, desired_substitution):
-        state = FORMAT % BASE_STATE % base_state_supplement
+        state_reported = FORMAT % BASE_STATE % base_state_supplement
+        state_desired = base_state_supplement
 
         self.given_thing()
-        self.given_state("reported", state % reported_substitution)
-        self.given_state("desired", state % desired_substitution)
+        self.given_state("reported", state_reported % reported_substitution)
+        self.given_state("desired", state_desired % desired_substitution)
 
-        self.when_getting_delta("reported", "desired")
+        self.when_getting_delta()
 
     def then_one_thing(self):
         p = Path(self.db_location)
@@ -246,9 +259,10 @@ class TestDatabaseDriver(unittest.TestCase):
         p = Path(self.db_location) / THING / state 
         p = p.with_suffix('.json')
         with p.open() as f:
-            contents = json.loads(f.read())
+            contents = timeless(json.loads(f.read()))
 
-        self.assertEqual(contents['state'], json.loads(value))
+        expected_value = timeless(json.loads(value))
+        self.assertEqual(contents, expected_value)
 
     def then_has_timestamp(self, state):
         p = Path(self.db_location) / THING / state 
@@ -258,30 +272,29 @@ class TestDatabaseDriver(unittest.TestCase):
 
         self.assertTrue(contents.get('timestamp_utc'))
 
-    def then_updated_more_recently(self, newer_state, older_state):
-        p = Path(self.db_location) / THING / newer_state
-        p = p.with_suffix('.json')
+    def then_history_has_timestamp(self, state):
+        p = Path(self.db_location) / THING / 'history' / state 
+        p = p.with_suffix('.%d.txt' % date.today().year)
         with p.open() as f:
-            newer_timestamp = json.loads(f.read())['timestamp_utc']
+            contents = json.loads(f.read())
 
-        p = Path(self.db_location) / THING / older_state
-        p = p.with_suffix('.json')
-        with p.open() as f:
-            older_timestamp = json.loads(f.read())['timestamp_utc']
+        self.assertTrue(contents.get('timestamp_utc'))
 
-        self.assertTrue(newer_timestamp > older_timestamp)
 
     def then_two_histories(self, state):
         p = Path(self.db_location) / THING / "history"
         histories = [x for x in p.iterdir() if x.match('%s*' % state)]
-
         self.assertEqual(len(histories), 2)
 
     def then_history_exists(self, state, value, year = date.today().year):
         p = Path(self.db_location) / THING / "history" / state 
         p = p.with_suffix('.%d.txt' % year)
         with p.open() as f:
-            self.assertEqual(f.read().strip(), value)
+            lines = f.readlines()
+            actual = [timeless(json.loads(line)) for line in lines]
+        values = value.split('\n')
+        expected = [timeless(json.loads(value)) for value in values]
+        self.assertEqual(actual, expected)
 
     def then_archive_exists(self, state, year, value):
         p = Path(self.db_location) / THING / "history" / "archive" / state 

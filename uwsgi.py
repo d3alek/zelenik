@@ -10,6 +10,7 @@ import json
 import datetime
 
 from dateutil import tz
+from urllib import parse
 
 db = db_driver.DatabaseDriver()
 timezone = tz.gettz('Europe/Sofia')
@@ -17,17 +18,55 @@ timezone = tz.gettz('Europe/Sofia')
 def info(method, message):
     print("  uwsgi/%s: %s" % (method, message))
 
+def error(method, message):
+    print("! uwsgi/%s: %s" % (method, message))
+
 def parse_thing(uri):
     match = re.match(r'/([a-zA-Z0-9-]+)\/', uri)
     if not match:
         info("parse_thing", "Could not parse thing from uri %s" % uri)
-        return "", ""
+        return ""
     thing = match.group(1)
     return thing
 
+def parse_update_state(uri):
+    match = re.match(r'/([a-zA-Z0-9-]+)\/update_(.+)', uri)
+    if not match:
+        info("parse_update_state", "Could not parse update state from uri %s" % uri)
+        return ""
+    state = match.group(2)
+    return state
+
 def application(env, start_response):
+    print(env.items())
+    method = env['REQUEST_METHOD']
     uri = env['REQUEST_URI']
     thing = parse_thing(uri)
+
+    if method == 'POST':
+        raw_in = env['wsgi.input'].read()
+        query = parse.parse_qsl(raw_in)
+        print(query)
+        state, value = query[0]
+        state = state.decode('utf-8')
+        value = value.decode('utf-8')
+        print(state, value)
+        try:
+            value_dict = json.loads(value)
+        except ValueError:
+            error("application", "Could not parse json value. %s %s %s" % (thing, state, value))
+        
+        if state == 'desired': 
+            db.update_desired(thing, value_dict)
+        elif state == 'aliases':
+            db.update_aliases(thing, value_dict)
+        else:
+            start_response('200 OK', [('Content-Type','text/plain')])
+            return ('Not allowed to change state %s. %s %s' % (state, thing, value)).encode('utf-8')
+
+        start_response('200 OK', [('Content-Type','text/plain')])
+        return b'Success.'
+
     history = db.load_history(thing, 'reported', since_days=1)
     times = list(map(lambda s: db_driver.parse_isoformat(s['timestamp_utc']), history))
     plot_times = list(map(lambda t: date2num(t), times))

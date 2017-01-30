@@ -5,6 +5,10 @@ import json
 import json_delta
 from datetime import datetime, timedelta
 
+def aliasable(s):
+    b = s not in ['lawake', 'sleep', 'state', 'version', 'voltage', 'wifi']
+    return b and not s.startswith('A|')
+
 # parse iso format datetime with sep=' '
 def parse_isoformat(s):
     return datetime.strptime(s, "%Y-%m-%d %H:%M:%S.%f")
@@ -13,7 +17,7 @@ def pretty_json(d):
     return json.dumps(d, sort_keys=True, indent=4, separators=(',', ': '))
 
 def to_compact_json(s):
-    return json.dumps(json.loads(s))
+    return json.dumps(s, separators=(',', ':'))
 
 def pretty_list(l):
     return ', '.join(map(str, l))
@@ -23,6 +27,24 @@ def info(method, message):
 
 def error(method, message):
     print("! db_driver/%s: %s" % (method, message))
+
+def validate_input(thing, state, value):
+    if not type(value) is dict:
+        error("update", "Called with a non-dict value - %s %s %s. Raising exception" % (thing, state, value))
+        raise Exception("Expected value to be dict, got %s instead" % type(value))
+
+def encapsulate_and_timestamp(value, parent_name):
+    return {parent_name: value, "timestamp_utc": datetime.utcnow().isoformat(sep=' ')}
+
+def collect_non_dict_value_keys(d):
+    collected = []
+    for key, value in d.items():
+        if type(value) is dict:
+            collected.extend(collect_non_dict_value_keys(value))
+        else:
+            collected.append(key) 
+
+    return collected
 
 class DatabaseDriver:
     def __init__(self, directory="db", view='view'):
@@ -35,11 +57,38 @@ class DatabaseDriver:
         style = directory / "style.css"
         index.symlink_to(self.view / "index.html")
         style.symlink_to(self.view / "style.css")
-    
-    def update(self, thing, state, value):
-        if not type(value) is dict:
-            error("update", "Called with a non-dict value - %s %s %s. Raising exception" % (thing, state, value))
-            raise Exception("Expected value to be dict, got %s instead" % type(value))
+
+    def append_history(self, thing, state, previous_value):
+        history_path = self.directory / thing / "history"
+        log_updated = []
+        if not history_path.is_dir():
+            history_path.mkdir()
+            info("append_history", "Created new history directory for %s" % thing)
+            log_updated.append('new_history_directory')
+        history_state_path = history_path / state
+        history_state_file = history_state_path.with_suffix('.%d.txt' % date.today().year)
+
+        if not history_state_file.exists():
+            # if this is the beginning of a new year, put year-2 history in archive
+            info("update", "First record for %s for the new year. Archiving 2 years old history" % thing)
+            self.archive_history(thing, state)
+            log_updated.append('archive')
+
+        state_file = self.get_state_path(thing, state)
+
+        with history_state_file.open('a+') as f:
+            f.write(to_compact_json(previous_value))
+            f.write('\n')
+            log_updated.append('history')
+
+        return log_updated
+
+    def get_state_path(self, thing, state):
+        p = self.directory / thing / state
+        return p.with_suffix(".json")
+
+    def update_reported(self, thing, value):
+        validate_input(thing, "reported", value)
         if value.get('state') and not isinstance(value.get('state'), str): # there is a string state attribute that can get confused with a top level state object
             raise Exception('"state" object is not expected at top level, going to be added here. Got %s' % value)
         log_updated = []
@@ -47,35 +96,39 @@ class DatabaseDriver:
         thing_directory = self.directory / thing
         if not thing_directory.exists():
             self.prepare_directory(thing_directory)
-            info("update", "Created new thing directory for %s" % thing)
+            info("update_reported", "Created new thing directory for %s" % thing)
             log_updated.append('new_thing')
 
-        state_path = thing_directory / state
-        state_file = state_path.with_suffix(".json")
+        state = "reported"
+        state_file = self.get_state_path(thing, state)
 
         if state_file.exists():
-            history_path = thing_directory / "history"
-            if not history_path.is_dir():
-                history_path.mkdir()
-                info("update", "Created new history directory for %s" % thing)
-                log_updated.append('new_history_directory')
-            history_state_path = history_path / state
-            history_state_file = history_state_path.with_suffix('.%d.txt' % date.today().year)
-
-            if not history_state_file.exists():
-                # if this is the beginning of a new year, put year-2 history in archive
-                info("update", "First record for %s for the new year. Archiving 2 years old history" % thing)
-                self.archive_history(thing, state)
-                log_updated.append('archive')
-
             with state_file.open() as f:
-                previous_value = f.read()
-            with history_state_file.open('a+') as f:
-                f.write(to_compact_json(previous_value))
-                f.write('\n')
-                log_updated.append('history')
-
-        encapsulated_value = self.encapsulate_and_timestamp(value)
+                previous_value = json.loads(f.read())
+            result = self.append_history(thing, state, previous_value)
+            log_updated.extend(result)
+        else:
+            desired_file = self.get_state_path(thing, "desired")
+            with desired_file.open('w') as f:
+                if value.get('config'):
+                    f.write(pretty_json(value['config']))
+                    log_updated.append('new_desired_file')
+                    info("update_reported", "Created new desired file for %s" % thing)
+                else:
+                    error("update_reported", "First update for reported does not have a config attribute to assign to desired. Desired state not created automatically. %s %s" % (thing, value))
+            
+            aliases_file = self.get_state_path(thing, "aliases")
+            keys = collect_non_dict_value_keys(value)
+            keys = sorted(filter(aliasable, keys))
+            aliases = {}
+            for key in keys:
+                aliases[key] = ""
+            with aliases_file.open('w') as f:
+                f.write(pretty_json(aliases))
+                log_updated.append('new_aliases_file')
+                info("update_reported", "Created new aliases file for %s" % thing)
+            
+        encapsulated_value = encapsulate_and_timestamp(value, "state")
         with state_file.open('w') as f:
             f.write(pretty_json(encapsulated_value))
             log_updated.append('state')
@@ -87,8 +140,69 @@ class DatabaseDriver:
 
         info("update", "[%s] updated %s" % (thing, pretty_list(log_updated)))
 
-    def encapsulate_and_timestamp(self, value):
-        return {"state": value, "timestamp_utc": datetime.utcnow().isoformat(sep=' ')}
+    def update_desired(self, thing, value):
+        validate_input(thing, "desired", value)
+        if value.get('state') or value.get('config'):
+            raise Exception('"state" or "config" object is not expected at top level. Got %s' % value)
+
+        log_updated = []
+        
+        thing_directory = self.directory / thing
+        if not thing_directory.exists():
+            raise Exception("update_desired", "Not allowed to create new directory for desired %s %s" % (thing, value))
+
+        state = "desired"
+
+        state_file = self.get_state_path(thing, state)
+
+        if state_file.exists():
+            with state_file.open() as f:
+                previous_value = f.read()
+
+            encapsulated_previous_value = encapsulate_and_timestamp(previous_value, 'config')
+            result = self.append_history(thing, state, encapsulated_previous_value)
+            log_updated.extend(result)
+            
+        with state_file.open('w') as f:
+            f.write(pretty_json(value))
+            log_updated.append('state')
+
+        info("update_desired", "[%s] updated %s" % (thing, pretty_list(log_updated)))
+
+    def update_aliases(self, thing, value):
+        validate_input(thing, "aliases", value)
+        if len(list(filter(aliasable, value.keys()))) != len(value.keys()): 
+            error('update_aliases', "Some of the keys are not aliasable. Ignoring update. %s %s" % (thing, value))
+            return
+        if len(list(filter(lambda s: type(s) is not str, value.values()))) > 0:
+            error('update_aliases', "Some of the values are not strings. Ignoring update. %s %s" % (thing, value))
+            return
+
+        log_updated = []
+        
+        thing_directory = self.directory / thing
+        if not thing_directory.exists():
+            raise Exception("update_aliases", "Not allowed to create new directory for aliases %s %s" % (thing, value))
+
+        state = "aliases"
+
+        state_file = self.get_state_path(thing, state)
+
+        if state_file.exists():
+            with state_file.open() as f:
+                previous_value = json.loads(f.read())
+
+            encapsulated_previous_value = encapsulate_and_timestamp(previous_value, 'state')
+            result = self.append_history(thing, state, encapsulated_previous_value)
+            log_updated.extend(result)
+            
+        with state_file.open('w') as f:
+            f.write(pretty_json(value))
+            log_updated.append('state')
+
+        info("update_aliases", "[%s] updated %s" % (thing, pretty_list(log_updated)))
+
+
 
     def archive_history(self, thing, state):
         two_years_ago = date.today().year - 2
@@ -102,7 +216,7 @@ class DatabaseDriver:
                 archive_directory.mkdir()
                 info("archive_history", "Created new archive directory for %s" % thing)
 
-            archive_path = archive_directory / "state"
+            archive_path = archive_directory / state
             archive_file = archive_path.with_suffix(".%d.zip" % two_years_ago)
             with ZipFile(str(archive_file), 'w') as zf:
                 zf.write(str(old_history_file), arcname=old_history_file.name)
@@ -112,42 +226,43 @@ class DatabaseDriver:
         else:
             info("archive_history", "No history from %d for %s" % (two_years_ago, thing))
 
-    def get_delta(self, thing, from_state_name, to_state_name):
-        from_state, _ = self.load_state_timestamp(thing, from_state_name)
-        to_state, _ = self.load_state_timestamp(thing, to_state_name)
+    def get_delta(self, thing):
+        from_state = self.load_state(thing, "reported")
+        if from_state.get('state') is None or from_state.get('state').get('config') is None:
+            error("get_delta", "Unexpected from_state format, expected to begin with state/config. %s %s" % (thing, from_state))
+            return '{"error":1}'
+        from_state = from_state['state']['config']
+
+        to_state = self.load_state(thing, "desired")
 
         if to_state == {}:
-            info("get_delta", "to_state %s of %s is empty. Assuming no delta needed." % (to_state_name, thing))
+            info("get_delta", "desired of %s is empty. Assuming no delta needed." % thing)
             return "{}"
         delta_stanza = json_delta.diff(from_state, to_state, verbose=False)
 
         if delta_stanza == []:
             return "{}"
 
-        else:
-            first_diff = delta_stanza[0]
-            path_parts = first_diff[0]
-            value = first_diff[1]
-            try:
-                config_location = path_parts.index('config')
-            except ValueError:
-                error("get_delta", "config is not in delta stanza: %s" % thing)
-                error("get_delta", "FROM")
-                error("get_delta", "%s" % from_state)
-                error("get_delta", "TO")
-                error("get_delta", "%s" % to_state)
-                return '{"error":1}'
+        delta_dict = {}
+        for diff in delta_stanza:
+            path_parts = diff[0]
+            if len(diff) != 2:
+                #TODO happens when something existing in from is not in to - then only the path to the thing in from is given, signaling delete
+                error("get_delta", "Expected diff to be with size 2. %s %s" % (thing, diff))
+                return '{"error":2}'
+            value = diff[1]
             d = value
-            post_config = path_parts[config_location+1:]
+            post_config = path_parts
             post_config.reverse()
             for path_part in post_config:
                 new_d = {}
                 new_d[path_part] = d     
                 d = new_d
+            delta_dict.update(d)
 
-            return json.dumps(d, separators=(',', ':'))
+        return json.dumps(delta_dict, separators=(',', ':'))
 
-    def load_state_timestamp(self, thing, state_name):
+    def load_state(self, thing, state_name):
         thing_directory = self.directory / thing
         state_path = thing_directory / state_name
         state_file = state_path.with_suffix(".json")
@@ -157,11 +272,11 @@ class DatabaseDriver:
                 contents = f.read()
 
             deserialized = json.loads(contents)
-            return deserialized['state'], deserialized['timestamp_utc']
+            return deserialized
         else:
             info("load_state", "Tried to load state that does not exist: %s/%s" % (thing, state_name))
 
-            return {}, ""
+            return {}
 
     def load_history(self, thing, state_name, since_days=1):
         thing_directory = self.directory / thing

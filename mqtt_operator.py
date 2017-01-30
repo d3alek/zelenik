@@ -66,21 +66,19 @@ class MqttOperator:
 
             if payload["state"].get("reported"): # these come from things
                 #TODO handle the case where update explodes with exception
-                db.update(thing, "reported", payload["state"]["reported"])
-            elif payload["state"].get("desired"): # these come from controllers (UI, console)
-                #TODO handle the case where update explodes with exception
-                db.update(thing, "desired", payload["state"]["desired"])
+                db.update_reported(thing, payload["state"]["reported"])
             else:
-                error("get_answer", "Update contains neither reported nor desired. %s - %s" % (topic, payload))
+                error("get_answer", "Update does not contain reported. %s - %s" % (topic, payload))
                 answer_topic = OPERATOR_ERROR_TOPIC
                 answer_payload = WRONG_FORMAT_REPORTED_DESIRED 
                 return answer_topic, answer_payload
 
             answer_topic = ""
             answer_payload = ""
+
         elif action == "get": # these come from things
             payload = "" # we ignore payload, as this is just a request to receive delta
-            delta = db.get_delta(thing, "reported", "desired")
+            delta = db.get_delta(thing)
             answer_topic = "things/%s/delta" % thing
             answer_payload = str(delta)
         else:
@@ -96,6 +94,7 @@ class MqttOperator:
         info("on_message", "[%s] %s" % (topic, payload))
         answer_topic, answer_payload = self.get_answer(topic, payload)
         if answer_topic:
+            info("on_message", "Answering [%s] %s" % (answer_topic, answer_payload))
             self.client.publish(answer_topic, answer_payload)
         
 
