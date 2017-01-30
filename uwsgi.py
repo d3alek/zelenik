@@ -9,7 +9,10 @@ import db_driver
 import json
 import datetime
 
+from dateutil import tz
+
 db = db_driver.DatabaseDriver()
+timezone = tz.gettz('Europe/Sofia')
 
 def info(method, message):
     print("  uwsgi/%s: %s" % (method, message))
@@ -27,14 +30,13 @@ def application(env, start_response):
     thing = parse_thing(uri)
     history = db.load_history(thing, 'reported', since_days=1)
     times = list(map(lambda s: db_driver.parse_isoformat(s['timestamp_utc']), history))
-    # TODO include tz utc
     plot_times = list(map(lambda t: date2num(t), times))
     senses = list(map(lambda s: s['state']['senses'], history))
     fig = plt.figure(figsize=(12, 6), dpi=100)
     axes = plt.axes()
-    locator = AutoDateLocator()
+    locator = AutoDateLocator(tz=timezone)
     axes.xaxis.set_major_locator(locator)
-    axes.xaxis.set_major_formatter(AutoDateFormatter(locator))#DateFormatter("%H:%M"))
+    axes.xaxis.set_major_formatter(AutoDateFormatter(locator, tz=timezone))
     if len(senses) > 0:
         sense_types = sorted(senses[0].keys())
 
