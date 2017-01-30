@@ -3,7 +3,11 @@ from datetime import date
 from zipfile import ZipFile
 import json
 import json_delta
-from datetime import datetime
+from datetime import datetime, timedelta
+
+# parse iso format datetime with sep=' '
+def parse_isoformat(s):
+    return datetime.strptime(s, "%Y-%m-%d %H:%M:%S.%f")
 
 def pretty_json(d):
     return json.dumps(d, sort_keys=True, indent=4, separators=(',', ': '))
@@ -159,11 +163,12 @@ class DatabaseDriver:
 
             return {}, ""
 
-    def load_history(self, thing, state_name):
+    def load_history(self, thing, state_name, since_days=1):
         thing_directory = self.directory / thing
         state_path = thing_directory / "history"/ state_name
         #TODO handle multiple years by loading year-1 as well
-        history_file = state_path.with_suffix(".%d.txt" % date.today().year)
+        today = datetime.today()
+        history_file = state_path.with_suffix(".%d.txt" % today.year)
 
         if not history_file.exists():
             info("load_history", "No history loaded as none exists for %s %s" % (thing, state_name))
@@ -171,7 +176,8 @@ class DatabaseDriver:
         with history_file.open() as f:
             lines = f.readlines()
         states = list(map(json.loads, lines))
-        #TODO load only partial history - returning full now
+        since_day = today - timedelta(days=since_days)
+        filtered_states = list(filter(lambda s: parse_isoformat(s['timestamp_utc']) > since_day, states))
         return states
 
 
