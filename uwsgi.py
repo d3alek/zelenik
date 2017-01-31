@@ -12,6 +12,7 @@ import datetime
 from dateutil import tz
 from urllib import parse
 
+REDIRECT = '<meta http-equiv="refresh" content="0; url=%s" /> %s <a href="%s"> Go back. </a> '
 db = db_driver.DatabaseDriver()
 timezone = tz.gettz('Europe/Sofia')
 
@@ -64,8 +65,9 @@ def application(env, start_response):
             start_response('200 OK', [('Content-Type','text/plain')])
             return ('Not allowed to change state %s. %s %s' % (state, thing, value)).encode('utf-8')
 
-        start_response('200 OK', [('Content-Type','text/plain')])
-        return b'Success.'
+        start_response('200 OK', [('Content-Type','text/html')])
+        back_url = ('/' + thing)
+        return (REDIRECT % (back_url, 'Success.', back_url)).encode('utf-8')
 
     history = db.load_history(thing, 'reported', since_days=1)
     times = list(map(lambda s: db_driver.parse_isoformat(s['timestamp_utc']), history))
