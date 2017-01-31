@@ -1,0 +1,11 @@
+[Unit]
+Description=MQTT operator (zelenik)
+After=mosquitto.service
+
+[Service]
+Restart=always
+ExecStart=/www/zelenik/mqtt_operator.py
+StandardError=syslog
+
+[Install]
+WantedBy=multi-user.target

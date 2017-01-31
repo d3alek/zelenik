@@ -1,3 +1,5 @@
+#!/www/zelenik/venv/bin/python
+
 import paho.mqtt.client as mqtt
 import db_driver
 import json
@@ -9,13 +11,23 @@ MESSAGE_NOT_JSON = '{"reason": "Message not a valid json. See mqtt_operator logs
 WRONG_FORMAT_STATE = '{"reason": "Message payload did not begin with state object. See mqtt_operator logs for details"}'
 WRONG_FORMAT_REPORTED_DESIRED = '{"reason": "Message payload did not begin with state/reported or state/desired objects. See mqtt_operator logs for details"}'
 
+DIR = '/www/zelenik/'
+
 def info(method, message):
     print("  mqtt_operator/%s: %s" % (method, message))
 
 def error(method, message):
     print("! mqtt_operator/%s: %s" % (method, message))
 
+def parse_username_password():
+    with open(DIR + 'secret/mqtt_password_file') as f:
+        contents = f.read()
+    username, _ = contents.split(':')
 
+    with open(DIR + 'secret/mqtt_password') as f:
+        password = f.read()
+
+    return username.strip(), password.strip()
 
 def parse_thing_action(topic):
     match = re.match(r'things\/([a-zA-Z0-9-]+)\/(\w+)', topic)
@@ -28,9 +40,12 @@ def parse_thing_action(topic):
 
 
 class MqttOperator:
-    def __init__(self, db_location = 'db'): # assume db is in local directory by default. Intentional, close coupling of code with data
-        self.db = db_driver.DatabaseDriver(db_location)
+    def __init__(self, working_directory = DIR): 
+        self.db = db_driver.DatabaseDriver(working_directory)
         self.client = mqtt.Client()
+        username, password = parse_username_password()
+        self.client.username_pw_set(username, password)
+
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
 
@@ -97,7 +112,6 @@ class MqttOperator:
             info("on_message", "Answering [%s] %s" % (answer_topic, answer_payload))
             self.client.publish(answer_topic, answer_payload)
         
-
 if __name__ == '__main__':
     mqtt_operator = MqttOperator()
     mqtt_operator.operate()

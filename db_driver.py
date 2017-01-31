@@ -47,9 +47,9 @@ def collect_non_dict_value_keys(d):
     return collected
 
 class DatabaseDriver:
-    def __init__(self, directory="db", view='view'):
-        self.directory = Path(directory)
-        self.view = Path(view).resolve() # need it to be absolute for symlinking to work
+    def __init__(self, working_directory="", directory="db", view='view'):
+        self.directory = Path(working_directory) / directory
+        self.view = (Path(working_directory) / view).resolve() # need it to be absolute for symlinking to work
 
     def prepare_directory(self, directory):
         directory.mkdir()

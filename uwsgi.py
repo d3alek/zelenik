@@ -79,24 +79,27 @@ def application(env, start_response):
     axes.xaxis.set_major_locator(locator)
     axes.xaxis.set_major_formatter(AutoDateFormatter(locator, tz=timezone))
     if len(senses) > 0:
-        sense_types = sorted(senses[0].keys())
+        sense_types = sorted(senses[-1].keys())
 
         for sense_type in sense_types:
             alias = ""
             values = []
-            for sense_state in senses:
-                value = sense_state[sense_type]
-                if type(value) is dict:
-                    values.append(float(value['value']))
-                    alias = value['alias']
-                else:
-                    values.append(float(value))
+            times = []
+            for sense_state, time in zip(senses, plot_times):
+                if sense_state.get(sense_type):
+                    value = sense_state[sense_type]
+                    if type(value) is dict:
+                        values.append(float(value['value']))
+                        alias = value['alias']
+                    else:
+                        values.append(float(value))
+                    times.append(time)
 
             if alias == "":
                 label = sense_type
             else: 
                 label = alias
-            plt.plot(plot_times, values, label=label)
+            plt.plot(times, values, label=label)
 
     axes.autoscale()
     image_location = 'db/%s/graph.png' % thing

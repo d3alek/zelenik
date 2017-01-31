@@ -1,0 +1,14 @@
+[Unit]
+Description=uWSGI Module
+After=syslog.target
+
+[Service]
+ExecStart=/www/zelenik/venv/bin/uwsgi --socket 127.0.0.1:3031 --wsgi-file uwsgi.py --master --processes 4 --threads 2 --stats 127.0.0.1:9191 --chdir /www/zelenik/ --virtualenv=/www/zelenik/venv
+Restart=always
+KillSignal=SIGQUIT
+Type=notify
+StandardError=syslog
+NotifyAccess=main
+
+[Install]
+WantedBy=multi-user.target
