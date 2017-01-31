@@ -47,15 +47,15 @@ def application(env, start_response):
     if method == 'POST':
         raw_in = env['wsgi.input'].read()
         query = parse.parse_qsl(raw_in)
-        print(query)
         state, value = query[0]
         state = state.decode('utf-8')
         value = value.decode('utf-8')
-        print(state, value)
         try:
             value_dict = json.loads(value)
         except ValueError:
             error("application", "Could not parse json value. %s %s %s" % (thing, state, value))
+            start_response('200 OK', [('Content-Type','text/html')])
+            return ('Could not parse json value %s. %s %s' % (state, thing, value)).encode('utf-8')
         
         if state == 'desired': 
             db.update_desired(thing, value_dict)
@@ -82,8 +82,21 @@ def application(env, start_response):
         sense_types = sorted(senses[0].keys())
 
         for sense_type in sense_types:
-            values = list(map(float, map(lambda s: s[sense_type], senses)))
-            plt.plot(plot_times, values, label=sense_type)
+            alias = ""
+            values = []
+            for sense_state in senses:
+                value = sense_state[sense_type]
+                if type(value) is dict:
+                    values.append(float(value['value']))
+                    alias = value['alias']
+                else:
+                    values.append(float(value))
+
+            if alias == "":
+                label = sense_type
+            else: 
+                label = alias
+            plt.plot(plot_times, values, label=label)
 
     axes.autoscale()
     image_location = 'db/%s/graph.png' % thing

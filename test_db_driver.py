@@ -198,6 +198,15 @@ class TestDatabaseDriver(unittest.TestCase):
 
         self.then_no_graph()
 
+    def test_update_reported_includes_alias(self):
+        self.given_thing()
+        self.given_alias("value", "temperature")
+        self.given_state("reported", BASE_STATE % '{}') # necessary otherwise next command will override aliases
+
+        self.when_updating_reported(JSN % "a")
+
+        self.then_state_exists("reported", FORMAT % ('{"value": {"value": "a", "alias": "temperature"}}'))
+
     def given_thing(self):
         p = Path(self.db_location) / THING
         p.mkdir()
@@ -221,6 +230,12 @@ class TestDatabaseDriver(unittest.TestCase):
     def given_graph(self):
         p = Path(self.db_location) / THING / "graph.png"
         p.touch()
+
+    def given_alias(self, key, value):
+        p = Path(self.db_location) / THING / "aliases.json"
+        
+        with p.open('w') as f:
+            f.write(json.dumps({key : value}))
 
     def when_updating_desired(self, value):
         self.db.update_desired(THING, json.loads(value)) 

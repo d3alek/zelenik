@@ -87,6 +87,22 @@ class DatabaseDriver:
         p = self.directory / thing / state
         return p.with_suffix(".json")
 
+    def apply_aliases(self, aliases, d):
+        aliased = {}
+        
+        for key, value in d.items():
+            if type(value) is dict:
+                aliased[key] = self.apply_aliases(aliases, value)
+            elif key in aliases.keys() and aliases[key] != "":
+                aliased[key] = {
+                        'value': value,
+                        'alias': aliases[key]
+                        }
+            else:
+                aliased[key] = value
+
+        return aliased
+
     def update_reported(self, thing, value):
         validate_input(thing, "reported", value)
         if value.get('state') and not isinstance(value.get('state'), str): # there is a string state attribute that can get confused with a top level state object
@@ -128,7 +144,9 @@ class DatabaseDriver:
                 log_updated.append('new_aliases_file')
                 info("update_reported", "Created new aliases file for %s" % thing)
             
-        encapsulated_value = encapsulate_and_timestamp(value, "state")
+        aliases = self.load_state(thing, "aliases")
+        aliased_value = self.apply_aliases(aliases, value)
+        encapsulated_value = encapsulate_and_timestamp(aliased_value, "state")
         with state_file.open('w') as f:
             f.write(pretty_json(encapsulated_value))
             log_updated.append('state')
@@ -139,6 +157,7 @@ class DatabaseDriver:
             log_updated.append('deleted_graph')
 
         info("update", "[%s] updated %s" % (thing, pretty_list(log_updated)))
+
 
     def update_desired(self, thing, value):
         validate_input(thing, "desired", value)
