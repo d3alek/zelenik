@@ -12,32 +12,16 @@ pip install -r requirements.txt # May take a really long time (half an hour) on 
 # mosquitto
 # Install mosquitto with your package manager
 # Copy password file in /www/zelenik/secret
-sudo cp /www/zelenik/conf/mosquitto.service /usr/lib/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable mosquitto
-sudo systemctl restart mosquitto
-
 # From now on mosquitto_{sub,pub} -u <username> -P <password>
 
 # mqtt_operator
-sudo cp /www/zelenik/conf/mqtt_operator.service /usr/lib/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable mqtt_operator 
-sudo systemctl restart mqtt_operator
-
 # nginx
 # Install nginx with your package manager
-sudo cp /www/zelenik/conf/nginx.service /usr/lib/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable nginx 
-sudo systemctl restart nginx
-
 # uwsgi
-sudo cp /www/zelenik/conf/uwsgi.service /usr/lib/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable uwsgi
-sudo systemctl restart uwsgi
 
+To setup mosquitto, mqtt_operator, nginx and uwsgi, run
 
+./setup.sh
 
+Then 127.0.0.1 should be accessible but empty. Now arrange for mqtt traffic to reach your host on port 1883
 

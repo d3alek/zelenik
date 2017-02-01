@@ -1,7 +1,7 @@
-sudo cp /www/zelenik/conf/mosquitto.service /usr/lib/systemd/system/ && \
-sudo cp /www/zelenik/conf/mqtt_operator.service /usr/lib/systemd/system/ && \
-sudo cp /www/zelenik/conf/nginx.service /usr/lib/systemd/system/ && \
-sudo cp /www/zelenik/conf/uwsgi.service /usr/lib/systemd/system/ && \
+sudo cp /www/zelenik/conf/mosquitto.service /lib/systemd/system/ && \
+sudo cp /www/zelenik/conf/mqtt_operator.service /lib/systemd/system/ && \
+sudo cp /www/zelenik/conf/nginx.service /systemd/system/ && \
+sudo cp /www/zelenik/conf/uwsgi.service /lib/systemd/system/ && \
 sudo systemctl daemon-reload && \
 sudo systemctl enable mosquitto && \
 sudo systemctl enable mqtt_operator && \
