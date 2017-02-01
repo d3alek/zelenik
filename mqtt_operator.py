@@ -55,8 +55,8 @@ class MqttOperator:
 
     def on_connect(self, client, userdata, flags, rc):
         info("on_connect", "Connected with result code %d" % rc)
-        client.subscribe("/things/+/update")
-        client.subscribe("/things/+/get")
+        client.subscribe("things/+/update")
+        client.subscribe("things/+/get")
 
     def get_answer(self, topic, payload_string):
 
