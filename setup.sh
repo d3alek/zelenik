@@ -1,6 +1,6 @@
 sudo cp /www/zelenik/conf/mosquitto.service /lib/systemd/system/ && \
 sudo cp /www/zelenik/conf/mqtt_operator.service /lib/systemd/system/ && \
-sudo cp /www/zelenik/conf/nginx.service /systemd/system/ && \
+sudo cp /www/zelenik/conf/nginx.service /lib/systemd/system/ && \
 sudo cp /www/zelenik/conf/uwsgi.service /lib/systemd/system/ && \
 sudo systemctl daemon-reload && \
 sudo systemctl enable mosquitto && \
