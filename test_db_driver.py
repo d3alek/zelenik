@@ -2,7 +2,7 @@ import unittest
 from pathlib import Path
 import db_driver
 from tempfile import TemporaryDirectory
-from datetime import date
+from datetime import date, datetime, timedelta
 from zipfile import ZipFile
 import json
 
@@ -10,6 +10,7 @@ THING="thing"
 BASE_STATE = '{"config": %s}'
 FORMAT = '{"state": %s, "timestamp_utc": "2017-01-25 15:34:12.989202"}'
 JSN = '{"value": "%s"}' # separate case from BASE_STATE for convenience - notice the " surrounding %s
+FORMAT_TS = '{"state": %s, "timestamp_utc": "%s"}'
 
 def timeless(d):
     dc = d.copy()
@@ -210,13 +211,29 @@ class TestDatabaseDriver(unittest.TestCase):
         self.then_state_exists("reported", FORMAT % ('{"value": {"value": "a", "alias": "temperature"}}'))
 
     def test_load_history(self):
-        self.given_thing()
-        self.given_state("reported", JSN % "2")
-        self.given_history("reported", JSN % "1")
+        today = datetime.utcnow().isoformat(sep=' ')
+        yesterday = (datetime.utcnow() - timedelta(days=1)).isoformat(sep=' ')
 
-        self.when_loading_history()
+        self.given_thing()
+
+        self.given_state("reported", FORMAT_TS % (JSN % 2, today))
+        self.given_history("reported", FORMAT_TS % (JSN % 1, yesterday))
+
+        self.when_loading_reported_history()
 
         self.then_history_values_are([1, 2])
+
+    def test_load_history_since_days(self):
+        today = datetime.utcnow().isoformat(sep=' ')
+        yesterday = (datetime.utcnow() - timedelta(days=1)).isoformat(sep=' ')
+
+        self.given_thing()
+        self.given_state("reported", FORMAT_TS % (JSN % 2, today))
+        self.given_history("reported", FORMAT_TS % (JSN % 1, yesterday))
+
+        self.when_loading_reported_history(since_days=1)
+
+        self.then_history_values_are([2])
 
     def given_thing(self):
         p = self.db_directory / THING
@@ -265,6 +282,8 @@ class TestDatabaseDriver(unittest.TestCase):
         self.given_state("desired", state_desired % desired_substitution)
 
         self.when_getting_delta()
+    def when_loading_reported_history(self, since_days=1000):
+        self.history = self.db.load_history(THING, 'reported', since_days=since_days)
 
     def then_one_thing(self):
         p = self.db_directory
@@ -343,7 +362,7 @@ class TestDatabaseDriver(unittest.TestCase):
         self.assertFalse(p.exists())
 
     def then_history_values_are(self, values):
-        actual_values = list(map(lambda s: float(s['state']['value']), self.history))
+        actual_values = list(map(lambda s: int(s['state']['value']), self.history))
         self.assertEqual(actual_values, values)
 
 

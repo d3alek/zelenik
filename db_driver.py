@@ -302,19 +302,22 @@ class DatabaseDriver:
 
     def load_history(self, thing, state_name, since_days=1):
         thing_directory = self.directory / thing
-        state_path = thing_directory / "history"/ state_name
+
+        history_path = thing_directory / "history"/ state_name
         #TODO handle multiple years by loading year-1 as well
         today = datetime.utcnow()
-        history_file = state_path.with_suffix(".%d.txt" % today.year)
+        history_file = history_path.with_suffix(".%d.txt" % today.year)
+        if history_file.exists():
+            with history_file.open() as f:
+                states = list(map(json.loads, f.readlines()))
+        else:
+            info("load_history", "No history exists for %s %s" % (thing, state_name))
+            states = []
 
-        if not history_file.exists():
-            info("load_history", "No history loaded as none exists for %s %s" % (thing, state_name))
-            return []
-        with history_file.open() as f:
-            lines = f.readlines()
-        states = list(map(json.loads, lines))
+        state = self.load_state(thing, state_name)
+        states.append(state)
         since_day = today - timedelta(days=since_days)
         filtered_states = list(filter(lambda s: parse_isoformat(s['timestamp_utc']) > since_day, states))
-        return states
+        return filtered_states
 
 
