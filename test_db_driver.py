@@ -19,21 +19,23 @@ def timeless(d):
 
 class TestDatabaseDriver(unittest.TestCase):
     def setUp(self):
-        self.db_directory = TemporaryDirectory()
-        self.db_location = self.db_directory.name
+        self.temp_directory = TemporaryDirectory()
+        self.temp_directory_path = Path(self.temp_directory.name)
+        self.db_directory = self.temp_directory_path / "db"
+        self.db_directory.mkdir()
 
-        self.view_directory = TemporaryDirectory()
+        self.view_directory = self.temp_directory_path / "view"
         view_location = self.view_directory.name
-        index = Path(view_location)  / "index.html"
+        self.view_directory.mkdir()
+        index = self.view_directory  / "index.html"
         index.touch()
-        style = Path(view_location) / "style.html"
+        style = self.view_directory / "style.html"
         style.touch()
 
-        self.db = db_driver.DatabaseDriver(self.db_location, view_location)
+        self.db = db_driver.DatabaseDriver(working_directory=self.temp_directory.name)
 
     def tearDown(self):
-        self.db_directory.cleanup()
-        self.view_directory.cleanup()
+        self.temp_directory.cleanup()
 
     def test_update_reported_creates_thing_with_view(self):
         self.when_updating_reported("{}")
@@ -207,18 +209,27 @@ class TestDatabaseDriver(unittest.TestCase):
 
         self.then_state_exists("reported", FORMAT % ('{"value": {"value": "a", "alias": "temperature"}}'))
 
+    def test_load_history(self):
+        self.given_thing()
+        self.given_state("reported", JSN % "2")
+        self.given_history("reported", JSN % "1")
+
+        self.when_loading_history()
+
+        self.then_history_values_are([1, 2])
+
     def given_thing(self):
-        p = Path(self.db_location) / THING
+        p = self.db_directory / THING
         p.mkdir()
 
     def given_state(self, state, value):
-        p = Path(self.db_location) / THING / state
+        p = self.db_directory / THING / state
         p = p.with_suffix('.json')
         with p.open('w') as f:
             f.write(value)
 
     def given_history(self, state, value, year=date.today().year):
-        p = Path(self.db_location) / THING / "history"
+        p = self.db_directory / THING / "history"
         if not p.is_dir():
             p.mkdir()
         p = p / state
@@ -228,11 +239,11 @@ class TestDatabaseDriver(unittest.TestCase):
             f.write('\n')
     
     def given_graph(self):
-        p = Path(self.db_location) / THING / "graph.png"
+        p = self.db_directory / THING / "graph.png"
         p.touch()
 
     def given_alias(self, key, value):
-        p = Path(self.db_location) / THING / "aliases.json"
+        p = self.db_directory / THING / "aliases.json"
         
         with p.open('w') as f:
             f.write(json.dumps({key : value}))
@@ -256,22 +267,22 @@ class TestDatabaseDriver(unittest.TestCase):
         self.when_getting_delta()
 
     def then_one_thing(self):
-        p = Path(self.db_location)
+        p = self.db_directory
         things = [x for x in p.iterdir()]
         self.assertEqual(len(things), 1)
 
     def then_thing_exists(self):
-        p = Path(self.db_location) / THING
+        p = self.db_directory / THING
         self.assertTrue(p.exists())
 
     def then_one_state(self):
-        p = Path(self.db_location) / THING
+        p = self.db_directory / THING
         states = [x for x in p.iterdir() if x.match('*.json')]
 
         self.assertEqual(len(states), 1)
 
     def then_state_exists(self, state, value):
-        p = Path(self.db_location) / THING / state 
+        p = self.db_directory / THING / state 
         p = p.with_suffix('.json')
         with p.open() as f:
             contents = timeless(json.loads(f.read()))
@@ -280,7 +291,7 @@ class TestDatabaseDriver(unittest.TestCase):
         self.assertEqual(contents, expected_value)
 
     def then_has_timestamp(self, state):
-        p = Path(self.db_location) / THING / state 
+        p = self.db_directory / THING / state 
         p = p.with_suffix('.json')
         with p.open() as f:
             contents = json.loads(f.read())
@@ -288,7 +299,7 @@ class TestDatabaseDriver(unittest.TestCase):
         self.assertTrue(contents.get('timestamp_utc'))
 
     def then_history_has_timestamp(self, state):
-        p = Path(self.db_location) / THING / 'history' / state 
+        p = self.db_directory / THING / 'history' / state 
         p = p.with_suffix('.%d.txt' % date.today().year)
         with p.open() as f:
             contents = json.loads(f.read())
@@ -297,12 +308,12 @@ class TestDatabaseDriver(unittest.TestCase):
 
 
     def then_two_histories(self, state):
-        p = Path(self.db_location) / THING / "history"
+        p = self.db_directory / THING / "history"
         histories = [x for x in p.iterdir() if x.match('%s*' % state)]
         self.assertEqual(len(histories), 2)
 
     def then_history_exists(self, state, value, year = date.today().year):
-        p = Path(self.db_location) / THING / "history" / state 
+        p = self.db_directory / THING / "history" / state 
         p = p.with_suffix('.%d.txt' % year)
         with p.open() as f:
             lines = f.readlines()
@@ -312,7 +323,7 @@ class TestDatabaseDriver(unittest.TestCase):
         self.assertEqual(actual, expected)
 
     def then_archive_exists(self, state, year, value):
-        p = Path(self.db_location) / THING / "history" / "archive" / state 
+        p = self.db_directory / THING / "history" / "archive" / state 
         p = p.with_suffix('.%d.zip' % year)
         file_name = "%s.%d.txt" % (state, year)
         with ZipFile(str(p)) as zf:
@@ -324,14 +335,16 @@ class TestDatabaseDriver(unittest.TestCase):
         self.assertEqual(json.loads(self.delta), json.loads(delta_string))
 
     def then_thing_has_view(self):
-        p = Path(self.db_location) / THING / "index.html"
+        p = self.db_directory / THING / "index.html"
         self.assertTrue(p.exists())
 
     def then_no_graph(self):
-        p = Path(self.db_location) / THING / "graph.png"
+        p = self.db_directory / THING / "graph.png"
         self.assertFalse(p.exists())
 
-
+    def then_history_values_are(self, values):
+        actual_values = list(map(lambda s: float(s['state']['value']), self.history))
+        self.assertEqual(actual_values, values)
 
 
 if __name__ == '__main__':

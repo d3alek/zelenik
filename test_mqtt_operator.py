@@ -11,12 +11,13 @@ BASE_STATE = '{"state": %s}'
 
 class TestMqttOperator(unittest.TestCase):
     def setUp(self):
-        self.db_directory = TemporaryDirectory()
-        self.db_location = self.db_directory.name
-        self.operator = mqtt_operator.MqttOperator(self.db_location)
+        self.tmp_directory = TemporaryDirectory()
+        self.db_directory = Path(self.tmp_directory.name) / 'db'
+        self.db_directory.mkdir()
+        self.operator = mqtt_operator.MqttOperator(self.tmp_directory.name)
 
     def tearDown(self):
-        self.db_directory.cleanup()
+        self.tmp_directory.cleanup()
 
     def test_safely_log_non_json(self):
         self.given_message('non-json', 'non-json')
@@ -80,12 +81,12 @@ class TestMqttOperator(unittest.TestCase):
         self.assertEqual(answer_payload, expected_answer_payload)
 
     def then_state_does_not_exist(self, state):
-        p = Path(self.db_location) / THING / state 
+        p = self.db_directory / THING / state 
         p = p.with_suffix('.json')
         self.assertFalse(p.exists())
 
     def then_state_exists(self, state, expected_value):
-        p = Path(self.db_location) / THING / state 
+        p = self.db_directory / THING / state 
         p = p.with_suffix('.json')
         with p.open() as f:
             contents = f.read()

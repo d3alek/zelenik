@@ -38,37 +38,32 @@ def parse_update_state(uri):
     state = match.group(2)
     return state
 
-def application(env, start_response):
-    print(env.items())
-    method = env['REQUEST_METHOD']
-    uri = env['REQUEST_URI']
-    thing = parse_thing(uri)
-
-    if method == 'POST':
-        raw_in = env['wsgi.input'].read()
-        query = parse.parse_qsl(raw_in)
-        state, value = query[0]
-        state = state.decode('utf-8')
-        value = value.decode('utf-8')
-        try:
-            value_dict = json.loads(value)
-        except ValueError:
-            error("application", "Could not parse json value. %s %s %s" % (thing, state, value))
-            start_response('200 OK', [('Content-Type','text/html')])
-            return ('Could not parse json value %s. %s %s' % (state, thing, value)).encode('utf-8')
-        
-        if state == 'desired': 
-            db.update_desired(thing, value_dict)
-        elif state == 'aliases':
-            db.update_aliases(thing, value_dict)
-        else:
-            start_response('200 OK', [('Content-Type','text/plain')])
-            return ('Not allowed to change state %s. %s %s' % (state, thing, value)).encode('utf-8')
-
+def handle_update(start_response, env, thing):
+    raw_in = env['wsgi.input'].read()
+    query = parse.parse_qsl(raw_in)
+    state, value = query[0]
+    state = state.decode('utf-8')
+    value = value.decode('utf-8')
+    try:
+        value_dict = json.loads(value)
+    except ValueError:
+        error("application", "Could not parse json value. %s %s %s" % (thing, state, value))
         start_response('200 OK', [('Content-Type','text/html')])
-        back_url = ('/' + thing)
-        return (REDIRECT % (back_url, 'Success.', back_url)).encode('utf-8')
+        return ('Could not parse json value %s. %s %s' % (state, thing, value)).encode('utf-8')
+    
+    if state == 'desired': 
+        db.update_desired(thing, value_dict)
+    elif state == 'aliases':
+        db.update_aliases(thing, value_dict)
+    else:
+        start_response('200 OK', [('Content-Type','text/plain')])
+        return ('Not allowed to change state %s. %s %s' % (state, thing, value)).encode('utf-8')
 
+    start_response('200 OK', [('Content-Type','text/html')])
+    back_url = ('/' + thing)
+    return (REDIRECT % (back_url, 'Success.', back_url)).encode('utf-8')
+
+def handle_graph(start_response, thing):
     history = db.load_history(thing, 'reported', since_days=1)
     times = list(map(lambda s: db_driver.parse_isoformat(s['timestamp_utc']), history))
     plot_times = list(map(lambda t: date2num(t), times))
@@ -111,3 +106,15 @@ def application(env, start_response):
         image_bytes = f.read()
     start_response('200 OK', [('Content-Type','image/png')])
     return image_bytes
+
+def application(env, start_response):
+    print(env.items())
+    method = env['REQUEST_METHOD']
+    uri = env['REQUEST_URI']
+    thing = parse_thing(uri)
+
+    if method == 'POST':
+        return handle_update(start_response, env, thing)
+    else:
+        return handle_graph(start_response, thing)
+

@@ -49,12 +49,15 @@ def collect_non_dict_value_keys(d):
 class DatabaseDriver:
     def __init__(self, working_directory="", directory="db", view='view'):
         self.directory = Path(working_directory) / directory
-        self.view = (Path(working_directory) / view).resolve() # need it to be absolute for symlinking to work
+        self.view = (Path(working_directory) / view)
 
     def prepare_directory(self, directory):
         directory.mkdir()
         index = directory / "index.html"
         style = directory / "style.css"
+        if not self.view.is_dir():
+            self.view.mkdir()
+        self.view = self.view.resolve() # need it to be absolute for symlinking to work
         index.symlink_to(self.view / "index.html")
         style.symlink_to(self.view / "style.css")
 
@@ -301,7 +304,7 @@ class DatabaseDriver:
         thing_directory = self.directory / thing
         state_path = thing_directory / "history"/ state_name
         #TODO handle multiple years by loading year-1 as well
-        today = datetime.today()
+        today = datetime.utcnow()
         history_file = state_path.with_suffix(".%d.txt" % today.year)
 
         if not history_file.exists():
