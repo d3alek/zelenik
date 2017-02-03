@@ -38,9 +38,32 @@ class TestDatabaseDriver(unittest.TestCase):
     def tearDown(self):
         self.temp_directory.cleanup()
 
+    def given_thing(self):
+        p = self.db_directory / THING
+        p.mkdir()
+
+    def given_state(self, state, value):
+        p = self.db_directory / THING / state
+        p = p.with_suffix('.json')
+        with p.open('w') as f:
+            f.write(value)
+
+    def when_updating_reported(self, value):
+        self.db.update_reported(THING, json.loads(value)) 
+
+    def then_state_exists(self, state, value):
+        p = self.db_directory / THING / state 
+        p = p.with_suffix('.json')
+        with p.open() as f:
+            contents = timeless(json.loads(f.read()))
+
+        expected_value = timeless(json.loads(value))
+        self.assertEqual(contents, expected_value)
+
+
+class TestDatabaseDriverUpdate(TestDatabaseDriver):
     def test_update_reported_creates_thing_with_view(self):
         self.when_updating_reported("{}")
-
         self.then_one_thing()
         self.then_thing_exists()
         self.then_thing_has_view()
@@ -73,14 +96,6 @@ class TestDatabaseDriver(unittest.TestCase):
 
         self.then_has_timestamp("reported")
 
-    def test_update_reported_adds_timestamp(self):
-        self.given_thing()
-        self.given_state("desired", JSN % 1)
-
-        self.when_updating_desired(JSN % 2)
-
-        self.then_history_has_timestamp("desired")
-
     def test_update_updates_state(self):
         self.given_thing()
         self.given_state("reported", FORMAT % JSN % 1)
@@ -89,37 +104,61 @@ class TestDatabaseDriver(unittest.TestCase):
 
         self.then_state_exists("reported", FORMAT % JSN % 2)
 
-    def test_update_stores_history(self):
+    def test_update_reported_deletes_graph(self):
         self.given_thing()
-        self.given_state("reported", FORMAT % JSN % 1)
+        self.given_state("reported", BASE_STATE % '{}')
+        self.given_graph()
 
-        self.when_updating_reported(JSN % 2)
+        self.when_updating_reported(JSN % 1)
 
-        self.then_history_exists("reported", FORMAT % JSN % 1)
+        self.then_no_graph()
 
-    def test_update_appends_to_history(self):
+    def test_update_reported_includes_alias(self):
         self.given_thing()
-        self.given_state("reported", FORMAT % JSN % 2)
-        self.given_history("reported", FORMAT % JSN % 1)
+        self.given_alias("value", "temperature")
+        self.given_state("reported", BASE_STATE % '{}') # necessary otherwise next command will override aliases
 
-        self.when_updating_reported(JSN % 3)
+        self.when_updating_reported(JSN % "a")
 
-        self.then_history_exists("reported", "%s\n%s" % (FORMAT % JSN % 1, FORMAT % JSN % 2))
+        self.then_state_exists("reported", FORMAT % ('{"value": {"value": "a", "alias": "temperature"}}'))
 
-    def test_update_archives_history_from_two_years_ago(self):
-        year = date.today().year
-        self.given_thing()
-        self.given_state("reported", JSN % "old")
-        self.given_history("reported", JSN % "oldest", year=year-2)
-        self.given_history("reported", JSN % "older", year=year-1)
-        self.when_updating_reported(JSN % "new")
+    def given_graph(self):
+        p = self.db_directory / THING / "graph.png"
+        p.touch()
 
-        self.then_two_histories("reported")
-        self.then_history_exists("reported", JSN % "older", year=year-1)
-        self.then_history_exists("reported", JSN % "old")
-        self.then_archive_exists("reported", year-2, JSN % "oldest")
-        self.then_state_exists("reported", FORMAT % JSN % "new")
+    def given_alias(self, key, value):
+        p = self.db_directory / THING / "aliases.json"
+        
+        with p.open('w') as f:
+            f.write(json.dumps({key : value}))
 
+    def then_no_graph(self):
+        p = self.db_directory / THING / "graph.png"
+        self.assertFalse(p.exists())
+
+    def then_one_thing(self):
+        p = self.db_directory
+        things = [x for x in p.iterdir()]
+        self.assertEqual(len(things), 1)
+
+    def then_thing_exists(self):
+        p = self.db_directory / THING
+        self.assertTrue(p.exists())
+
+    def then_thing_has_view(self):
+        p = self.db_directory / THING / "index.html"
+        self.assertTrue(p.exists())
+
+    def then_has_timestamp(self, state):
+        p = self.db_directory / THING / state 
+        p = p.with_suffix('.json')
+        with p.open() as f:
+            contents = json.loads(f.read())
+
+        self.assertTrue(contents.get('timestamp_utc'))
+
+
+class TestDatabaseDriverGetDelta(TestDatabaseDriver): 
     def test_get_delta_no_desired(self):
         json_string = FORMAT % BASE_STATE % '{}'
 
@@ -192,23 +231,54 @@ class TestDatabaseDriver(unittest.TestCase):
 
         self.then_delta_is(one_level % (2, 2))
 
-    def test_update_reported_deletes_graph(self):
+    def when_getting_delta(self):
+        self.delta = self.db.get_delta(THING)  
+
+    def when_getting_reported_desired_delta(self, base_state_supplement, reported_substitution, desired_substitution):
+        state_reported = FORMAT % BASE_STATE % base_state_supplement
+        state_desired = base_state_supplement
+
         self.given_thing()
-        self.given_state("reported", BASE_STATE % '{}')
-        self.given_graph()
+        self.given_state("reported", state_reported % reported_substitution)
+        self.given_state("desired", state_desired % desired_substitution)
 
-        self.when_updating_reported(JSN % 1)
+        self.when_getting_delta()
 
-        self.then_no_graph()
+    def then_delta_is(self, delta_string):
+        self.assertEqual(json.loads(self.delta), json.loads(delta_string))
 
-    def test_update_reported_includes_alias(self):
+
+class TestDatabaseDriverHistory(TestDatabaseDriver): 
+    def test_update_stores_history(self):
         self.given_thing()
-        self.given_alias("value", "temperature")
-        self.given_state("reported", BASE_STATE % '{}') # necessary otherwise next command will override aliases
+        self.given_state("reported", FORMAT % JSN % 1)
 
-        self.when_updating_reported(JSN % "a")
+        self.when_updating_reported(JSN % 2)
 
-        self.then_state_exists("reported", FORMAT % ('{"value": {"value": "a", "alias": "temperature"}}'))
+        self.then_history_exists("reported", FORMAT % JSN % 1)
+
+    def test_update_appends_to_history(self):
+        self.given_thing()
+        self.given_state("reported", FORMAT % JSN % 2)
+        self.given_history("reported", FORMAT % JSN % 1)
+
+        self.when_updating_reported(JSN % 3)
+
+        self.then_history_exists("reported", "%s\n%s" % (FORMAT % JSN % 1, FORMAT % JSN % 2))
+
+    def test_update_archives_history_from_two_years_ago(self):
+        year = date.today().year
+        self.given_thing()
+        self.given_state("reported", JSN % "old")
+        self.given_history("reported", JSN % "oldest", year=year-2)
+        self.given_history("reported", JSN % "older", year=year-1)
+        self.when_updating_reported(JSN % "new")
+
+        self.then_two_histories("reported")
+        self.then_history_exists("reported", JSN % "older", year=year-1)
+        self.then_history_exists("reported", JSN % "old")
+        self.then_archive_exists("reported", year-2, JSN % "oldest")
+        self.then_state_exists("reported", FORMAT % JSN % "new")
 
     def test_load_history(self):
         today = datetime.utcnow().isoformat(sep=' ')
@@ -235,15 +305,13 @@ class TestDatabaseDriver(unittest.TestCase):
 
         self.then_history_values_are([2])
 
-    def given_thing(self):
-        p = self.db_directory / THING
-        p.mkdir()
+    def test_update_desired_adds_history_timestamp(self):
+        self.given_thing()
+        self.given_state("desired", JSN % 1)
 
-    def given_state(self, state, value):
-        p = self.db_directory / THING / state
-        p = p.with_suffix('.json')
-        with p.open('w') as f:
-            f.write(value)
+        self.when_updating_desired(JSN % 2)
+
+        self.then_history_has_timestamp("desired")
 
     def given_history(self, state, value, year=date.today().year):
         p = self.db_directory / THING / "history"
@@ -254,68 +322,12 @@ class TestDatabaseDriver(unittest.TestCase):
         with p.open('w') as f:
             f.write(value)
             f.write('\n')
-    
-    def given_graph(self):
-        p = self.db_directory / THING / "graph.png"
-        p.touch()
-
-    def given_alias(self, key, value):
-        p = self.db_directory / THING / "aliases.json"
-        
-        with p.open('w') as f:
-            f.write(json.dumps({key : value}))
 
     def when_updating_desired(self, value):
         self.db.update_desired(THING, json.loads(value)) 
 
-    def when_updating_reported(self, value):
-        self.db.update_reported(THING, json.loads(value)) 
-
-    def when_getting_delta(self):
-        self.delta = self.db.get_delta(THING)  
-    def when_getting_reported_desired_delta(self, base_state_supplement, reported_substitution, desired_substitution):
-        state_reported = FORMAT % BASE_STATE % base_state_supplement
-        state_desired = base_state_supplement
-
-        self.given_thing()
-        self.given_state("reported", state_reported % reported_substitution)
-        self.given_state("desired", state_desired % desired_substitution)
-
-        self.when_getting_delta()
     def when_loading_reported_history(self, since_days=1000):
         self.history = self.db.load_history(THING, 'reported', since_days=since_days)
-
-    def then_one_thing(self):
-        p = self.db_directory
-        things = [x for x in p.iterdir()]
-        self.assertEqual(len(things), 1)
-
-    def then_thing_exists(self):
-        p = self.db_directory / THING
-        self.assertTrue(p.exists())
-
-    def then_one_state(self):
-        p = self.db_directory / THING
-        states = [x for x in p.iterdir() if x.match('*.json')]
-
-        self.assertEqual(len(states), 1)
-
-    def then_state_exists(self, state, value):
-        p = self.db_directory / THING / state 
-        p = p.with_suffix('.json')
-        with p.open() as f:
-            contents = timeless(json.loads(f.read()))
-
-        expected_value = timeless(json.loads(value))
-        self.assertEqual(contents, expected_value)
-
-    def then_has_timestamp(self, state):
-        p = self.db_directory / THING / state 
-        p = p.with_suffix('.json')
-        with p.open() as f:
-            contents = json.loads(f.read())
-
-        self.assertTrue(contents.get('timestamp_utc'))
 
     def then_history_has_timestamp(self, state):
         p = self.db_directory / THING / 'history' / state 
@@ -350,21 +362,9 @@ class TestDatabaseDriver(unittest.TestCase):
             text = byte_text.decode('utf-8')
             self.assertEqual(text.strip(), value)
 
-    def then_delta_is(self, delta_string):
-        self.assertEqual(json.loads(self.delta), json.loads(delta_string))
-
-    def then_thing_has_view(self):
-        p = self.db_directory / THING / "index.html"
-        self.assertTrue(p.exists())
-
-    def then_no_graph(self):
-        p = self.db_directory / THING / "graph.png"
-        self.assertFalse(p.exists())
-
     def then_history_values_are(self, values):
         actual_values = list(map(lambda s: int(s['state']['value']), self.history))
         self.assertEqual(actual_values, values)
-
 
 if __name__ == '__main__':
     unittest.main()
