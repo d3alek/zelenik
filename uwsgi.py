@@ -60,7 +60,7 @@ def handle_update(start_response, env, thing):
         return ('Not allowed to change state %s. %s %s' % (state, thing, value)).encode('utf-8')
 
     start_response('200 OK', [('Content-Type','text/html')])
-    back_url = ('/' + thing)
+    back_url = ('/db/' + thing)
     return (REDIRECT % (back_url, 'Success.', back_url)).encode('utf-8')
 
 def handle_graph(start_response, thing):
