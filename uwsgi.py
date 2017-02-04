@@ -23,7 +23,7 @@ def error(method, message):
     print("! uwsgi/%s: %s" % (method, message))
 
 def parse_thing(uri):
-    match = re.match(r'/([a-zA-Z0-9-]+)\/', uri)
+    match = re.match(r'/db/([a-zA-Z0-9-]+)\/', uri)
     if not match:
         info("parse_thing", "Could not parse thing from uri %s" % uri)
         return ""
@@ -31,7 +31,7 @@ def parse_thing(uri):
     return thing
 
 def parse_update_state(uri):
-    match = re.match(r'/([a-zA-Z0-9-]+)\/update_(.+)', uri)
+    match = re.match(r'/db/([a-zA-Z0-9-]+)\/update_(.+)', uri)
     if not match:
         info("parse_update_state", "Could not parse update state from uri %s" % uri)
         return ""
@@ -112,6 +112,7 @@ def application(env, start_response):
     method = env['REQUEST_METHOD']
     uri = env['REQUEST_URI']
     thing = parse_thing(uri)
+    print("Thing: ", thing)
 
     if method == 'POST':
         return handle_update(start_response, env, thing)
