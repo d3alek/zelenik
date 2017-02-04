@@ -81,7 +81,7 @@ def handle_graph(start_response, thing):
             values = []
             times = []
             for sense_state, time in zip(senses, plot_times):
-                if sense_state.get(sense_type):
+                if sense_state.get(sense_type) is not None:
                     value = sense_state[sense_type]
                     if type(value) is dict:
                         values.append(float(value['value']))
