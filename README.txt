@@ -25,3 +25,6 @@ To setup mosquitto, mqtt_operator, nginx and uwsgi, run
 
 Then 127.0.0.1 should be accessible but empty. Now arrange for mqtt traffic to reach your host on port 1883
 
+May need to execute the following command for the index page to work
+
+git submodule update --init
