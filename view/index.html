@@ -9,9 +9,7 @@
     <body>
         <!--# block name="none" -->None<!--# endblock -->
 
-        <h3>
-        Зеленик <!--# echo var="thing" -->
-        </h3>
+        <h1>Зеленик <!--# echo var="thing" --></h1>
 
         <hr />
 
@@ -37,12 +35,21 @@
         </div>
 
         <div id="aliases">
-        Aliases:
+        Aliases
         <br>
         <form action="update" method="POST">
         <textarea name="aliases" wrap="off" rows="10" cols="40"><!--#include file="aliases.json" stub="none"--></textarea>
         <br>
         <input type="submit" value="Update">
         </form>
+        <hr />
+        <footer>
+            Зеленик 2017
+            <ul>
+                <li><a href="/">Начало</a></li>
+                <li><a href="/db">Всички устройства</a></li>
+                <li><a href="mailto:akodzhabashev@gmail.com">Свържете се с нас</a></li>
+            </ul>
+        </footer>
     </body>
 </html>
