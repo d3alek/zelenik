@@ -1,44 +1,54 @@
-<link href="style.css" rel="stylesheet" type="text/css" />
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width" />
+        <title>Зеленик <!--# echo var="thing" --></title>
+        <link href="style.css" rel="stylesheet" type="text/css" />
+    </head>
+    <body>
+        <!--# block name="none" -->
+        None
+        <!--# endblock -->
 
-<!--# block name="none" -->
-None
-<!--# endblock -->
+        <div id="header">
+        <!--# echo var="thing" -->
+        </div>
 
-<div id="header">
-<!--# echo var="thing" -->
-</div>
+        <div id="reported">
+        Reported
+        <pre>
+        <!--#include file="reported.json" -->
+        </pre>
+        </div>
 
-<div id="reported">
-Reported
-<pre>
-<!--#include file="reported.json" -->
-</pre>
-</div>
+        <div id="desired">
+        Desired 
+        <br>
+        <form action="update" method="POST">
+        <textarea name="desired" wrap="off" rows="15" cols="60">
+        <!--#include file="desired.json" stub="none"-->
+        </textarea>
+        <br>
+        <input type="submit" value="Update">
+        </form>
+        </div>
 
-<div id="desired">
-Desired 
-<br>
-<form action="update" method="POST">
-<textarea name="desired" wrap="off" rows="15" cols="60">
-<!--#include file="desired.json" stub="none"-->
-</textarea>
-<br>
-<input type="submit" value="Update">
-</form>
-</div>
+        <div class="clear"></div>
 
-<div class="clear"></div>
+        <div id="graph">
+        <img src="graph.png">
+        </div>
 
-<div id="graph">
-<img src="graph.png">
-</div>
+        <div id="aliases">
+        Aliases:
+        <br>
+        <form action="update" method="POST">
+        <textarea name="aliases" wrap="off" rows="10" cols="80">
+        <!--#include file="aliases.json" stub="none"-->
+        </textarea>
+        <input type="submit" value="Update">
+        </form>
 
-<div id="aliases">
-Aliases:
-<br>
-<form action="update" method="POST">
-<textarea name="aliases" wrap="off" rows="10" cols="80">
-<!--#include file="aliases.json" stub="none"-->
-</textarea>
-<input type="submit" value="Update">
-</form>
+    </body>
+</html>
