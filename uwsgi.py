@@ -101,7 +101,7 @@ def handle_graph(start_response, thing):
     # top of plot, based on example from http://matplotlib.org/users/legend_guide.html
     plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
                        ncol=3, mode="expand", borderaxespad=0.)
-    plt.savefig(image_location, dpi=100)
+    plt.savefig(image_location, dpi=100, bbox_inches='tight')
     with open(image_location, 'rb') as f:
         image_bytes = f.read()
     start_response('200 OK', [('Content-Type','image/png')])

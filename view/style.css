@@ -1,14 +1,30 @@
-#reported
-{
-    float: left;
-    width: 50%;
+body {
+    font-size: 1rem;
+    text-align: left;
+
+
+    max-width: 1024px;
+    max-width: 64rem;
+
+    margin: 0 auto;
+    padding: 0 16px;
+    padding: 0 1rem;
 }
-#desired
-{
-    float: left;
-    width: 50%;
+
+textarea {
+    font-size: 1rem;
 }
 
 .clear {
     clear: both;
+}
+
+@media all and (min-width: 840px) {
+    #reported, #desired {
+        float: left;
+        width: 50%;
+    }
+    footer ul li {
+        float: left;
+    }
 }
