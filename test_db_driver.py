@@ -5,6 +5,7 @@ from tempfile import TemporaryDirectory
 from datetime import date, datetime, timedelta
 from zipfile import ZipFile
 import json
+import state_processor
 
 THING="thing"
 BASE_STATE = '{"config": %s}'
@@ -365,6 +366,31 @@ class TestDatabaseDriverHistory(TestDatabaseDriver):
     def then_history_values_are(self, values):
         actual_values = list(map(lambda s: int(s['state']['value']), self.history))
         self.assertEqual(actual_values, values)
+
+class TestDatabaseDriverStateProcessor(TestDatabaseDriverGetDelta):
+    def test_update_action_prettifies(self):
+        action = '{"actions": {"A|sense|10H":"21~1"}}'
+        exploded_action = json.dumps(state_processor.explode(json.loads(action)))
+
+        self.when_updating_reported(action)
+
+        self.then_state_exists("reported", FORMAT % exploded_action )
+
+    def test_get_delta_compacts(self):
+        compact_from = '{"actions":{"A|I2C-9|4L":"5~1"}}'
+        compact_to = '{"actions":{"A|I2C-9|4H":"5~1"}}'
+        exploded_from = json.dumps(state_processor.explode(json.loads(compact_from)))
+        exploded_to = json.dumps(state_processor.explode(json.loads(compact_to)))
+        state_reported = FORMAT % BASE_STATE % exploded_from
+        state_desired = exploded_to
+
+        self.given_thing()
+        self.given_state("reported", state_reported)
+        self.given_state("desired", state_desired)
+
+        self.when_getting_delta()
+
+        self.then_delta_is(compact_to)
 
 if __name__ == '__main__':
     unittest.main()

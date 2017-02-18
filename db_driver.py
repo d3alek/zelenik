@@ -4,6 +4,7 @@ from zipfile import ZipFile
 import json
 import json_delta
 from datetime import datetime, timedelta
+import state_processor
 
 def aliasable(s):
     b = s not in ['lawake', 'sleep', 'state', 'version', 'voltage', 'wifi']
@@ -121,6 +122,8 @@ class DatabaseDriver:
         state = "reported"
         state_file = self.get_state_path(thing, state)
 
+        value = state_processor.explode(value)
+        
         if state_file.exists():
             with state_file.open() as f:
                 previous_value = json.loads(f.read())
@@ -260,7 +263,9 @@ class DatabaseDriver:
         if to_state == {}:
             info("get_delta", "desired of %s is empty. Assuming no delta needed." % thing)
             return "{}"
-        delta_stanza = json_delta.diff(from_state, to_state, verbose=False)
+        compact_from = state_processor.compact(from_state)
+        compact_to = state_processor.compact(to_state)
+        delta_stanza = json_delta.diff(compact_from, compact_to, verbose=False)
 
         if delta_stanza == []:
             return "{}"
