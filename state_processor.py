@@ -1,5 +1,7 @@
 import re
 
+DELETE = -2
+
 # key has the form A|sense|<pin#><H,L or absent>
 ACTION_KEY_PATTERN = re.compile(r'^A\|([a-zA-Z0-9-]+)\|(\d+)([HL]?)$')
 
@@ -50,7 +52,7 @@ def explode_actions(actions):
         threshold = int(m.group(1))
         delta = int(m.group(2))
 
-        exploded[sense] = {"gpio": gpio, "write": write, "threshold": threshold, "delta": delta}
+        exploded[sense] = {"gpio": gpio, "write": write, "threshold": threshold, "delta": delta, "delete": "no"}
 
     return exploded
 
@@ -62,14 +64,18 @@ def compact_actions(actions):
             error('compact_actions', 'Could not compact action with non-dict value: %s' % actions)
             compacted[key] = value
             continue
-        if value.get('gpio') is None or value.get('write') is None or value.get('threshold') is None or value.get('delta') is None:
+        if value.get('gpio') is None or value.get('write') is None or value.get('threshold') is None or value.get('delta') is None or value.get('delete') is None:
             error('compact_actions', 'Could not compact action incomplete dict value: %s' % actions)
             compacted[key] = value
             continue
         sense = key
         compacted_key = 'A|%s|%d%s' % (sense, value['gpio'], compact_write(value['write']))
 
-        compacted_value = '%d~%d' % (value['threshold'], value['delta'])
+        delta_or_delete = value['delta']
+        if value['delete'] == 'yes':
+            delta_or_delete = DELETE
+
+        compacted_value = '%d~%d' % (value['threshold'], delta_or_delete)
         compacted[compacted_key] = compacted_value
 
     return compacted

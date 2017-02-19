@@ -14,7 +14,7 @@ class TestStateProcessor(unittest.TestCase):
 
     def test_explode_action(self):
         compact = ACTIONS % '{"A|sense|1H": "10~2"}'
-        exploded = ACTIONS % '{"sense": {"gpio": 1, "write": "high", "threshold": 10, "delta": 2}}'
+        exploded = ACTIONS % '{"sense": {"gpio": 1, "write": "high", "threshold": 10, "delta": 2, "delete": "no"}}'
 
         self.when_exploding(compact)
 
@@ -22,7 +22,7 @@ class TestStateProcessor(unittest.TestCase):
 
     def test_explode_action_defaults_high(self):
         compact = ACTIONS % '{"A|sense|1": "10~2"}'
-        exploded = ACTIONS % '{"sense": {"gpio": 1, "write": "high", "threshold": 10, "delta": 2}}'
+        exploded = ACTIONS % '{"sense": {"gpio": 1, "write": "high", "threshold": 10, "delta": 2, "delete": "no"}}'
 
         self.when_exploding(compact)
 
@@ -30,7 +30,7 @@ class TestStateProcessor(unittest.TestCase):
 
     def test_explode_action_low(self):
         compact = ACTIONS % '{"A|sense|1L": "10~2"}'
-        exploded = ACTIONS % '{"sense": {"gpio": 1, "write": "low", "threshold": 10, "delta": 2}}'
+        exploded = ACTIONS % '{"sense": {"gpio": 1, "write": "low", "threshold": 10, "delta": 2, "delete": "no"}}'
 
         self.when_exploding(compact)
 
@@ -44,8 +44,13 @@ class TestStateProcessor(unittest.TestCase):
 
         self.then_compact(compact)
 
-    def test_explode_action_adds_delete(self):
-        self.fail()
+    def test_compact_action_writes_delete(self):
+        exploded = ACTIONS % '{"sense": {"gpio": 1, "write": "low", "threshold": 10, "delta": 2, "delete": "yes"}}'
+        compact = ACTIONS % '{"A|sense|1L": "10~-2"}'
+
+        self.when_compacting(exploded)
+
+        self.then_compact(compact)
 
     def when_exploding(self, json_string):
         self.exploded = state_processor.explode(json.loads(json_string))
