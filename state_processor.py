@@ -1,6 +1,9 @@
 import re
 
 DELETE = -2
+DEFAULT_WRITE = "high" 
+DEFAULT_DELTA = 0
+DEFAULT_DELETE = "no"
 
 # key has the form A|sense|<pin#><H,L or absent>
 ACTION_KEY_PATTERN = re.compile(r'^A\|([a-zA-Z0-9-]+)\|(\d+)([HL]?)$')
@@ -18,7 +21,7 @@ def explode_write(letter):
         return 'low'
 
     # default
-    return 'high'
+    return DEFAULT_WRITE
 
 def compact_write(word):
     if word == 'high':
@@ -28,8 +31,8 @@ def compact_write(word):
         return 'L'
 
     else:
-        error("compact_write", "Word is neither high nor low - %s. Returning H" % word)
-        return 'H'
+        error("compact_write", "Word is neither high nor low - %s. Returning default %s" % (word, DEFAULT_WRITE))
+        return compact_write(DEFAULT_WRITE)
 
 def explode_actions(actions):
     exploded = {}
@@ -64,15 +67,15 @@ def compact_actions(actions):
             error('compact_actions', 'Could not compact action with non-dict value: %s' % actions)
             compacted[key] = value
             continue
-        if value.get('gpio') is None or value.get('write') is None or value.get('threshold') is None or value.get('delta') is None or value.get('delete') is None:
+        if value.get('gpio') is None or value.get('threshold') is None:
             error('compact_actions', 'Could not compact action incomplete dict value: %s' % actions)
             compacted[key] = value
             continue
         sense = key
-        compacted_key = 'A|%s|%d%s' % (sense, value['gpio'], compact_write(value['write']))
+        compacted_key = 'A|%s|%d%s' % (sense, value['gpio'], compact_write(value.get('write', DEFAULT_WRITE)))
 
-        delta_or_delete = value['delta']
-        if value['delete'] == 'yes':
+        delta_or_delete = value.get('delta', DEFAULT_DELTA)
+        if value.get('delete', DEFAULT_DELETE) == 'yes':
             delta_or_delete = DELETE
 
         compacted_value = '%d~%d' % (value['threshold'], delta_or_delete)

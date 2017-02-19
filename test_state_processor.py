@@ -52,6 +52,14 @@ class TestStateProcessor(unittest.TestCase):
 
         self.then_compact(compact)
 
+    def test_compact_action_assumes_defaults(self):
+        exploded = ACTIONS % '{"sense": {"gpio": 1, "threshold": 10}}'
+        compact = ACTIONS % '{"A|sense|1H": "10~0"}'
+
+        self.when_compacting(exploded)
+
+        self.then_compact(compact)
+
     def when_exploding(self, json_string):
         self.exploded = state_processor.explode(json.loads(json_string))
 
