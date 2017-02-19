@@ -129,29 +129,16 @@ class DatabaseDriver:
                 previous_value = json.loads(f.read())
             result = self.append_history(thing, state, previous_value)
             log_updated.extend(result)
-        else:
-            desired_file = self.get_state_path(thing, "desired")
-            with desired_file.open('w') as f:
-                if value.get('config'):
-                    f.write(pretty_json(value['config']))
-                    log_updated.append('new_desired_file')
-                    info("update_reported", "Created new desired file for %s" % thing)
-                else:
-                    error("update_reported", "First update for reported does not have a config attribute to assign to desired. Desired state not created automatically. %s %s" % (thing, value))
-            
-            aliases_file = self.get_state_path(thing, "aliases")
-            keys = collect_non_dict_value_keys(value)
-            keys = sorted(filter(aliasable, keys))
-            aliases = {}
-            for key in keys:
-                aliases[key] = ""
-            with aliases_file.open('w') as f:
-                f.write(pretty_json(aliases))
-                log_updated.append('new_aliases_file')
-                info("update_reported", "Created new aliases file for %s" % thing)
-            
-        aliases = self.load_state(thing, "aliases")
+
+        self.update_desired(thing, value.get('config', {}))
+        log_updated.append('updated_desired')
+        
+        aliases = self.append_new_aliasables(thing, value)
+        self.update_aliases(thing, aliases)
+        log_updated.append('updated_aliases')
+
         aliased_value = self.apply_aliases(aliases, value)
+
         encapsulated_value = encapsulate_and_timestamp(aliased_value, "state")
         with state_file.open('w') as f:
             f.write(pretty_json(encapsulated_value))
@@ -163,6 +150,22 @@ class DatabaseDriver:
             log_updated.append('deleted_graph')
 
         info("update", "[%s] updated %s" % (thing, pretty_list(log_updated)))
+
+    def append_new_aliasables(self, thing, value):
+        aliases_file = self.get_state_path(thing, "aliases")
+
+        if aliases_file.exists():
+            aliases = self.load_state(thing, "aliases")
+        else:
+            aliases = {}
+
+        keys = collect_non_dict_value_keys(value)
+        keys = sorted(filter(aliasable, keys))
+        for key in keys:
+            if aliases.get(key) is None:
+                aliases[key] = ""
+
+        return aliases
 
 
     def update_desired(self, thing, value):

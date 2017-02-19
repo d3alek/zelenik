@@ -83,12 +83,30 @@ class TestDatabaseDriverUpdate(TestDatabaseDriver):
 
         self.then_state_exists("desired", JSN % 1) 
 
+    def test_update_reported_updates_desired(self):
+        self.given_thing()
+        self.given_state("reported", FORMAT % BASE_STATE % JSN % 1)
+        self.given_state("desired", JSN % 1)
+
+        self.when_updating_reported(BASE_STATE % JSN % 2)
+
+        self.then_state_exists("desired", JSN % 2)
+
     def test_first_reported_creates_aliases(self):
         self.given_thing()
 
         self.when_updating_reported(BASE_STATE % JSN % 1)
 
         self.then_state_exists("aliases", JSN % "") 
+
+    def test_update_reported_updates_aliases(self):
+        self.given_thing()
+        self.given_state("reported", FORMAT % BASE_STATE % '{"a":1}')
+        self.given_state("aliases", '{"a":"temp"}')
+
+        self.when_updating_reported(BASE_STATE % '{"a": 1, "b": 2}')
+
+        self.then_state_exists("aliases", '{"a": "temp", "b": ""}')
 
     def test_update_reported_adds_timestamp(self):
         self.given_thing()
