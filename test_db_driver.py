@@ -52,6 +52,9 @@ class TestDatabaseDriver(unittest.TestCase):
     def when_updating_reported(self, value):
         self.db.update_reported(THING, json.loads(value)) 
 
+    def when_updating_desired(self, value):
+        self.db.update_desired(THING, json.loads(value)) 
+
     def then_state_exists(self, state, value):
         p = self.db_directory / THING / state 
         p = p.with_suffix('.json')
@@ -89,6 +92,16 @@ class TestDatabaseDriverUpdate(TestDatabaseDriver):
         self.given_state("desired", JSN % 1)
 
         self.when_updating_reported(BASE_STATE % JSN % 2)
+
+        self.then_state_exists("desired", JSN % 2)
+
+    def test_update_reported_preserves_unused_desired(self):
+        self.given_thing()
+        self.given_state("reported", FORMAT % BASE_STATE % JSN % 1)
+        self.given_state("desired", JSN % 1)
+
+        self.when_updating_desired(JSN % 2)
+        self.when_updating_reported(BASE_STATE % JSN % 1)
 
         self.then_state_exists("desired", JSN % 2)
 
@@ -341,9 +354,6 @@ class TestDatabaseDriverHistory(TestDatabaseDriver):
         with p.open('w') as f:
             f.write(value)
             f.write('\n')
-
-    def when_updating_desired(self, value):
-        self.db.update_desired(THING, json.loads(value)) 
 
     def when_loading_reported_history(self, since_days=1000):
         self.history = self.db.load_history(THING, 'reported', since_days=since_days)

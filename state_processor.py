@@ -9,7 +9,7 @@ DEFAULT_DELETE = "no"
 ACTION_KEY_PATTERN = re.compile(r'^A\|([a-zA-Z0-9-]+)\|(\d+)([HL]?)$')
 
 # value has the form <tresh>~<delta>
-ACTION_VALUE_PATTERN = re.compile(r'^(\d+)~(\d+)$')
+ACTION_VALUE_PATTERN = re.compile(r'^(\d+)~(-?\d+)$')
 
 def error(method, message):
     print("! state_processor/%s: %s" % (method, message))
@@ -34,28 +34,34 @@ def compact_write(word):
         error("compact_write", "Word is neither high nor low - %s. Returning default %s" % (word, DEFAULT_WRITE))
         return compact_write(DEFAULT_WRITE)
 
+def parse_action(key, value):
+    m = ACTION_KEY_PATTERN.match(key)
+    if m is None:
+        error("parse_action", "Could not parse action key %s" % key)
+        return None, None
+    sense = m.group(1)
+    gpio = int(m.group(2))
+    write = explode_write(m.group(3))
+
+    m = ACTION_VALUE_PATTERN.match(value)
+    if m is None:
+        error("parse_action", "Could not parse action value %s" % value)
+        return None, None
+
+    threshold = int(m.group(1))
+    delta = int(m.group(2))
+
+    return sense, {"gpio": gpio, "write": write, "threshold": threshold, "delta": delta, "delete": "no"}
+
 def explode_actions(actions):
     exploded = {}
     for key, value in actions.items():
-        m = ACTION_KEY_PATTERN.match(key)
-        if m is None:
-            error("explode_actions", "Could not parse action key %s" % key)
+
+        sense, action = parse_action(key, value)
+        if action is None:
             exploded[key] = value
-            continue
-        sense = m.group(1)
-        gpio = int(m.group(2))
-        write = explode_write(m.group(3))
-
-        m = ACTION_VALUE_PATTERN.match(value)
-        if m is None:
-            info("explode_actions", "Could not parse action value %s" % value)
-            exploded[key] = value
-            continue
-
-        threshold = int(m.group(1))
-        delta = int(m.group(2))
-
-        exploded[sense] = {"gpio": gpio, "write": write, "threshold": threshold, "delta": delta, "delete": "no"}
+        else:
+            exploded[sense] = action
 
     return exploded
 
