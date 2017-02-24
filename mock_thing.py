@@ -8,6 +8,11 @@ import threading
 from mqtt_operator import parse_username_password
 from state_processor import parse_action
 
+from datetime import datetime as dt
+from datetime import timedelta
+
+import random
+
 MAX_ACTIONS_SIZE = 5
 NAME = "mock-thing"
 DEFAULT_STATE = {
@@ -33,11 +38,14 @@ state = DEFAULT_STATE
 
 DIR = '/www/zelenik/'
 config_changed = False
+last_publish = None
+first_awake = True
 
 def info(method, message):
     print("  mock_thing/%s: %s" % (method, message))
 
 def load_actions(actions):
+    global config_changed
     for key, value in actions.items():
         config_changed = True 
         sense, action = parse_action(key, value)
@@ -73,6 +81,7 @@ def make_device_pin_pairing(gpio_config, pin_number, device):
         gpio_config[str(pin_number)] = device
 
 def load_gpio_config(gpio):
+    global config_changed
     gpio_config = state['config'].get('gpio', {})
     for key, value in gpio.items():
         pin_number = int(key)
@@ -87,9 +96,11 @@ def on_connect(client, userdata, flags, rc):
     client.subscribe("things/%s/delta" % NAME)
 
 def on_message(client, userdata, msg):
+    global config_changed
     topic = msg.topic
     payload = msg.payload.decode('utf-8')
     config_changed = False
+    info("on_message", "%s" % payload)
 
     config = state['config']
     new_config = json.loads(payload)
@@ -104,12 +115,59 @@ def on_message(client, userdata, msg):
     if new_config.get('actions') is not None:
         load_actions(new_config['actions'])
 
-def wake_up():
-    info('wake_up', 'Woke up')
-    client.publish("things/%s/get" % NAME, "{}")
-    time.sleep(2)
+def update_senses():
+    state['senses'] = {'mock-sense': random.randint(0, 100)}
+
+write_to_int = {'low': 0, 'high': 1}
+def do_actions():
+    global config_changed
+    previous_mode = state['mode']
+    mode = {}
+    for sense, value in state['senses'].items():
+        for action_key, action_value in state['config']['actions'].items():
+            target_sense, action = parse_action(action_key, action_value)
+            if target_sense == sense:
+                write_int = write_to_int[action['write']]
+                mode_key = str(action['gpio'])
+                threshold = action['threshold']
+                delta = action['delta']
+
+                if value <= threshold - delta:
+                    config_changed = True
+                    mode[mode_key] = (write_int + 1) % 2
+                elif value >= threshold + delta:
+                    config_changed = True
+                    mode[mode_key] = write_int
+                else:
+                    mode[mode_key] = previous_mode[key]
+    info('do_actions', mode)
+    state['mode'] = mode
+             
+def publish_state():
+    global state
     reported = {"state": {"reported": state}}
     client.publish("things/%s/update" % NAME, json.dumps(reported))
+    info('publish_state', 'published state')
+
+def wake_up():
+    global last_publish, config_changed, state, first_awake
+    info('wake_up', 'woke up')
+    config_changed = False
+    if first_awake:
+        publish_state()
+        first_awake = False
+
+    client.publish("things/%s/get" % NAME, "{}")
+    info('wake_up', 'waiting for delta from server')
+    time.sleep(2)
+    update_senses()
+    do_actions()
+    if config_changed or not last_publish or last_publish + timedelta(minutes=1) < dt.now():
+        last_publish = dt.now()
+        publish_state(); 
+    else:
+        info('wake_up', 'too soon to publish')
+
     threading.Timer(10, wake_up).start()
 
 if __name__ == '__main__':
@@ -125,5 +183,3 @@ if __name__ == '__main__':
     threading.Timer(2, wake_up).start()
     client.connect("localhost")
     client.loop_forever()
-
-

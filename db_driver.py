@@ -130,8 +130,11 @@ class DatabaseDriver:
             result = self.append_history(thing, state, previous_value)
             log_updated.extend(result)
 
-        self.update_desired(thing, value.get('config', {}))
-        log_updated.append('updated_desired')
+        
+        desired_file = self.get_state_path(thing, "desired")
+        if not desired_file.exists():
+            self.update_desired(thing, value.get('config', {}))
+            log_updated.append('created_desired')
         
         aliases = self.append_new_aliasables(thing, value)
         self.update_aliases(thing, aliases)
@@ -192,6 +195,8 @@ class DatabaseDriver:
             log_updated.extend(result)
             
         with state_file.open('w') as f:
+            # fill default action values if needed
+            value = state_processor.explode(state_processor.compact(value))
             f.write(pretty_json(value))
             log_updated.append('state')
 
@@ -229,7 +234,6 @@ class DatabaseDriver:
             log_updated.append('state')
 
         info("update_aliases", "[%s] updated %s" % (thing, pretty_list(log_updated)))
-
 
 
     def archive_history(self, thing, state):

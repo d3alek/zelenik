@@ -86,16 +86,7 @@ class TestDatabaseDriverUpdate(TestDatabaseDriver):
 
         self.then_state_exists("desired", JSN % 1) 
 
-    def test_update_reported_updates_desired(self):
-        self.given_thing()
-        self.given_state("reported", FORMAT % BASE_STATE % JSN % 1)
-        self.given_state("desired", JSN % 1)
-
-        self.when_updating_reported(BASE_STATE % JSN % 2)
-
-        self.then_state_exists("desired", JSN % 2)
-
-    def test_update_reported_preserves_unused_desired(self):
+    def test_update_reported_preserves_desired(self):
         self.given_thing()
         self.given_state("reported", FORMAT % BASE_STATE % JSN % 1)
         self.given_state("desired", JSN % 1)
@@ -104,6 +95,16 @@ class TestDatabaseDriverUpdate(TestDatabaseDriver):
         self.when_updating_reported(BASE_STATE % JSN % 1)
 
         self.then_state_exists("desired", JSN % 2)
+
+    def test_update_desired_action_fills_missing_fields(self):
+        self.given_thing()
+        actions_wrapper = '{"actions":%s}'
+        incomplete_action = '{"sense":{"gpio": 1, "threshold": 10}}'
+        complete_action = '{"sense":{"gpio": 1, "threshold": 10, "delta": 0, "delete": "no", "write": "high"}}'
+
+        self.when_updating_desired(actions_wrapper % incomplete_action)
+
+        self.then_state_exists("desired", actions_wrapper % complete_action)
 
     def test_first_reported_creates_aliases(self):
         self.given_thing()
