@@ -6,7 +6,7 @@ import json_delta
 from datetime import datetime, timedelta
 import state_processor
 
-NON_ALIASABLE = ['lawake', 'sleep', 'state', 'version', 'voltage', 'wifi', 'delete', 'delta', 'gpio', 'threshold', 'write']
+NON_ALIASABLE = ['lawake', 'sleep', 'state', 'version', 'voltage', 'wifi', 'delete', 'delta', 'gpio', 'threshold', 'write', 'alias', 'value']
 def aliasable(s):
     b = s not in NON_ALIASABLE
     return b and not s.startswith('A|')
@@ -92,12 +92,17 @@ class DatabaseDriver:
         p = self.directory / thing / state
         return p.with_suffix(".json")
 
-    def apply_aliases(self, aliases, d):
+    def apply_aliases(self, thing, d, aliases=None):
+        if aliases is None:
+            a = self.get_state_path(thing, 'aliases')
+            with a.open() as f:
+                aliases = json.loads(f.read())
+
         aliased = {}
         
         for key, value in d.items():
             if type(value) is dict:
-                aliased[key] = self.apply_aliases(aliases, value)
+                aliased[key] = self.apply_aliases(thing, value, aliases)
             elif key in aliases.keys() and aliases[key] != "":
                 aliased[key] = {
                         'value': value,
@@ -107,6 +112,20 @@ class DatabaseDriver:
                 aliased[key] = value
 
         return aliased
+
+    def dealias(self, d):
+        dealiased = {}
+        
+        if d.get('alias') is not None and d.get('value') is not None:
+            return d['value']
+
+        for key, value in d.items():
+            if type(value) is dict:
+                dealiased[key] = self.dealias(value)
+            else:
+                dealiased[key] = value
+
+        return dealiased 
 
     def update_reported(self, thing, value):
         validate_input(thing, "reported", value)
@@ -141,7 +160,7 @@ class DatabaseDriver:
         self.update_aliases(thing, aliases)
         log_updated.append('updated_aliases')
 
-        aliased_value = self.apply_aliases(aliases, value)
+        aliased_value = self.apply_aliases(thing, value, aliases = aliases)
 
         encapsulated_value = encapsulate_and_timestamp(aliased_value, "state")
         with state_file.open('w') as f:
@@ -171,7 +190,6 @@ class DatabaseDriver:
 
         return aliases
 
-
     def update_desired(self, thing, value):
         validate_input(thing, "desired", value)
         if value.get('state') or value.get('config'):
@@ -196,6 +214,8 @@ class DatabaseDriver:
             log_updated.extend(result)
             
         with state_file.open('w') as f:
+            # refresh aliases
+            value = self.apply_aliases(thing, self.dealias(value))
             # fill default action values if needed
             value = state_processor.explode(state_processor.compact(value))
             f.write(pretty_json(value))
@@ -271,20 +291,24 @@ class DatabaseDriver:
         if to_state == {}:
             info("get_delta", "desired of %s is empty. Assuming no delta needed." % thing)
             return "{}"
+        from_state = self.dealias(from_state) 
+        to_state = self.dealias(to_state)
+
         compact_from = state_processor.compact(from_state)
         compact_to = state_processor.compact(to_state)
         delta_stanza = json_delta.diff(compact_from, compact_to, verbose=False)
 
+        print(from_state, to_state, delta_stanza)
         if delta_stanza == []:
             return "{}"
 
         delta_dict = {}
         for diff in delta_stanza:
             path_parts = diff[0]
-            if len(diff) != 2:
+            if len(diff) == 1:
                 #TODO happens when something existing in from is not in to - then only the path to the thing in from is given, signaling delete
-                error("get_delta", "Expected diff to be with size 2. %s %s" % (thing, diff))
-                return '{"error":2}'
+                info("get_delta", "No value specified in diff, seems like field present in from is missing in to - skipping. %s %s" % (thing, diff))
+                continue
             value = diff[1]
             d = value
             post_config = path_parts

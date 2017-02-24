@@ -50,8 +50,12 @@ def parse_action(key, value):
 
     threshold = int(m.group(1))
     delta = int(m.group(2))
+    if delta == -2:
+        delete = "yes"
+    else:
+        delete = "no"
 
-    return sense, {"gpio": gpio, "write": write, "threshold": threshold, "delta": delta, "delete": "no"}
+    return sense, {"gpio": gpio, "write": write, "threshold": threshold, "delta": delta, "delete": delete}
 
 def explode_actions(actions):
     exploded = {}

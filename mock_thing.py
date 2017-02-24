@@ -23,10 +23,11 @@ DEFAULT_STATE = {
             "gpio": {
                 "4": "OneWire"
             },
-            "sleep": 0
+            "sleep": 0,
+            "mode": {}
         },
+        "write": {},
         "lawake": 0,
-        "mode": {},
         "senses": {
             "mock-sense": 0
         },
@@ -87,11 +88,19 @@ def load_gpio_config(gpio):
     gpio_config = state['config'].get('gpio', {})
     for key, value in gpio.items():
         pin_number = int(key)
-        if pin_number == 0:
-            continue
-        config_changed = True
         make_device_pin_pairing(gpio_config, pin_number, str(value))
+        config_changed = True
+
     return gpio_config
+
+def load_mode(mode):
+    global config_changed
+    mode_config = state['config'].get('mode', {})
+    for pin, value in mode.items():
+        mode_config[pin] = value
+        config_changed = True
+
+    return mode_config
 
 def on_connect(client, userdata, flags, rc):
     info("on_connect", "Connected with result code %d" % rc)
@@ -116,6 +125,8 @@ def on_message(client, userdata, msg):
         config['sleep'] = int(new_config['sleep'])
     if new_config.get('gpio') is not None:
         load_gpio_config(new_config['gpio'])
+    if new_config.get('mode') is not None:
+        load_mode(new_config['mode'])
     if new_config.get('actions') is not None:
         load_actions(new_config['actions'])
 
@@ -125,28 +136,43 @@ def update_senses():
 write_to_int = {'low': 0, 'high': 1}
 def do_actions():
     global config_changed
-    previous_mode = state['mode']
-    mode = {}
+    config = state['config']
+    mode = config['mode']
+    previous_write = state['write']
+    write = {}
+    actions = config['actions']
+    auto_actions = []
+    for action_key, action_value in actions.items():
+        target_sense, action = parse_action(action_key, action_value)
+        gpio_string = str(action['gpio'])
+        mode = mode.get(gpio_string, 'a')
+        if mode == 'a':
+            auto_actions.append((target_sense, action)) 
+        else:
+            info('do_actions', 'Not doing action %s:%s due to gpio mode %s' % (target_sense, action, mode))
+            write[gpio_string] = mode
+
     for sense, value in state['senses'].items():
-        for action_key, action_value in state['config']['actions'].items():
-            target_sense, action = parse_action(action_key, action_value)
+        for target_sense, action in auto_actions:
+            write_key = str(action['gpio'])
+    
             if target_sense == sense:
                 write_int = write_to_int[action['write']]
-                mode_key = str(action['gpio'])
                 threshold = action['threshold']
                 delta = action['delta']
 
                 if value <= threshold - delta:
                     config_changed = True
-                    mode[mode_key] = (write_int + 1) % 2
+                    write[write_key] = (write_int + 1) % 2
                 elif value >= threshold + delta:
                     config_changed = True
-                    mode[mode_key] = write_int
+                    write[write_key] = write_int
                 else:
-                    mode[mode_key] = previous_mode[key]
-    info('do_actions', mode)
-    state['mode'] = mode
-             
+                    write[write_key] = previous_write[key]
+
+    info('do_actions', write)
+    state['write'] = write 
+
 def publish_state():
     global state
     reported = {"state": {"reported": state}}

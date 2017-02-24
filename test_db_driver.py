@@ -55,6 +55,9 @@ class TestDatabaseDriver(unittest.TestCase):
     def when_updating_desired(self, value):
         self.db.update_desired(THING, json.loads(value)) 
 
+    def when_getting_delta(self):
+        self.delta = self.db.get_delta(THING)  
+
     def then_state_exists(self, state, value):
         p = self.db_directory / THING / state 
         p = p.with_suffix('.json')
@@ -64,6 +67,8 @@ class TestDatabaseDriver(unittest.TestCase):
         expected_value = timeless(json.loads(value))
         self.assertEqual(contents, expected_value)
 
+    def then_delta_is(self, delta_string):
+        self.assertEqual(json.loads(self.delta), json.loads(delta_string))
 
 class TestDatabaseDriverUpdate(TestDatabaseDriver):
     def test_update_reported_creates_thing_with_view(self):
@@ -264,8 +269,11 @@ class TestDatabaseDriverGetDelta(TestDatabaseDriver):
 
         self.then_delta_is(one_level % (2, 2))
 
-    def when_getting_delta(self):
-        self.delta = self.db.get_delta(THING)  
+    def test_get_delta_ignores_aliases(self):
+        base = '{"1":%s}'
+        self.when_getting_reported_desired_delta(base, '{"alias":"a", "value": 1}', 1)
+
+        self.then_delta_is('{}')
 
     def when_getting_reported_desired_delta(self, base_state_supplement, reported_substitution, desired_substitution):
         state_reported = FORMAT % BASE_STATE % base_state_supplement
@@ -276,9 +284,6 @@ class TestDatabaseDriverGetDelta(TestDatabaseDriver):
         self.given_state("desired", state_desired % desired_substitution)
 
         self.when_getting_delta()
-
-    def then_delta_is(self, delta_string):
-        self.assertEqual(json.loads(self.delta), json.loads(delta_string))
 
 
 class TestDatabaseDriverHistory(TestDatabaseDriver): 
@@ -396,7 +401,7 @@ class TestDatabaseDriverHistory(TestDatabaseDriver):
         actual_values = list(map(lambda s: int(s['state']['value']), self.history))
         self.assertEqual(actual_values, values)
 
-class TestDatabaseDriverStateProcessor(TestDatabaseDriverGetDelta):
+class TestDatabaseDriverStateProcessor(TestDatabaseDriver):
     def test_update_action_prettifies(self):
         action = '{"actions": {"A|sense|10H":"21~1"}}'
         exploded_action = json.dumps(state_processor.explode(json.loads(action)))
@@ -420,6 +425,7 @@ class TestDatabaseDriverStateProcessor(TestDatabaseDriverGetDelta):
         self.when_getting_delta()
 
         self.then_delta_is(compact_to)
+
 
 if __name__ == '__main__':
     unittest.main()
