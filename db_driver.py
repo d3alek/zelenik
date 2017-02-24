@@ -6,8 +6,9 @@ import json_delta
 from datetime import datetime, timedelta
 import state_processor
 
+NON_ALIASABLE = ['lawake', 'sleep', 'state', 'version', 'voltage', 'wifi', 'delete', 'delta', 'gpio', 'threshold', 'write']
 def aliasable(s):
-    b = s not in ['lawake', 'sleep', 'state', 'version', 'voltage', 'wifi']
+    b = s not in NON_ALIASABLE
     return b and not s.startswith('A|')
 
 # parse iso format datetime with sep=' '
