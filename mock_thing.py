@@ -13,6 +13,8 @@ from datetime import timedelta
 
 import random
 
+import argparse
+
 MAX_ACTIONS_SIZE = 5
 NAME = "mock-thing"
 DEFAULT_STATE = {
@@ -95,6 +97,8 @@ def on_connect(client, userdata, flags, rc):
     info("on_connect", "Connected with result code %d" % rc)
     client.subscribe("things/%s/delta" % NAME)
 
+    threading.Timer(2, wake_up).start()
+
 def on_message(client, userdata, msg):
     global config_changed
     topic = msg.topic
@@ -171,6 +175,11 @@ def wake_up():
     threading.Timer(10, wake_up).start()
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Simulate a Zelenik device')
+    parser.add_argument('--server', action='store', default="localhost", help='Server to connect to (defaults to localhost)')
+    parser.add_argument('--port', type=int, action='store', default=1883, help='Port to use to connect (defaults to 1883)')
+    args = parser.parse_args()
+
     db = db_driver.DatabaseDriver(DIR)
     client = mqtt.Client()
 
@@ -180,6 +189,6 @@ if __name__ == '__main__':
     client.on_connect = on_connect
     client.on_message = on_message
 
-    threading.Timer(2, wake_up).start()
-    client.connect("localhost")
+    print("Connecting to %s:%s" % (args.server, args.port))
+    client.connect(args.server, args.port)
     client.loop_forever()
