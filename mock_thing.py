@@ -145,12 +145,11 @@ def do_actions():
     for action_key, action_value in actions.items():
         target_sense, action = parse_action(action_key, action_value)
         gpio_string = str(action['gpio'])
-        mode = mode.get(gpio_string, 'a')
-        if mode == 'a':
+        m = mode.get(gpio_string, 'a')
+        if m == 'a':
             auto_actions.append((target_sense, action)) 
         else:
-            info('do_actions', 'Not doing action %s:%s due to gpio mode %s' % (target_sense, action, mode))
-            write[gpio_string] = mode
+            info('do_actions', 'Not doing action %s:%s due to gpio mode %s' % (target_sense, action, m))
 
     for sense, value in state['senses'].items():
         for target_sense, action in auto_actions:
@@ -162,13 +161,15 @@ def do_actions():
                 delta = action['delta']
 
                 if value <= threshold - delta:
-                    config_changed = True
                     write[write_key] = (write_int + 1) % 2
                 elif value >= threshold + delta:
-                    config_changed = True
                     write[write_key] = write_int
                 else:
                     write[write_key] = previous_write[key]
+
+    for key, value in mode.items():
+        if value != 'a':
+            write[key] = value
 
     info('do_actions', write)
     state['write'] = write 
