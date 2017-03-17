@@ -12,29 +12,38 @@ import matplotlib.gridspec as gridspec
 
 timezone = tz.gettz('Europe/Sofia')
 
+def get_write(state):
+    if state.get('write'):
+        return state['write']
+    elif state.get('mode'):
+        return state['mode']
+    else:
+        return {}
+
+
 def handle_graph(db, thing):
     history = db.load_history(thing, 'reported', since_days=1)
     times = list(map(lambda s: parse_isoformat(s['timestamp_utc']), history))
     plot_times = list(map(lambda t: date2num(t), times))
     senses = list(map(lambda s: s['state']['senses'], history))
-    modes = list(map(lambda s: s['state']['mode'], history))
+    writes = list(map(lambda s: get_write(s['state']), history))
 
     f = plt.figure(figsize=(12, 6), dpi=100)
 
     gs = gridspec.GridSpec(2, 1, height_ratios=[7,1])
 
     senses_plot = plt.subplot(gs[0])
-    modes_plot = plt.subplot(gs[1], sharex=senses_plot)
+    writes_plot = plt.subplot(gs[1], sharex=senses_plot)
 
-    modes_plot.axes.xaxis.set_visible(False)
+    writes_plot.axes.xaxis.set_visible(False)
     
     locator = AutoDateLocator(tz=timezone)
     senses_plot.set_ylabel('senses')
     senses_plot.axes.yaxis.tick_right()
     senses_plot.axes.xaxis.set_major_locator(locator)
     senses_plot.axes.xaxis.set_major_formatter(AutoDateFormatter(locator, tz=timezone))
-    modes_plot.set_ylabel('gpio')
-    modes_plot.axes.yaxis.tick_right()
+    writes_plot.set_ylabel('gpio')
+    writes_plot.axes.yaxis.tick_right()
 
     if len(senses) > 0:
         # get keys in the latest senses state, this will result in senses omitted from graph
@@ -65,45 +74,59 @@ def handle_graph(db, thing):
 
         senses_plot.plot(times, values, label=label)
 
-    if len(modes) > 0:
-        mode_types = sorted(modes[-1].keys()) 
+    if len(writes) > 0:
+        writes_types = sorted(writes[-1].keys()) 
     else:
-        mode_types = []
+        writes_types = []
 
-    mode_start = 0 
-    mode_offset = 2
+    writes_start = 0 
+    writes_offset = -2
     labels = []
     yticks = []
-    for mode_index, mode_type in enumerate(mode_types):
+    for writes_index, writes_type in enumerate(writes_types):
         alias = ""
         values = []
+        intervals = []
+        interval = None
         times = []
-        for mode_state, time in zip(modes, plot_times):
-            if mode_state.get(mode_type) is not None:
-                value = mode_state[mode_type]
+        
+        for writes_state, time in zip(writes, plot_times):
+            if writes_state.get(writes_type) is not None:
+                value = writes_state[writes_type]
                 if type(value) is dict:
                     converted = float(value['value'])
                     alias = value['alias']
                 else:
-                    converted = float(value)
+                    converted = int(value)
 
                 if converted == 1:
-                    times.append(time)
+                    if not interval:
+                        interval = (time, 0.0001) # about 1 minute
+                    else:
+                        interval = (interval[0], time-interval[0])
+                else:
+                    if interval:
+                        interval = (interval[0], time-interval[0])
+                        intervals.append(interval)
+                        interval = None
+
+        if interval:
+            intervals.append(interval)
 
         if alias == "":
-            label = mode_type
+            label = writes_type
         else: 
             label = alias
 
-        y = mode_start + mode_index*mode_offset
+        y = writes_start + writes_index*writes_offset
 
-        modes_plot.eventplot(times, lineoffsets=y)
+        writes_plot.broken_barh(intervals, (y+0.5, writes_offset+0.5)) # -0.5 to center on named y axis
 
         labels.append(label)
         yticks.append(y)
 
-    modes_plot.set_yticks(yticks)
-    modes_plot.set_yticklabels(labels)
+    writes_plot.set_yticks(yticks)
+    writes_plot.set_yticklabels(labels)
         
     senses_plot.axes.autoscale()
     senses_plot.grid(True)

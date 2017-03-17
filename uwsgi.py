@@ -12,9 +12,6 @@ db = db_driver.DatabaseDriver()
 def info(method, message):
     print("  uwsgi/%s: %s" % (method, message))
 
-def error(method, message):
-    print("! uwsgi/%s: %s" % (method, message))
-
 def parse_thing(uri):
     match = re.match(r'/db/([a-zA-Z0-9-]+)\/', uri)
     if not match:

@@ -2,6 +2,9 @@ import json
 
 REDIRECT = '<meta http-equiv="refresh" content="0; url=%s" /> %s <a href="%s"> Go back. </a> '
 
+def error(method, message):
+    print("! gui_update/%s: %s" % (method, message))
+
 def handle_update(db, thing, state, value):
     content_type = 'text/html'
 
