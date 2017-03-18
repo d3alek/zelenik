@@ -16,7 +16,7 @@ def parse_isoformat(s):
     return datetime.strptime(s, "%Y-%m-%d %H:%M:%S.%f")
 
 def pretty_json(d):
-    return json.dumps(d, sort_keys=True, indent=4, separators=(',', ': '))
+    return json.dumps(d, sort_keys=True, indent=4, separators=(',', ': '), ensure_ascii=False)
 
 def to_compact_json(s):
     return json.dumps(s, separators=(',', ':'))

@@ -34,16 +34,16 @@ def application(env, start_response):
     thing = parse_thing(uri)
 
     if method == 'POST':
-        raw_in = env['wsgi.input'].read()
+        raw_in = env['wsgi.input'].read().decode('utf-8')
         query = parse.parse_qsl(raw_in)
         state, value = query[0]
-        state = state.decode('utf-8')
-        value = value.decode('utf-8')
+        state = state
+        value = value
 
-        content_type, url = handle_update(db, thing, state, value)
+        content_type, html = handle_update(db, thing, state, value)
     else:
-        content_type, url = handle_graph(db, thing)
+        content_type, html = handle_graph(db, thing)
 
     start_response('200 OK', [('Content-Type', content_type)])
-    return url
+    return html.encode('utf-8')
 
