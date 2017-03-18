@@ -20,12 +20,17 @@ def get_write(state):
     else:
         return {}
 
+def get_senses(state):
+    if state.get('senses'):
+        return state['senses']
+    else:
+        return {}
 
 def handle_graph(db, thing):
     history = db.load_history(thing, 'reported', since_days=1)
     times = list(map(lambda s: parse_isoformat(s['timestamp_utc']), history))
     plot_times = list(map(lambda t: date2num(t), times))
-    senses = list(map(lambda s: s['state']['senses'], history))
+    senses = list(map(lambda s: get_senses(s['state']), history))
     writes = list(map(lambda s: get_write(s['state']), history))
 
     f = plt.figure(figsize=(12, 6), dpi=100)
