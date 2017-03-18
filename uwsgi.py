@@ -40,10 +40,12 @@ def application(env, start_response):
         state = state
         value = value
 
-        content_type, html = handle_update(db, thing, state, value)
+        content_type, data = handle_update(db, thing, state, value)
     else:
-        content_type, html = handle_graph(db, thing)
+        content_type, data = handle_graph(db, thing)
 
     start_response('200 OK', [('Content-Type', content_type)])
-    return html.encode('utf-8')
+    if 'text' in content_type:
+        data = data.encode('utf-8')
+    return data
 
