@@ -84,18 +84,18 @@ def handle_graph(db, thing):
 
                 value = sense_state[sense_type]
                 if type(value) is dict:
-                    wrong, value = parse_sense(value['value'])
+                    wrong, float_value = parse_sense(value['value'])
                     if not wrong:
-                        values.append(value)
+                        values.append(float_value)
                         times.append(time)
                     else:
                         wrong_times.append(time)
                         wrong_values.append(previous_value)
                     alias = value['alias']
                 else:
-                    wrong, value = parse_sense(value)
+                    wrong, float_value = parse_sense(value)
                     if not wrong:
-                        values.append(value)
+                        values.append(float_value)
                         times.append(time)
                     else:
                         wrong_times.append(time)
