@@ -26,6 +26,19 @@ def get_senses(state):
     else:
         return {}
 
+def parse_sense(maybe_wrong):
+    wrong = False
+    value = 0
+    if type(maybe_wrong) is str and maybe_wrong.startswith('w'):
+        wrong = True
+    else:
+        try:
+            value = float(maybe_wrong)
+        except ValueError:
+            wrong = True
+
+    return (wrong, value)
+
 def handle_graph(db, thing):
     history = db.load_history(thing, 'reported', since_days=1)
     times = list(map(lambda s: parse_isoformat(s['timestamp_utc']), history))
@@ -61,16 +74,32 @@ def handle_graph(db, thing):
         alias = ""
         values = []
         times = []
+        wrong_times = []
+        wrong_values = []
         for sense_state, time in zip(senses, plot_times):
             if sense_state.get(sense_type) is not None:
+                previous_value = 0
+                if len(values) > 0:
+                    previous_value = values[-1]
+
                 value = sense_state[sense_type]
                 if type(value) is dict:
-                    values.append(float(value['value']))
+                    wrong, value = parse_sense(value['value'])
+                    if not wrong:
+                        values.append(value)
+                        times.append(time)
+                    else:
+                        wrong_times.append(time)
+                        wrong_values.append(previous_value)
                     alias = value['alias']
                 else:
-                    values.append(float(value))
-
-                times.append(time)
+                    wrong, value = parse_sense(value)
+                    if not wrong:
+                        values.append(value)
+                        times.append(time)
+                    else:
+                        wrong_times.append(time)
+                        wrong_values.append(previous_value)
 
         if alias == "":
             label = sense_type
@@ -78,6 +107,7 @@ def handle_graph(db, thing):
             label = alias
 
         senses_plot.plot(times, values, label=label)
+        senses_plot.plot(wrong_times, wrong_values, 'rx')
 
     if len(writes) > 0:
         writes_types = sorted(writes[-1].keys()) 
