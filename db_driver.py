@@ -95,6 +95,10 @@ class DatabaseDriver:
     def apply_aliases(self, thing, d, aliases=None):
         if aliases is None:
             a = self.get_state_path(thing, 'aliases')
+            if not a.exists():
+                info('apply_aliases', 'No aliases applied because file does not exist')
+                return d
+
             with a.open() as f:
                 aliases = json.loads(f.read())
 
@@ -216,6 +220,7 @@ class DatabaseDriver:
         with state_file.open('w') as f:
             # refresh aliases
             value = self.apply_aliases(thing, self.dealias(value))
+
             # fill default action values if needed
             value = state_processor.explode(state_processor.compact(value))
             f.write(pretty_json(value))

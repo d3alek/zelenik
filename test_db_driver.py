@@ -114,9 +114,9 @@ class TestDatabaseDriverUpdate(TestDatabaseDriver):
     def test_first_reported_creates_aliases(self):
         self.given_thing()
 
-        self.when_updating_reported(BASE_STATE % JSN % 1)
+        self.when_updating_reported(BASE_STATE % '{"1": 0}')
 
-        self.then_state_exists("aliases", JSN % "") 
+        self.then_state_exists("aliases", '{"1":""}') 
 
     def test_update_reported_updates_aliases(self):
         self.given_thing()
