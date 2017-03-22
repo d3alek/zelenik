@@ -9,7 +9,12 @@
     <body>
         <!--# block name="none" -->None<!--# endblock -->
 
-        <h1>Зеленик <!--# echo var="thing" --></h1>
+        <form action="update" method="POST">
+        <h1>Зеленик 
+        <input type="text" name="thing-alias" value="<!--# echo var='thing' -->">
+        <input type="submit" value="Update">
+        </h1>
+        </form>
 
         <hr />
 

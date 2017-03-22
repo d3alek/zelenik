@@ -43,6 +43,14 @@ class TestDatabaseDriver(unittest.TestCase):
         p = self.db_directory / THING
         p.mkdir()
 
+    def given_aliased_thing(self, alias):
+        p = self.db_directory / "na"
+        if not p.is_dir():
+            p.mkdir()
+
+        p = p / alias 
+        p.symlink_to(self.db_directory / THING)
+
     def given_state(self, state, value):
         p = self.db_directory / THING / state
         p = p.with_suffix('.json')
@@ -52,8 +60,8 @@ class TestDatabaseDriver(unittest.TestCase):
     def when_updating_reported(self, value):
         self.db.update_reported(THING, json.loads(value)) 
 
-    def when_updating_desired(self, value):
-        self.db.update_desired(THING, json.loads(value)) 
+    def when_updating_desired(self, value, thing = THING):
+        self.db.update_desired(thing, json.loads(value)) 
 
     def when_getting_delta(self):
         self.delta = self.db.get_delta(THING)  
@@ -159,6 +167,15 @@ class TestDatabaseDriverUpdate(TestDatabaseDriver):
         self.when_updating_reported(JSN % "a")
 
         self.then_state_exists("reported", FORMAT % ('{"value": {"value": "a", "alias": "temperature"}}'))
+
+    def test_update_desired_resolves_alias(self):
+        aliased_thing = "aliased-%s" % THING
+        self.given_thing()
+        self.given_aliased_thing(aliased_thing)
+
+        self.when_updating_desired(JSN % 1, thing=aliased_thing)
+
+        self.then_state_exists("desired", JSN % 1)
 
     def given_graph(self):
         p = self.db_directory / THING / "graph.png"
@@ -426,6 +443,32 @@ class TestDatabaseDriverStateProcessor(TestDatabaseDriver):
 
         self.then_delta_is(compact_to)
 
+class TestDatabaseDriverThingAlias(TestDatabaseDriver):
+    def test_update_thing_alias_deletes_old_alias(self):
+        old_aliased_thing = "old-aliased-%s" % THING
+        new_aliased_thing = "new-aliased-%s" % THING
+
+        reported = FORMAT % BASE_STATE % JSN % 1
+        self.given_thing()
+        self.given_state("reported", reported)
+
+        self.given_aliased_thing(old_aliased_thing)
+
+        self.when_updating_thing_alias(new_aliased_thing) 
+
+        self.then_thing_alias_exists(new_aliased_thing)
+        self.then_thing_alias_does_not_exist(old_aliased_thing)
+
+    def when_updating_thing_alias(self, alias):
+        self.db.update_thing_alias(THING, alias)
+
+    def then_thing_alias_exists(self, alias):
+        p = self.db_directory / "na" / alias 
+        self.assertTrue(p.is_symlink())
+
+    def then_thing_alias_does_not_exist(self, alias):
+        p = self.db_directory / "na" / alias 
+        self.assertFalse(p.is_symlink())
 
 if __name__ == '__main__':
     unittest.main()

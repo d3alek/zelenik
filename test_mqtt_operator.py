@@ -57,7 +57,7 @@ class TestMqttOperator(unittest.TestCase):
                 mqtt_operator.WRONG_FORMAT_STATE)
         self.then_state_does_not_exist("reported")
 
-    def test_update_reported(self):
+    def test_create_reported(self):
         self.given_message('things/%s/update' % THING, 
                 BASE_STATE % '{"reported": {"value": 1}}')
 
@@ -85,15 +85,14 @@ class TestMqttOperator(unittest.TestCase):
         p = p.with_suffix('.json')
         self.assertFalse(p.exists())
 
-    def then_state_exists(self, state, expected_value):
-        p = self.db_directory / THING / state 
+    def then_state_exists(self, state, expected_value, thing=THING):
+        p = self.db_directory / thing / state 
         p = p.with_suffix('.json')
         with p.open() as f:
             contents = f.read()
 
         value = json.loads(contents)['state']
         self.assertEqual(value, json.loads(expected_value))
-
 
 if __name__ == '__main__':
     unittest.main()

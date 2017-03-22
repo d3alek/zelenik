@@ -15,22 +15,31 @@ REDIRECT = '<meta http-equiv="refresh" content="0; url=%s" /> %s <a href="%s"> �
 def error(method, message):
     print("! gui_update/%s: %s" % (method, message))
 
-def update_db(db, thing, state, value):
-    try:
-        value_dict = json.loads(value)
-    except ValueError:
-        error("handle_update", "Could not parse json value. %s %s %s" % (thing, state, value))
-        return 'Could not parse json value %s %s %s' % (state, thing, value)
+def update_db(db, a_thing, state, value):
+    thing = db.resolve_thing(a_thing)
 
-    if state == 'desired': 
-        db.update_desired(thing, value_dict)
-    elif state == 'aliases':
-        db.update_aliases(thing, value_dict)
+    if state == "thing-alias":
+        db.update_thing_alias(thing, value)
+        a_thing = value
     else:
-        error("update_db", "Not allowed to change state. %s %s %s" % (thing, state, value_dict))
-        return 'Not allowed to change state. %s %s %s' % (thing, state, value_dict)
+        try:
+            value_dict = json.loads(value)
+        except ValueError:
+            error("handle_update", "Could not parse json value. %s %s %s" % (a_thing, state, value))
+            return 'Could not parse json value %s %s %s' % (state, a_thing, value)
 
-    back_url = ('/db/' + thing)
+        if state == 'desired': 
+            db.update_desired(thing, value_dict)
+        elif state == 'aliases':
+            db.update_aliases(thing, value_dict)
+        else:
+            error("update_db", "Not allowed to change state. %s %s %s" % (thing, state, value_dict))
+            return 'Not allowed to change state. %s %s %s' % (thing, state, value_dict)
+
+    if thing == a_thing:
+        back_url = ('/db/' + thing)
+    else:
+        back_url = ('/na/' + a_thing)
     return REDIRECT % (back_url, 'Успешно.', back_url)
 
 def handle_update(db, thing, state, value):

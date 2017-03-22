@@ -39,8 +39,10 @@ def parse_sense(maybe_wrong):
 
     return (wrong, value)
 
-def handle_graph(db, thing):
+def handle_graph(db, a_thing):
+    thing = db.resolve_thing(a_thing)
     history = db.load_history(thing, 'reported', since_days=1)
+
     times = list(map(lambda s: parse_isoformat(s['timestamp_utc']), history))
     plot_times = list(map(lambda t: date2num(t), times))
     senses = list(map(lambda s: get_senses(s['state']), history))
@@ -165,6 +167,8 @@ def handle_graph(db, thing):
         
     senses_plot.axes.autoscale()
     senses_plot.grid(True)
+
+    # importantly here we should use the dealiased thing
     image_location = 'db/%s/graph.png' % thing
 
     # legend to top of plot, based on example from http://matplotlib.org/users/legend_guide.html

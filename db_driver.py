@@ -53,7 +53,8 @@ class DatabaseDriver:
         self.directory = Path(working_directory) / directory
         self.view = (Path(working_directory) / view)
 
-    def prepare_directory(self, directory):
+    # Level 3: this class callables
+    def _prepare_directory(self, directory):
         directory.mkdir()
         index = directory / "index.html"
         style = directory / "style.css"
@@ -63,7 +64,7 @@ class DatabaseDriver:
         index.symlink_to(self.view / "index.html")
         style.symlink_to(self.view / "style.css")
 
-    def append_history(self, thing, state, previous_value):
+    def _append_history(self, thing, state, previous_value):
         history_path = self.directory / thing / "history"
         log_updated = []
         if not history_path.is_dir():
@@ -75,11 +76,11 @@ class DatabaseDriver:
 
         if not history_state_file.exists():
             # if this is the beginning of a new year, put year-2 history in archive
-            info("update", "First record for %s for the new year. Archiving 2 years old history" % thing)
-            self.archive_history(thing, state)
+            info("append_history", "First record for %s for the new year. Archiving 2 years old history" % thing)
+            self._archive_history(thing, state)
             log_updated.append('archive')
 
-        state_file = self.get_state_path(thing, state)
+        state_file = self._get_state_path(thing, state)
 
         with history_state_file.open('a+') as f:
             f.write(to_compact_json(previous_value))
@@ -88,13 +89,13 @@ class DatabaseDriver:
 
         return log_updated
 
-    def get_state_path(self, thing, state):
+    def _get_state_path(self, thing, state):
         p = self.directory / thing / state
         return p.with_suffix(".json")
 
-    def apply_aliases(self, thing, d, aliases=None):
+    def _apply_aliases(self, thing, d, aliases=None):
         if aliases is None:
-            a = self.get_state_path(thing, 'aliases')
+            a = self._get_state_path(thing, 'aliases')
             if not a.exists():
                 info('apply_aliases', 'No aliases applied because file does not exist')
                 return d
@@ -106,7 +107,7 @@ class DatabaseDriver:
         
         for key, value in d.items():
             if type(value) is dict:
-                aliased[key] = self.apply_aliases(thing, value, aliases)
+                aliased[key] = self._apply_aliases(thing, value, aliases)
             elif key in aliases.keys() and aliases[key] != "":
                 aliased[key] = {
                         'value': value,
@@ -117,7 +118,7 @@ class DatabaseDriver:
 
         return aliased
 
-    def dealias(self, d):
+    def _dealias(self, d):
         dealiased = {}
         
         if d.get('alias') is not None and d.get('value') is not None:
@@ -125,64 +126,17 @@ class DatabaseDriver:
 
         for key, value in d.items():
             if type(value) is dict:
-                dealiased[key] = self.dealias(value)
+                dealiased[key] = self._dealias(value)
             else:
                 dealiased[key] = value
 
         return dealiased 
 
-    def update_reported(self, thing, value):
-        validate_input(thing, "reported", value)
-        if value.get('state') and not isinstance(value.get('state'), str): # there is a string state attribute that can get confused with a top level state object
-            raise Exception('"state" object is not expected at top level, going to be added here. Got %s' % value)
-        log_updated = []
-        
-        thing_directory = self.directory / thing
-        if not thing_directory.exists():
-            self.prepare_directory(thing_directory)
-            info("update_reported", "Created new thing directory for %s" % thing)
-            log_updated.append('new_thing')
-
-        state = "reported"
-        state_file = self.get_state_path(thing, state)
-
-        value = state_processor.explode(value)
-        
-        if state_file.exists():
-            with state_file.open() as f:
-                previous_value = json.loads(f.read())
-            result = self.append_history(thing, state, previous_value)
-            log_updated.extend(result)
-
-        
-        desired_file = self.get_state_path(thing, "desired")
-        if not desired_file.exists():
-            self.update_desired(thing, value.get('config', {}))
-            log_updated.append('created_desired')
-        
-        aliases = self.append_new_aliasables(thing, value)
-        self.update_aliases(thing, aliases)
-        log_updated.append('updated_aliases')
-
-        aliased_value = self.apply_aliases(thing, value, aliases = aliases)
-
-        encapsulated_value = encapsulate_and_timestamp(aliased_value, "state")
-        with state_file.open('w') as f:
-            f.write(pretty_json(encapsulated_value))
-            log_updated.append('state')
-
-        graph = thing_directory / "graph.png"
-        if graph.exists():
-            graph.unlink()
-            log_updated.append('deleted_graph')
-
-        info("update", "[%s] updated %s" % (thing, pretty_list(log_updated)))
-
-    def append_new_aliasables(self, thing, value):
-        aliases_file = self.get_state_path(thing, "aliases")
+    def _append_new_aliasables(self, thing, value):
+        aliases_file = self._get_state_path(thing, "aliases")
 
         if aliases_file.exists():
-            aliases = self.load_state(thing, "aliases")
+            aliases = self._load_state(thing, "aliases")
         else:
             aliases = {}
 
@@ -194,75 +148,7 @@ class DatabaseDriver:
 
         return aliases
 
-    def update_desired(self, thing, value):
-        validate_input(thing, "desired", value)
-        if value.get('state') or value.get('config'):
-            raise Exception('"state" or "config" object is not expected at top level. Got %s' % value)
-
-        log_updated = []
-        
-        thing_directory = self.directory / thing
-        if not thing_directory.exists():
-            raise Exception("update_desired", "Not allowed to create new directory for desired %s %s" % (thing, value))
-
-        state = "desired"
-
-        state_file = self.get_state_path(thing, state)
-
-        if state_file.exists():
-            with state_file.open() as f:
-                previous_value = f.read()
-
-            encapsulated_previous_value = encapsulate_and_timestamp(previous_value, 'config')
-            result = self.append_history(thing, state, encapsulated_previous_value)
-            log_updated.extend(result)
-            
-        with state_file.open('w') as f:
-            # refresh aliases
-            value = self.apply_aliases(thing, self.dealias(value))
-
-            # fill default action values if needed
-            value = state_processor.explode(state_processor.compact(value))
-            f.write(pretty_json(value))
-            log_updated.append('state')
-
-        info("update_desired", "[%s] updated %s" % (thing, pretty_list(log_updated)))
-
-    def update_aliases(self, thing, value):
-        validate_input(thing, "aliases", value)
-        if len(list(filter(aliasable, value.keys()))) != len(value.keys()): 
-            error('update_aliases', "Some of the keys are not aliasable. Ignoring update. %s %s" % (thing, value))
-            return
-        if len(list(filter(lambda s: type(s) is not str, value.values()))) > 0:
-            error('update_aliases', "Some of the values are not strings. Ignoring update. %s %s" % (thing, value))
-            return
-
-        log_updated = []
-        
-        thing_directory = self.directory / thing
-        if not thing_directory.exists():
-            raise Exception("update_aliases", "Not allowed to create new directory for aliases %s %s" % (thing, value))
-
-        state = "aliases"
-
-        state_file = self.get_state_path(thing, state)
-
-        if state_file.exists():
-            with state_file.open() as f:
-                previous_value = json.loads(f.read())
-
-            encapsulated_previous_value = encapsulate_and_timestamp(previous_value, 'state')
-            result = self.append_history(thing, state, encapsulated_previous_value)
-            log_updated.extend(result)
-            
-        with state_file.open('w') as f:
-            f.write(pretty_json(value))
-            log_updated.append('state')
-
-        info("update_aliases", "[%s] updated %s" % (thing, pretty_list(log_updated)))
-
-
-    def archive_history(self, thing, state):
+    def _archive_history(self, thing, state):
         two_years_ago = date.today().year - 2
         thing_directory = self.directory / thing
         history_path = thing_directory / "history" / state
@@ -284,20 +170,85 @@ class DatabaseDriver:
         else:
             info("archive_history", "No history from %d for %s" % (two_years_ago, thing))
 
+    def _load_state(self, thing, state_name):
+        thing_directory = self.directory / thing
+        state_path = thing_directory / state_name
+        state_file = state_path.with_suffix(".json")
+
+        if state_file.exists():
+            with state_file.open() as f:
+                contents = f.read()
+
+            deserialized = json.loads(contents)
+            return deserialized
+        else:
+            info("load_state", "Tried to load state that does not exist: %s/%s" % (thing, state_name))
+
+            return {}
+
+    # Level 2: mqtt_operator callables
+
+    def update_reported(self, thing, value):
+        validate_input(thing, "reported", value)
+        if value.get('state') and not isinstance(value.get('state'), str): # there is a string state attribute that can get confused with a top level state object
+            raise Exception('"state" object is not expected at top level, going to be added here. Got %s' % value)
+        log_updated = []
+        
+        thing_directory = self.directory / thing
+        if not thing_directory.exists():
+            self._prepare_directory(thing_directory)
+            info("update_reported", "Created new thing directory for %s" % thing)
+            log_updated.append('new_thing')
+
+        state = "reported"
+        state_file = self._get_state_path(thing, state)
+
+        value = state_processor.explode(value)
+        
+        if state_file.exists():
+            with state_file.open() as f:
+                previous_value = json.loads(f.read())
+            result = self._append_history(thing, state, previous_value)
+            log_updated.extend(result)
+
+        
+        desired_file = self._get_state_path(thing, "desired")
+        if not desired_file.exists():
+            self.update_desired(thing, value.get('config', {}))
+            log_updated.append('created_desired')
+        
+        aliases = self._append_new_aliasables(thing, value)
+        self.update_aliases(thing, aliases)
+        log_updated.append('updated_aliases')
+
+        aliased_value = self._apply_aliases(thing, value, aliases = aliases)
+
+        encapsulated_value = encapsulate_and_timestamp(aliased_value, "state")
+        with state_file.open('w') as f:
+            f.write(pretty_json(encapsulated_value))
+            log_updated.append('state')
+
+        graph = thing_directory / "graph.png"
+        if graph.exists():
+            graph.unlink()
+            log_updated.append('deleted_graph')
+
+        info("update", "[%s] updated %s" % (thing, pretty_list(log_updated)))
+
     def get_delta(self, thing):
-        from_state = self.load_state(thing, "reported")
+        from_state = self._load_state(thing, "reported")
         if from_state.get('state') is None or from_state.get('state').get('config') is None:
             error("get_delta", "Unexpected from_state format, expected to begin with state/config. %s %s" % (thing, from_state))
             return '{"error":1}'
         from_state = from_state['state']['config']
 
-        to_state = self.load_state(thing, "desired")
+        to_state = self._load_state(thing, "desired")
 
         if to_state == {}:
             info("get_delta", "desired of %s is empty. Assuming no delta needed." % thing)
             return "{}"
-        from_state = self.dealias(from_state) 
-        to_state = self.dealias(to_state)
+        from_state = self._dealias(from_state) 
+        to_state = self._dealias(to_state)
 
         compact_from = state_processor.compact(from_state)
         compact_to = state_processor.compact(to_state)
@@ -326,23 +277,108 @@ class DatabaseDriver:
 
         return json.dumps(delta_dict, separators=(',', ':'))
 
-    def load_state(self, thing, state_name):
+    # Level 1: gui/user callables. Thing may be aliased, thus a_thing
+
+    def resolve_thing(self, a_thing):
+        if (self.directory / a_thing).is_dir():
+            return a_thing
+        aliased_dir = self.directory / "na" / a_thing
+        if aliased_dir.is_symlink():
+            thing = aliased_dir.resolve().name
+            info("resolve_thing", "Resolved thing alias %s to %s" % (a_thing, thing))
+            return thing
+        else:
+            raise Exception("%s is neither a thing or a thing alias." % a_thing)
+
+    def update_thing_alias(self, thing, alias):
+        if type(alias) is not str or '/' in alias:
+            raise Exception("Invalid alias received for thing %s: %s" % (thing, alias))
+
+        alias_directory = self.directory / "na"
+        for existing_alias in alias_directory.iterdir():
+            if existing_alias.resolve().name == thing:
+                existing_alias.unlink()
+
+        actual = self.directory / thing
+        symlinked = alias_directory / alias
+        symlinked.symlink_to(actual.resolve())
+
+        info("update_thing_alias", "%s aliased to %s" % (thing, alias))
+
+
+    def update_desired(self, a_thing, value):
+        validate_input(a_thing, "desired", value)
+        if value.get('state') or value.get('config'):
+            raise Exception('"state" or "config" object is not expected at top level. Got %s' % value)
+
+        log_updated = []
+
+        thing = self.resolve_thing(a_thing)
+
         thing_directory = self.directory / thing
-        state_path = thing_directory / state_name
-        state_file = state_path.with_suffix(".json")
+        if not thing_directory.exists():
+            raise Exception("update_desired", "Not allowed to create new directory for desired %s %s" % (thing, value))
+
+        state = "desired"
+
+        state_file = self._get_state_path(thing, state)
 
         if state_file.exists():
             with state_file.open() as f:
-                contents = f.read()
+                previous_value = f.read()
 
-            deserialized = json.loads(contents)
-            return deserialized
-        else:
-            info("load_state", "Tried to load state that does not exist: %s/%s" % (thing, state_name))
+            encapsulated_previous_value = encapsulate_and_timestamp(previous_value, 'config')
+            result = self._append_history(thing, state, encapsulated_previous_value)
+            log_updated.extend(result)
+            
+        with state_file.open('w') as f:
+            # refresh aliases
+            value = self._apply_aliases(thing, self._dealias(value))
 
-            return {}
+            # fill default action values if needed
+            value = state_processor.explode(state_processor.compact(value))
+            f.write(pretty_json(value))
+            log_updated.append('state')
 
-    def load_history(self, thing, state_name, since_days=1):
+        info("update_desired", "[%s] updated %s" % (thing, pretty_list(log_updated)))
+
+    def update_aliases(self, a_thing, value):
+        validate_input(a_thing, "aliases", value)
+        if len(list(filter(aliasable, value.keys()))) != len(value.keys()): 
+            error('update_aliases', "Some of the keys are not aliasable. Ignoring update. %s %s" % (a_thing, value))
+            return
+        if len(list(filter(lambda s: type(s) is not str, value.values()))) > 0:
+            error('update_aliases', "Some of the values are not strings. Ignoring update. %s %s" % (a_thing, value))
+            return
+
+        log_updated = []
+        
+        thing = self.resolve_thing(a_thing)
+        thing_directory = self.directory / thing
+        if not thing_directory.exists():
+            raise Exception("update_aliases", "Not allowed to create new directory for aliases %s %s" % (thing, value))
+
+        state = "aliases"
+
+        state_file = self._get_state_path(thing, state)
+
+        if state_file.exists():
+            with state_file.open() as f:
+                previous_value = json.loads(f.read())
+
+            encapsulated_previous_value = encapsulate_and_timestamp(previous_value, 'state')
+            result = self._append_history(thing, state, encapsulated_previous_value)
+            log_updated.extend(result)
+            
+        with state_file.open('w') as f:
+            f.write(pretty_json(value))
+            log_updated.append('state')
+
+        info("update_aliases", "[%s] updated %s" % (thing, pretty_list(log_updated)))
+
+    def load_history(self, a_thing, state_name, since_days=1):
+        thing = self.resolve_thing(a_thing)
+
         thing_directory = self.directory / thing
 
         history_path = thing_directory / "history"/ state_name
@@ -356,7 +392,7 @@ class DatabaseDriver:
             info("load_history", "No history exists for %s %s" % (thing, state_name))
             states = []
 
-        state = self.load_state(thing, state_name)
+        state = self._load_state(thing, state_name)
         states.append(state)
         since_day = today - timedelta(days=since_days)
         filtered_states = list(filter(lambda s: parse_isoformat(s['timestamp_utc']) > since_day, states))
