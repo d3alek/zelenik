@@ -239,14 +239,14 @@ class DatabaseDriver:
         from_state = self._load_state(thing, "reported")
         if from_state.get('state') is None or from_state.get('state').get('config') is None:
             error("get_delta", "Unexpected from_state format, expected to begin with state/config. %s %s" % (thing, from_state))
-            return '{"error":1}'
+            return {"error":1}
         from_state = from_state['state']['config']
 
         to_state = self._load_state(thing, "desired")
 
         if to_state == {}:
             info("get_delta", "desired of %s is empty. Assuming no delta needed." % thing)
-            return "{}"
+            return {}
         from_state = self._dealias(from_state) 
         to_state = self._dealias(to_state)
 
@@ -256,7 +256,7 @@ class DatabaseDriver:
 
         print(from_state, to_state, delta_stanza)
         if delta_stanza == []:
-            return "{}"
+            return {}
 
         delta_dict = {}
         for diff in delta_stanza:
@@ -275,7 +275,7 @@ class DatabaseDriver:
                 d = new_d
             delta_dict.update(d)
 
-        return json.dumps(delta_dict, separators=(',', ':'))
+        return delta_dict
 
     # Level 1: gui/user callables. Thing may be aliased, thus a_thing
 

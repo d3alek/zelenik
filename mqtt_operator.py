@@ -4,6 +4,9 @@ import paho.mqtt.client as mqtt
 import db_driver
 import json
 import re
+import time
+
+from db_driver import to_compact_json
 
 OPERATOR_ERROR_TOPIC = "operator_error"
 MESSAGE_NOT_HANDLED = '{"reason": "Message not handled. See mqtt_operator logs for details"}'
@@ -18,6 +21,9 @@ def info(method, message):
 
 def error(method, message):
     print("! mqtt_operator/%s: %s" % (method, message))
+
+def add_time(d):
+    d['t'] = int(time.time()) # seconds since EPOCH, Posix time
 
 def parse_username_password():
     with open(DIR + 'secret/mqtt_password_file') as f:
@@ -94,8 +100,9 @@ class MqttOperator:
         elif action == "get": # these come from things
             payload = "" # we ignore payload, as this is just a request to receive delta
             delta = db.get_delta(thing)
+            add_time(delta)
             answer_topic = "things/%s/delta" % thing
-            answer_payload = str(delta)
+            answer_payload = to_compact_json(delta)
         else:
             error("get_answer", "We got a message on a topic we should not be listening to: %s - %s" % (topic, payload))
             answer_topic = OPERATOR_ERROR_TOPIC
