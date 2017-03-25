@@ -34,6 +34,19 @@ def compact_write(word):
         error("compact_write", "Word is neither high nor low - %s. Returning default %s" % (word, DEFAULT_WRITE))
         return compact_write(DEFAULT_WRITE)
 
+def seconds_to_timestamp(seconds):
+    hours = seconds // (60*60)
+    minutes = (seconds // 60) % 60
+    return "%d:%02d" % (hours, minutes)
+
+def timestamp_to_seconds(timestamp):
+    if type(timestamp) is int:
+        return timestamp
+
+    hours, minutes = map(int, timestamp.split(':'))
+
+    return hours * 3600 + minutes * 60
+
 def parse_action(key, value):
     m = ACTION_KEY_PATTERN.match(key)
     if m is None:
@@ -54,6 +67,10 @@ def parse_action(key, value):
         delete = "yes"
     else:
         delete = "no"
+
+    if delete != "yes" and sense == 'time':
+        threshold = seconds_to_timestamp(threshold)
+        delta = seconds_to_timestamp(delta)
 
     return sense, {"gpio": gpio, "write": write, "threshold": threshold, "delta": delta, "delete": delete}
 
@@ -84,11 +101,19 @@ def compact_actions(actions):
         sense = key
         compacted_key = 'A|%s|%d%s' % (sense, value['gpio'], compact_write(value.get('write', DEFAULT_WRITE)))
 
-        delta_or_delete = value.get('delta', DEFAULT_DELTA)
+        delta = value.get('delta', DEFAULT_DELTA)
+        threshold = value['threshold']
+
+        if sense == 'time':
+            delta = timestamp_to_seconds(delta)
+            threshold = timestamp_to_seconds(threshold)
+
         if value.get('delete', DEFAULT_DELETE) == 'yes':
             delta_or_delete = DELETE
+        else:
+            delta_or_delete = delta
 
-        compacted_value = '%d~%d' % (value['threshold'], delta_or_delete)
+        compacted_value = '%d~%d' % (threshold, delta_or_delete)
         compacted[compacted_key] = compacted_value
 
     return compacted
@@ -98,6 +123,8 @@ def explode(json):
     for key, value in json.items():
         if key == 'actions':
             exploded_value = explode_actions(value)
+        elif key == 'time' and type(value) is int:
+            exploded_value = seconds_to_timestamp(value)
         elif type(value) is dict:
             exploded_value = explode(value)
         else:
@@ -111,6 +138,8 @@ def compact(json):
     for key, value in json.items():
         if key == 'actions':
             compacted_value = compact_actions(value)
+        elif key == 'time' and type(value) is str:
+            compacted_value = timestamp_to_seconds(value)
         elif type(value) is dict:
             compacted_value = compact(value)
         else:

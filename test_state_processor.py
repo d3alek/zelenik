@@ -60,6 +60,26 @@ class TestStateProcessor(unittest.TestCase):
 
         self.then_compact(compact)
 
+    def test_explode_action_seconds(self):
+        seconds_from_midnight = 41100 # 11:25:00 UTC
+        one_hour = 3600 
+        compact = ACTIONS % '{"A|time|1H": "%d~%d"}' % (seconds_from_midnight, one_hour)
+        exploded = ACTIONS % '{"time": {"gpio": 1, "write": "high", "threshold": "11:25", "delta": "1:00", "delete": "no"}}'
+
+        self.when_exploding(compact)
+
+        self.then_exploded(exploded)
+
+    def test_compact_action_seconds(self):
+        seconds_from_midnight = 41100 # 11:25:00 UTC
+        one_hour = 3600 
+        exploded = ACTIONS % '{"time": {"gpio": 1, "write": "high", "threshold": "11:25", "delta": "1:00", "delete": "no"}}'
+        compact = ACTIONS % '{"A|time|1H": "%d~%d"}' % (seconds_from_midnight, one_hour)
+
+        self.when_compacting(exploded)
+
+        self.then_compact(compact)
+
     def when_exploding(self, json_string):
         self.exploded = state_processor.explode(json.loads(json_string))
 

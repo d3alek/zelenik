@@ -6,7 +6,7 @@ import json
 import time
 import threading
 from mqtt_operator import parse_username_password
-from state_processor import parse_action
+from state_processor import parse_action, timestamp_to_seconds
 
 from datetime import datetime as dt
 from datetime import timedelta
@@ -28,6 +28,7 @@ DEFAULT_STATE = {
         },
         "write": {},
         "lawake": 0,
+        "b": -1, # seconds from boot
         "senses": {
             "mock-sense": 0
         },
@@ -43,6 +44,7 @@ DIR = '/www/zelenik/'
 config_changed = False
 last_publish = None
 first_awake = True
+start_seconds = 0
 
 def info(method, message):
     print("  mock_thing/%s: %s" % (method, message))
@@ -58,13 +60,13 @@ def load_actions(actions):
         new_actions = {}
         for ex_key, ex_value in existing_actions.items():
             ex_sense, ex_action = parse_action(ex_key, ex_value)
-            if sense == ex_sense and action['gpio'] == ex['gpio']:
+            if sense == ex_sense and action['gpio'] == ex_action['gpio']:
                 found_same_sense_gpio = True
                 if action['delta'] == -2:
-                    info('load_actions', 'Removing %s because delta is -2' % old_action)
+                    info('load_actions', 'Removing %s because delta is -2' % ex_action)
                 else:
-                    info('load_actions', 'Replacing %s' % old_action)
-                    new_actions[key] = "%s~%s" % (action['threshold'], action['delta'])
+                    info('load_actions', 'Replacing %s' % ex_action)
+                    new_actions[key] = value
             else:
                 new_actions[ex_key] = ex_value
 
@@ -108,6 +110,9 @@ def on_connect(client, userdata, flags, rc):
 
     threading.Timer(2, wake_up).start()
 
+def seconds(): # seconds from boot
+    return int(time.time()) - start_seconds
+
 def on_message(client, userdata, msg):
     global config_changed
     topic = msg.topic
@@ -116,22 +121,29 @@ def on_message(client, userdata, msg):
     info("on_message", "%s" % payload)
 
     config = state['config']
-    new_config = json.loads(payload)
-    if new_config.get('version') is not None:
+    delta = json.loads(payload)
+    if delta.get('version') is not None:
         #TODO
         pass
-    if new_config.get('sleep') is not None:
+    if delta.get('sleep') is not None:
         config_changed = True
-        config['sleep'] = int(new_config['sleep'])
-    if new_config.get('gpio') is not None:
-        load_gpio_config(new_config['gpio'])
-    if new_config.get('mode') is not None:
-        load_mode(new_config['mode'])
-    if new_config.get('actions') is not None:
-        load_actions(new_config['actions'])
+        config['sleep'] = int(delta['sleep'])
+    if delta.get('gpio') is not None:
+        load_gpio_config(delta['gpio'])
+    if delta.get('mode') is not None:
+        load_mode(delta['mode'])
+    if delta.get('actions') is not None:
+        load_actions(delta['actions'])
+    if delta.get('t') is not None:
+        boot_time = delta.get('t') - seconds()
+        state['b'] = boot_time
+
+def seconds_today():
+    boot_seconds = state['b']
+    return (boot_seconds + seconds()) % (60*60*24)
 
 def update_senses():
-    state['senses'] = {'mock-sense': random.randint(0, 100)}
+    state['senses'] = {'mock-sense': random.randint(0, 100), "time": seconds_today()}
 
 write_to_int = {'low': 0, 'high': 1}
 def do_actions():
@@ -159,13 +171,22 @@ def do_actions():
                 write_int = write_to_int[action['write']]
                 threshold = action['threshold']
                 delta = action['delta']
+                if sense == "time":
+                    threshold = timestamp_to_seconds(threshold)
+                    delta = timestamp_to_seconds(delta)
+                    
+                    if value >= threshold and value <= threshold + delta:
+                        write[write_key] = write_int
+                    else:
+                        write[write_key] = (write_int + 1) % 2
 
-                if value <= threshold - delta:
-                    write[write_key] = (write_int + 1) % 2
-                elif value >= threshold + delta:
-                    write[write_key] = write_int
                 else:
-                    write[write_key] = previous_write[key]
+                    if value <= threshold - delta:
+                        write[write_key] = (write_int + 1) % 2
+                    elif value >= threshold + delta:
+                        write[write_key] = write_int
+                    else:
+                        write[write_key] = previous_write[key]
 
     for key, value in mode.items():
         if value != 'a':
@@ -181,11 +202,11 @@ def publish_state():
     info('publish_state', 'published state')
 
 def wake_up():
-    global last_publish, config_changed, state, first_awake
+    global last_publish, config_changed, state, first_awake, start_seconds
     info('wake_up', 'woke up')
     config_changed = False
     if first_awake:
-        publish_state()
+        start_seconds = int(time.time())
         first_awake = False
 
     client.publish("things/%s/get" % NAME, "{}")
