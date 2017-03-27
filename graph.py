@@ -69,7 +69,8 @@ def handle_graph(db, a_thing):
         # get keys in the latest senses state, this will result in senses omitted from graph
         # if latest update did not report them
         sense_types = sorted(senses[-1].keys()) 
-        sense_types.remove('time')
+        if sense_types.get('time'):
+            sense_types.remove('time')
     else:
         sense_types = []
 
