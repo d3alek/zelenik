@@ -97,7 +97,13 @@ class TestStateProcessor(unittest.TestCase):
 
         self.then_exploded(exploded)
 
+    def test_explode_capacitive_max(self):
+        compact = SENSES % '{"I2C-32c": {"alias": "a", "value": 800}}'
+        exploded = SENSES % '{"I2C-32c": {"alias": "a", "original": 800, "value": 100}}'
 
+        self.when_exploding(compact)
+
+        self.then_exploded(exploded)
 
     def when_exploding(self, json_string):
         self.exploded = state_processor.explode(json.loads(json_string))

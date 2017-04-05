@@ -120,6 +120,7 @@ def compact_actions(actions):
 
 def scale_capacitive_humidity(value):
     normalized = (value - 300) / (800 - 300)
+    normalized = int(normalized * 100)
     if normalized < 0:
         normalized = 0
     elif normalized > 100:
