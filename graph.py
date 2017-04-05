@@ -95,7 +95,8 @@ def handle_graph(db, a_thing):
                     else:
                         wrong_times.append(time)
                         wrong_values.append(previous_value)
-                    alias = value['alias']
+                    if value.get('alias'):
+                        alias = value['alias']
                 else:
                     wrong, float_value = parse_sense(value)
                     if not wrong:
@@ -105,7 +106,7 @@ def handle_graph(db, a_thing):
                         wrong_times.append(time)
                         wrong_values.append(previous_value)
 
-        if alias == "":
+        if not alias or alias == "":
             label = sense_type
         else: 
             label = alias
