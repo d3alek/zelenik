@@ -118,6 +118,36 @@ def compact_actions(actions):
 
     return compacted
 
+def scale_capacitive_humidity(value):
+    normalized = (value - 300) / (800 - 300)
+    if normalized < 0:
+        normalized = 0
+    elif normalized > 100:
+        normalized = 100
+    
+    return normalized
+
+def normalize_capacitive_humidity(value):
+    if type(value) is dict and value.get('original'):
+        info('normalize_capacitive_humidity', 'Capacitive humidity seems already normalized: %s' % value)
+        return value
+
+    elif type(value) is int:
+        d = {}
+        original = value
+    elif type(value) is dict and value.get('value'):
+        d = value
+        original = value.get('value')
+    else:
+        error('normalize_capacitive_humidity', 'Expected capacitive humidity value to be either an integer or a dict with value element, got %s instead.' % value)
+        return value
+
+    scaled_value = scale_capacitive_humidity(original) 
+    d['original'] = original
+    d['value'] = scaled_value
+    return d
+
+
 def explode(json):
     exploded = {}
     for key, value in json.items():
@@ -125,6 +155,8 @@ def explode(json):
             exploded_value = explode_actions(value)
         elif key == 'time' and type(value) is int:
             exploded_value = seconds_to_timestamp(value)
+        elif key == 'I2C-32c':
+            exploded_value = normalize_capacitive_humidity(value)
         elif type(value) is dict:
             exploded_value = explode(value)
         else:

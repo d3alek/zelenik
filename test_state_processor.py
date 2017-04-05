@@ -3,6 +3,7 @@ import state_processor
 import json
 
 ACTIONS = '{"actions": %s}'
+SENSES = '{"senses": %s}'
 
 class TestStateProcessor(unittest.TestCase):
     def test_explode_identity(self):
@@ -79,6 +80,24 @@ class TestStateProcessor(unittest.TestCase):
         self.when_compacting(exploded)
 
         self.then_compact(compact)
+
+    def test_explode_capacitive_humidity_no_alias(self):
+        compact = SENSES % '{"I2C-32c": 300}'
+        exploded = SENSES % '{"I2C-32c": {"original": 300, "value": 0}}'
+
+        self.when_exploding(compact)
+
+        self.then_exploded(exploded)
+
+    def test_explode_capacitive_humidity_with_alias(self):
+        compact = SENSES % '{"I2C-32c": {"alias": "a", "value": 300}}'
+        exploded = SENSES % '{"I2C-32c": {"alias": "a", "original": 300, "value": 0}}'
+
+        self.when_exploding(compact)
+
+        self.then_exploded(exploded)
+
+
 
     def when_exploding(self, json_string):
         self.exploded = state_processor.explode(json.loads(json_string))

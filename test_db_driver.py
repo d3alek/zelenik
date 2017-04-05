@@ -76,7 +76,7 @@ class TestDatabaseDriver(unittest.TestCase):
         self.assertEqual(contents, expected_value)
 
     def then_delta_is(self, delta_string):
-        self.assertEqual(json.loads(self.delta), json.loads(delta_string))
+        self.assertEqual(self.delta, json.loads(delta_string))
 
 class TestDatabaseDriverUpdate(TestDatabaseDriver):
     def test_update_reported_creates_thing_with_view(self):
