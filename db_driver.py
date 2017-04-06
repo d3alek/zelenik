@@ -6,7 +6,7 @@ import json_delta
 from datetime import datetime, timedelta
 import state_processor
 
-NON_ALIASABLE = ['lawake', 'sleep', 'state', 'version', 'voltage', 'wifi', 'delete', 'delta', 'gpio', 'threshold', 'write', 'alias', 'value']
+NON_ALIASABLE = ['lawake', 'sleep', 'state', 'version', 'voltage', 'wifi', 'delete', 'delta', 'gpio', 'threshold', 'write', 'alias', 'value', 'original']
 def aliasable(s):
     b = s not in NON_ALIASABLE
     return b and not s.startswith('A|')

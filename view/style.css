@@ -48,3 +48,9 @@ footer ul li {
         float: left;
     }
 }
+
+.horizontal-list li {
+    display: inline;
+    list-style-type: none;
+    padding-right: 20px;
+}

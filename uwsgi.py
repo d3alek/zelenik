@@ -20,13 +20,16 @@ def parse_thing(uri):
     thing = match.group(2)
     return thing
 
-def parse_update_state(uri):
-    match = re.match(r'/db/([a-zA-Z0-9-]+)\/update_(.+)', uri)
+def parse_since_days(uri):
+    match = re.match(r'/(db|na)/([a-zA-Z0-9-]+)\/graph-?([0-9]*)', uri)
     if not match:
-        info("parse_update_state", "Could not parse update state from uri %s" % uri)
-        return ""
-    state = match.group(2)
-    return state
+        info("parse_since_days", "Could not parse since_days from uri %s. Default to 1" % uri)
+        return 1
+    since_days = match.group(3)
+    if since_days:
+        return int(since_days)
+    else:
+        return 1
 
 def application(env, start_response):
     method = env['REQUEST_METHOD']
@@ -48,7 +51,8 @@ def application(env, start_response):
 
         content_type, data = handle_update(db, thing, state, value)
     else:
-        content_type, data = handle_graph(db, thing)
+        since_days = parse_since_days(uri)
+        content_type, data = handle_graph(db, thing, since_days)
 
     start_response('200 OK', [('Content-Type', content_type)])
     if 'text' in content_type:

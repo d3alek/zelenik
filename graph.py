@@ -39,9 +39,9 @@ def parse_sense(maybe_wrong):
 
     return (wrong, value)
 
-def handle_graph(db, a_thing):
+def handle_graph(db, a_thing, since_days=1):
     thing = db.resolve_thing(a_thing)
-    history = db.load_history(thing, 'reported', since_days=1)
+    history = db.load_history(thing, 'reported', since_days=since_days)
 
     times = list(map(lambda s: parse_isoformat(s['timestamp_utc']), history))
     plot_times = list(map(lambda t: date2num(t), times))
@@ -172,7 +172,10 @@ def handle_graph(db, a_thing):
     senses_plot.grid(True)
 
     # importantly here we should use the dealiased thing
-    image_location = 'db/%s/graph.png' % thing
+    since_days_suffix = ''
+    if since_days > 1:
+        since_days_suffix = '-%d' % since_days
+    image_location = 'db/%s/graph%s.png' % (thing, since_days_suffix)
 
     # legend to top of plot, based on example from http://matplotlib.org/users/legend_guide.html
     senses_plot.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,

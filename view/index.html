@@ -18,14 +18,22 @@
 
         <hr />
 
+        <div id="graph">
+            <img src="graph.png">
+            <ul class="horizontal-list">
+                <li>Ден</li>
+                <li><a href="graph-7.png">Седмица</a></li>
+                <li><a href="graph-31.png">Месец</a></li>
+                <li><a href="graph-256.png">Година</a></li>
+            </ul>
+        </div>
+
+
         <div id="reported">
-        Reported
         <pre><!--#include file="reported.json" --></pre>
         </div>
 
         <div id="desired">
-        Desired 
-        <br>
         <form action="update" method="POST">
         <textarea name="desired" wrap="off" rows="15" cols="40"><!--#include file="desired.json" stub="none"--></textarea>
         <br>
@@ -35,13 +43,8 @@
 
         <div class="clear"></div>
 
-        <div id="graph">
-        <img src="graph.png">
-        </div>
-
+        
         <div id="aliases">
-        Aliases
-        <br>
         <form action="update" method="POST">
         <textarea name="aliases" wrap="off" rows="10" cols="40"><!--#include file="aliases.json" stub="none"--></textarea>
         <br>
