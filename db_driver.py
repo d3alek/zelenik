@@ -262,9 +262,10 @@ class DatabaseDriver:
             f.write(pretty_json(encapsulated_value))
             log_updated.append('state')
 
-        graph = thing_directory / "graph.png"
-        if graph.exists():
-            graph.unlink()
+        graphs = [x for x in thing_directory.iterdir() if x.match('graph*.png')]
+        if len(graphs) > 0:
+            for graph in graphs:
+                graph.unlink()
             log_updated.append('deleted_graph')
 
         info("update", "[%s] updated %s" % (thing, pretty_list(log_updated)))

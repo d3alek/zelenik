@@ -165,6 +165,7 @@ class TestDatabaseDriverUpdate(TestDatabaseDriver):
         self.given_thing()
         self.given_state("reported", BASE_STATE % '{}')
         self.given_graph()
+        self.given_weekly_graph()
 
         self.when_updating_reported(JSN % 1)
 
@@ -192,6 +193,10 @@ class TestDatabaseDriverUpdate(TestDatabaseDriver):
         p = self.db_directory / THING / "graph.png"
         p.touch()
 
+    def given_weekly_graph(self):
+        p = self.db_directory / THING / "graph-7.png"
+        p.touch()
+
     def given_alias(self, key, value):
         p = self.db_directory / THING / "aliases.json"
         
@@ -200,6 +205,15 @@ class TestDatabaseDriverUpdate(TestDatabaseDriver):
 
     def then_no_graph(self):
         p = self.db_directory / THING / "graph.png"
+        self.assertFalse(p.exists())
+
+        p = self.db_directory / THING / "graph-7.png"
+        self.assertFalse(p.exists())
+
+        p = self.db_directory / THING / "graph-31.png"
+        self.assertFalse(p.exists())
+
+        p = self.db_directory / THING / "graph-366.png"
         self.assertFalse(p.exists())
 
     def then_one_thing(self):
