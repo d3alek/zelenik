@@ -5,8 +5,25 @@ import json
 import json_delta
 from datetime import datetime, timedelta, date
 import state_processor
+import re
 
 NON_ALIASABLE = ['lawake', 'sleep', 'state', 'version', 'voltage', 'wifi', 'delete', 'delta', 'gpio', 'threshold', 'write', 'alias', 'value', 'original', 'b', 'time']
+
+history_day_pattern = re.compile('[a-z]*.([0-9-]*).txt')
+
+def info(method, message):
+    print("  db_driver/%s: %s" % (method, message))
+
+def error(method, message):
+    print("! db_driver/%s: %s" % (method, message))
+
+def parse_day_from_history_file(history_name):
+    m = history_day_pattern.match(history_name)
+    if m:
+        day_string = m.group(1)
+        return datetime.strptime(day_string, "%Y-%m-%d").date()
+    else:
+        error("parse_day_from_history_file", "Could not parse day from history file %s" % history_name)
 
 def read_lines_single_zipped_file(file_path):
     with ZipFile(str(file_path)) as zf:
@@ -32,12 +49,6 @@ def to_compact_json(s):
 
 def pretty_list(l):
     return ', '.join(map(str, l))
-
-def info(method, message):
-    print("  db_driver/%s: %s" % (method, message))
-
-def error(method, message):
-    print("! db_driver/%s: %s" % (method, message))
 
 def validate_input(thing, state, value):
     if not type(value) is dict:
@@ -85,7 +96,7 @@ class DatabaseDriver:
 
         if not history_state_file.exists():
             # if this is the beginning of a new day, put day-2 history in archive
-            info("append_history", "First record for %s for the new day. Archiving 2 days old history" % thing)
+            info("append_history", "First record for %s for the new day. Archiving more than 2 days old history" % thing)
             self._archive_history(thing, state)
             log_updated.append('archive')
 
@@ -160,49 +171,52 @@ class DatabaseDriver:
     def _archive_history(self, thing, state):
         two_days_ago = date.today() - timedelta(days=2)
         thing_directory = self.directory / thing
-        history_path = thing_directory / "history" / state
-        old_history_file = history_path.with_suffix(".%s.txt" % two_days_ago.isoformat())
+        history_path = thing_directory / "history" 
+        histories = [x for x in history_path.iterdir() if x.match('%s*' % state)]
 
-        if old_history_file.exists():
+        for history in histories:
+            day = parse_day_from_history_file(history.name)
+            if day > two_days_ago:
+                continue
+
+            old_history_file = history
             with old_history_file.open() as f:
-                new_contents = f.read()
+                new_archive_contents = f.read()
 
             archive_directory = thing_directory / "history" / "archive"
             if not archive_directory.is_dir():
                 archive_directory.mkdir()
                 info("archive_history", "Created new archive directory for %s" % thing)
 
-            # check here if older archive for two days ago's year exists, and if it does append to it (it ends in <year>.zip, conveniently)
-            # if it does not, finalize the archive for the year before if necessary
-            yearly_archive = [x for x in archive_directory.iterdir() if x.match('%s.until-%d*.zip' % (state, two_days_ago.year))]
+            yearly_archive = [x for x in archive_directory.iterdir() if x.match('%s.until-%d*.zip' % (state, day.year))]
             if yearly_archive:
                 yearly_archive = yearly_archive[0]
                 with ZipFile(str(yearly_archive)) as zf:
                     file_name = zf.namelist()[0]
-                    old_contents = zf.read(file_name).decode('utf-8')
+                    old_archive_contents = zf.read(file_name).decode('utf-8')
             else:
-                incomplete_last_year_archive = [x for x in archive_directory.iterdir() if x.match('%s.until-%d*.zip' % (state, two_days_ago.year-1))]
+                incomplete_last_year_archive = [x for x in archive_directory.iterdir() if x.match('%s.until-%d*.zip' % (state, day.year-1))]
                 if incomplete_last_year_archive:
                     incomplete_last_year_archive = incomplete_last_year_archive[0]
-                    complete_last_year_archive = archive_directory / ('%s.%d.zip' % (state, two_days_ago.year - 1))
+                    complete_last_year_archive = archive_directory / ('%s.%d.zip' % (state, day.year - 1))
                     incomplete_last_year_archive.replace(complete_last_year_archive)
-                old_contents = ""
+                old_archive_contents = ""
 
             archive_path = archive_directory / state
-            archive_file = archive_path.with_suffix(".until-%s.zip" % two_days_ago.isoformat())
+            archive_file = archive_path.with_suffix(".until-%s.zip" % day.isoformat())
 
-            contents = "%s\n%s" % (old_contents, new_contents)
+            contents = "%s\n%s" % (old_archive_contents, new_archive_contents)
             with ZipFile(str(archive_file), 'w') as zf:
-                arcname = '%s.until-%s.txt' % (state, two_days_ago.isoformat())
+                arcname = '%s.until-%s.txt' % (state, day.isoformat())
                 zf.writestr(arcname, contents)
 
             old_history_file.unlink() 
             if yearly_archive:
                 yearly_archive.unlink()
 
-            info("archive_history", "Archived history from %s for %s" % (two_days_ago.isoformat(), thing))
+            info("archive_history", "Archived history from %s for %s" % (day, thing))
         else:
-            info("archive_history", "No history from %s for %s" % (two_days_ago.isoformat(), thing))
+            info("archive_history", "No history for %s older than %s" % (thing, two_days_ago))
 
     def _load_state(self, thing, state_name):
         thing_directory = self.directory / thing

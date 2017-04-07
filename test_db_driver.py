@@ -363,6 +363,27 @@ class TestDatabaseDriverHistory(TestDatabaseDriver):
         self.then_archive_exists("reported", JSN % "oldest", until=two_days_ago)
         self.then_state_exists("reported", FORMAT % JSN % "new")
 
+    # necessary for states do not change every day 
+    # or for the case that a devices has been offline
+    def test_update_archives_history_older_than_yesterday(self):
+        today = date.today()
+        yesterday = today - timedelta(days=1)
+        last_week = today - timedelta(days=7)
+
+        self.given_thing()
+        self.given_state("reported", JSN % "old")
+        self.given_history("reported", JSN % "oldest", day=last_week)
+        self.given_history("reported", JSN % "older", day=yesterday)
+        self.when_updating_reported(JSN % "new")
+
+        self.then_two_histories("reported")
+        self.then_history_exists("reported", JSN % "older", day=yesterday)
+        self.then_history_exists("reported", JSN % "old")
+        self.then_archive_exists("reported", JSN % "oldest", until=last_week)
+        self.then_state_exists("reported", FORMAT % JSN % "new")
+
+
+
     def test_update_appends_to_archive(self):
         today = date.today()
         yesterday = today - timedelta(days=1)
