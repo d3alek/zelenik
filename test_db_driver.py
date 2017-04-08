@@ -3,7 +3,7 @@ from pathlib import Path
 import db_driver
 from tempfile import TemporaryDirectory
 from datetime import date, datetime, timedelta
-from zipfile import ZipFile
+from zipfile import ZipFile, ZIP_DEFLATED
 import json
 import state_processor
 
@@ -503,7 +503,7 @@ class TestDatabaseDriverHistory(TestDatabaseDriver):
 
         p = p.with_suffix('.%s.zip' % suffix)
 
-        with ZipFile(str(p), 'w') as zf:
+        with ZipFile(str(p), 'w', ZIP_DEFLATED) as zf:
             arcname = '%s.%s.txt' % (state, suffix)
             zf.writestr(arcname, value)
 

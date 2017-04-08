@@ -1,6 +1,6 @@
 from pathlib import Path
 from datetime import date
-from zipfile import ZipFile
+from zipfile import ZipFile, ZIP_DEFLATED
 import json
 import json_delta
 from datetime import datetime, timedelta, date
@@ -203,13 +203,17 @@ class DatabaseDriver:
                     incomplete_last_year_archive = incomplete_last_year_archive[0]
                     complete_last_year_archive = archive_directory / ('%s.%d.zip' % (state, day.year - 1))
                     incomplete_last_year_archive.replace(complete_last_year_archive)
-                old_archive_contents = ""
+                old_archive_contents = None
 
             archive_path = archive_directory / state
             archive_file = archive_path.with_suffix(".until-%s.zip" % day.isoformat())
 
-            contents = "%s\n%s" % (old_archive_contents, new_archive_contents)
-            with ZipFile(str(archive_file), 'w') as zf:
+            if old_archive_contents:
+                contents = "%s\n%s" % (old_archive_contents, new_archive_contents)
+            else:
+                contents = new_archive_contents
+
+            with ZipFile(str(archive_file), 'w', ZIP_DEFLATED) as zf:
                 arcname = '%s.until-%s.txt' % (state, day.isoformat())
                 zf.writestr(arcname, contents)
 
