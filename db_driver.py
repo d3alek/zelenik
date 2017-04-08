@@ -306,7 +306,6 @@ class DatabaseDriver:
         compact_to = state_processor.compact(to_state)
         delta_stanza = json_delta.diff(compact_from, compact_to, verbose=False)
 
-        print(from_state, to_state, delta_stanza)
         if delta_stanza == []:
             return {}
 
@@ -439,14 +438,12 @@ class DatabaseDriver:
         history = []
         if complete.exists():
             text = read_lines_single_zipped_file(complete)
-            print("TEXT", text)
             history = list(map(json.loads, text))
         else:
             incomplete = [x for x in archive_path.iterdir() if x.match('%s.until-%d*.zip' % (state_name, year))]
             if len(incomplete) > 0:
                 incomplete = incomplete[0]
                 text = read_lines_single_zipped_file(incomplete)
-                print("TEXT [%s]" % text)
                 history = list(map(json.loads, text))
             else:
                 info("load_history_for_year", "No history exists for %s %s for %s" % (thing, state_name, year))
