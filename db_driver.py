@@ -34,7 +34,7 @@ def read_lines_single_zipped_file(file_path):
         byte_text = zf.read(file_name)
         text = byte_text.decode('utf-8')
     
-    return text.split('\n')
+    return text.splitlines()
 
 def aliasable(s):
     b = s not in NON_ALIASABLE
