@@ -21,9 +21,12 @@ def parse_day_from_history_file(history_name):
     m = history_day_pattern.match(history_name)
     if m:
         day_string = m.group(1)
-        return datetime.strptime(day_string, "%Y-%m-%d").date()
-    else:
-        error("parse_day_from_history_file", "Could not parse day from history file %s" % history_name)
+        try:
+            return datetime.strptime(day_string, "%Y-%m-%d").date()
+        except ValueError:
+            pass
+
+    error("parse_day_from_history_file", "Could not parse day from history file %s" % history_name)
 
 def read_lines_single_zipped_file(file_path):
     with ZipFile(str(file_path)) as zf:
@@ -172,7 +175,7 @@ class DatabaseDriver:
         two_days_ago = date.today() - timedelta(days=2)
         thing_directory = self.directory / thing
         history_path = thing_directory / "history" 
-        histories = [x for x in history_path.iterdir() if x.match('%s*' % state)]
+        histories = [x for x in history_path.iterdir() if x.match('%s*.txt' % state)]
 
         for history in histories:
             day = parse_day_from_history_file(history.name)
