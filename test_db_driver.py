@@ -382,8 +382,6 @@ class TestDatabaseDriverHistory(TestDatabaseDriver):
         self.then_archive_exists("reported", JSN % "oldest", until=last_week)
         self.then_state_exists("reported", FORMAT % JSN % "new")
 
-
-
     def test_update_appends_to_archive(self):
         today = date.today()
         yesterday = today - timedelta(days=1)
@@ -505,7 +503,7 @@ class TestDatabaseDriverHistory(TestDatabaseDriver):
 
         with ZipFile(str(p), 'w', ZIP_DEFLATED) as zf:
             arcname = '%s.%s.txt' % (state, suffix)
-            zf.writestr(arcname, value)
+            zf.writestr(arcname, value + '\n')
 
     def when_loading_reported_history(self, since_days=366):
         self.history = self.db.load_history(THING, 'reported', since_days=since_days)

@@ -473,14 +473,15 @@ class DatabaseDriver:
         today = date.today()
         yesterday = today - timedelta(days=1)
         history = []
-        history.extend(self._load_history_for_day(thing, state_name, yesterday))
-        history.extend(self._load_history_for_day(thing, state_name, today))
 
         if since_days > 1:
             history.extend(self._load_history_for_year(thing, state_name, today.year))
             days_since_start_of_year = today.month * 29 + today.day # approximate, understatement
             if since_days > days_since_start_of_year:
                 history.extend(self._load_history_for_year(thing, state_name, today.year - 1))
+
+        history.extend(self._load_history_for_day(thing, state_name, yesterday))
+        history.extend(self._load_history_for_day(thing, state_name, today))
 
         state = self._load_state(thing, state_name)
         history.append(state)
