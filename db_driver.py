@@ -36,7 +36,8 @@ def parse_day_from_history_file(history_name):
         except ValueError:
             pass
 
-    error("parse_day_from_history_file", "Could not parse day from history file %s" % history_name)
+    error("parse_day_from_history_file", "Could not parse day from history file %s. Using two days ago." % history_name)
+    return date.today() - timedelta(days=2)
 
 def read_lines_single_zipped_file(file_path):
     with ZipFile(str(file_path)) as zf:

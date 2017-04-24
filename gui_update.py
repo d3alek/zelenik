@@ -30,8 +30,8 @@ def update_db(db, a_thing, state, value):
 
         if state == 'desired': 
             db.update_desired(thing, value_dict)
-        elif state == 'aliases':
-            db.update_aliases(thing, value_dict)
+        elif state == 'displayables':
+            db.update_displayables(thing, value_dict)
         else:
             error("update_db", "Not allowed to change state. %s %s %s" % (thing, state, value_dict))
             return 'Not allowed to change state. %s %s %s' % (thing, state, value_dict)
