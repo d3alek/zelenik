@@ -12,6 +12,9 @@ BASE_STATE = '{"config": %s}'
 FORMAT = '{"state": %s, "timestamp_utc": "2017-01-25 15:34:12.989202"}'
 JSN = '{"value": "%s"}' # separate case from BASE_STATE for convenience - notice the " surrounding %s
 FORMAT_TS = '{"state": %s, "timestamp_utc": "%s"}'
+DISP = '{"alias":"","color":"green","position":"0,0","type":"number","plot":"yes","graph":"yes"}'
+ALIASED_DISP = '{"alias":"%s","color":"green","position":"0,0","type":"number","plot":"yes","graph":"yes"}'
+COLORED_DISP = '{"alias":"","color":"%s","position":"0,0","type":"number","plot":"yes","graph":"yes"}'
 
 # source http://stackoverflow.com/a/765990
 def years_ago(years, from_date):
@@ -130,21 +133,21 @@ class TestDatabaseDriverUpdate(TestDatabaseDriver):
 
         self.then_state_exists("desired", actions_wrapper % complete_action)
 
-    def test_first_reported_creates_aliases(self):
+    def test_first_reported_creates_displayables(self):
         self.given_thing()
 
         self.when_updating_reported(BASE_STATE % '{"1": 0}')
 
-        self.then_state_exists("aliases", '{"1":""}') 
+        displayables = '{"1":%s}' % DISP
+        self.then_state_exists("displayables", displayables) 
 
-    def test_update_reported_updates_aliases(self):
+    def test_update_reported_updates_displayables(self):
         self.given_thing()
         self.given_state("reported", FORMAT % BASE_STATE % '{"a":1}')
-        self.given_state("aliases", '{"a":"temp"}')
+        self.given_state("displayables", '{"a":%s}' % DISP)
 
         self.when_updating_reported(BASE_STATE % '{"a": 1, "c": 2}')
-
-        self.then_state_exists("aliases", '{"a": "temp", "c": ""}')
+        self.then_state_exists("displayables", '{"a":%s,"c":%s}' % (COLORED_DISP % 'green', COLORED_DISP % 'red'))
 
     def test_update_reported_adds_timestamp(self):
         self.given_thing()
@@ -174,7 +177,7 @@ class TestDatabaseDriverUpdate(TestDatabaseDriver):
     def test_update_reported_includes_alias(self):
         self.given_thing()
         self.given_alias("value", "temperature")
-        self.given_state("reported", BASE_STATE % '{}') # necessary otherwise next command will override aliases
+        self.given_state("reported", BASE_STATE % '{}') # necessary otherwise next command will override displayables
 
         self.when_updating_reported(JSN % "a")
 
@@ -198,10 +201,11 @@ class TestDatabaseDriverUpdate(TestDatabaseDriver):
         p.touch()
 
     def given_alias(self, key, value):
-        p = self.db_directory / THING / "aliases.json"
+        p = self.db_directory / THING / "displayables.json"
         
+        aliased = json.loads(ALIASED_DISP % value)
         with p.open('w') as f:
-            f.write(json.dumps({key : value}))
+            f.write(json.dumps({key : aliased}))
 
     def then_no_graph(self):
         p = self.db_directory / THING / "graph.png"

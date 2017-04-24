@@ -6,10 +6,20 @@ import json_delta
 from datetime import datetime, timedelta, date
 import state_processor
 import re
+from matplotlib import colors
 
 NON_ALIASABLE = ['lawake', 'sleep', 'state', 'version', 'voltage', 'wifi', 'delete', 'delta', 'gpio', 'threshold', 'write', 'alias', 'value', 'original', 'b', 'time']
 
 history_day_pattern = re.compile('[a-z]*.([0-9-]*).txt')
+
+NEW_DISPLAYABLE = {"alias":"", "color": "green", "position":"0,0","type":"number","plot":"yes","graph":"yes"}
+
+FIRST_COLORS = ['green', 'red', 'blue', 'purple', 'brown', 'orange']
+
+def set_subtract(subtract_from, to_subtract):
+    return [item for item in subtract_from if item not in to_subtract]
+
+COLORS = list(reversed(FIRST_COLORS + set_subtract(colors.cnames.keys(), FIRST_COLORS))) # revsersing because the intended use is to instantiate a new list and pop out
 
 def info(method, message):
     print("  db_driver/%s: %s" % (method, message))
@@ -36,7 +46,7 @@ def read_lines_single_zipped_file(file_path):
     
     return text.splitlines()
 
-def aliasable(s):
+def is_displayable(s):
     b = s not in NON_ALIASABLE
     return b and not s.startswith('A|')
 
@@ -70,6 +80,13 @@ def collect_non_dict_value_keys(d):
             collected.append(key) 
 
     return collected
+
+def flat_map(field, d):
+    filtered = {}
+    for key, value in d.items():
+        filtered[key] = value.get(field, "")
+
+    return filtered
 
 class DatabaseDriver:
     def __init__(self, working_directory="", directory="db", view='view'):
@@ -118,13 +135,14 @@ class DatabaseDriver:
 
     def _apply_aliases(self, thing, d, aliases=None):
         if aliases is None:
-            a = self._get_state_path(thing, 'aliases')
+            a = self._get_state_path(thing, 'displayables')
             if not a.exists():
                 info('apply_aliases', 'No aliases applied because file does not exist')
                 return d
 
             with a.open() as f:
-                aliases = json.loads(f.read())
+                displayables = json.loads(f.read())
+                aliases = flat_map('alias', displayables)
 
         aliased = {}
         
@@ -155,21 +173,23 @@ class DatabaseDriver:
 
         return dealiased 
 
-    def _append_new_aliasables(self, thing, value):
-        aliases_file = self._get_state_path(thing, "aliases")
-
-        if aliases_file.exists():
-            aliases = self._load_state(thing, "aliases")
-        else:
-            aliases = {}
-
+    def _get_new_displayables(self, value, previous_displayables):
+        new_displayables = {}
         keys = collect_non_dict_value_keys(value)
-        keys = sorted(filter(aliasable, keys))
+        keys = sorted(filter(is_displayable, keys))
+        previous_keys = previous_displayables.keys()
+        used_colors = flat_map("color", previous_displayables).values()
+        unused_colors = set_subtract(COLORS, used_colors)
         for key in keys:
-            if aliases.get(key) is None:
-                aliases[key] = ""
+            if key not in previous_keys:
+                if not unused_colors:
+                    error("get_new_displayables", "No more unused colors. Starting to repeat")
+                    unused_colors = list(COLORS)
 
-        return aliases
+                new_displayables[key] = dict(NEW_DISPLAYABLE)
+                new_displayables[key]['color'] = unused_colors.pop()
+
+        return new_displayables
 
     def _archive_history(self, thing, state):
         two_days_ago = date.today() - timedelta(days=2)
@@ -269,10 +289,15 @@ class DatabaseDriver:
             self.update_desired(thing, value.get('config', {}))
             log_updated.append('created_desired')
         
-        aliases = self._append_new_aliasables(thing, value)
-        self.update_aliases(thing, aliases)
-        log_updated.append('updated_aliases')
+        displayables = self._load_state(thing, "displayables")
 
+        new_displayables = self._get_new_displayables(value, displayables)
+        if len(new_displayables) > 0:
+            displayables.update(new_displayables) 
+            self.update_displayables(thing, displayables)
+            log_updated.append('updated_displayables')
+
+        aliases = flat_map('alias', displayables)
         aliased_value = self._apply_aliases(thing, value, aliases = aliases)
 
         encapsulated_value = encapsulate_and_timestamp(aliased_value, "state")
@@ -394,13 +419,10 @@ class DatabaseDriver:
 
         info("update_desired", "[%s] updated %s" % (thing, pretty_list(log_updated)))
 
-    def update_aliases(self, a_thing, value):
-        validate_input(a_thing, "aliases", value)
-        if len(list(filter(aliasable, value.keys()))) != len(value.keys()): 
-            error('update_aliases', "Some of the keys are not aliasable. Ignoring update. %s %s" % (a_thing, value))
-            return
-        if len(list(filter(lambda s: type(s) is not str, value.values()))) > 0:
-            error('update_aliases', "Some of the values are not strings. Ignoring update. %s %s" % (a_thing, value))
+    def update_displayables(self, a_thing, value):
+        validate_input(a_thing, "displayables", value)
+        if len(list(filter(is_displayable, value.keys()))) != len(value.keys()): 
+            error('update_displayables', "Some of the keys are not displayable. Ignoring update. %s %s" % (a_thing, value))
             return
 
         log_updated = []
@@ -408,9 +430,9 @@ class DatabaseDriver:
         thing = self.resolve_thing(a_thing)
         thing_directory = self.directory / thing
         if not thing_directory.exists():
-            raise Exception("update_aliases", "Not allowed to create new directory for aliases %s %s" % (thing, value))
+            raise Exception("update_displayables", "Not allowed to create new directory for displayables %s %s" % (thing, value))
 
-        state = "aliases"
+        state = "displayables"
 
         state_file = self._get_state_path(thing, state)
 
@@ -426,7 +448,7 @@ class DatabaseDriver:
             f.write(pretty_json(value))
             log_updated.append('state')
 
-        info("update_aliases", "[%s] updated %s" % (thing, pretty_list(log_updated)))
+        info("update_displayables", "[%s] updated %s" % (thing, pretty_list(log_updated)))
 
     def _load_history_for_year(self, thing, state_name, year):
         archive_path = self.directory / thing / "history"/ "archive" 
