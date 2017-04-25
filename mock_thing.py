@@ -42,7 +42,6 @@ state = DEFAULT_STATE
 
 DIR = '/www/zelenik/'
 config_changed = False
-last_publish = None
 first_awake = True
 start_seconds = 0
 
@@ -202,7 +201,7 @@ def publish_state():
     info('publish_state', 'published state')
 
 def wake_up():
-    global last_publish, config_changed, state, first_awake, start_seconds
+    global config_changed, state, first_awake, start_seconds
     info('wake_up', 'woke up')
     config_changed = False
     if first_awake:
@@ -214,11 +213,7 @@ def wake_up():
     time.sleep(2)
     update_senses()
     do_actions()
-    if config_changed or not last_publish or last_publish + timedelta(minutes=1) < dt.now():
-        last_publish = dt.now()
-        publish_state(); 
-    else:
-        info('wake_up', 'too soon to publish')
+    publish_state(); 
 
     threading.Timer(10, wake_up).start()
 

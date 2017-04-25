@@ -4,7 +4,7 @@ matplotlib.use('svg')
 from matplotlib import pyplot as plt
 from matplotlib.dates import date2num, AutoDateLocator, AutoDateFormatter, DateFormatter
 
-from db_driver import parse_isoformat
+from db_driver import parse_isoformat, flat_map
 
 from dateutil import tz
 
@@ -42,6 +42,9 @@ def parse_sense(maybe_wrong):
 def handle_graph(db, a_thing, since_days=1):
     thing = db.resolve_thing(a_thing)
     history = db.load_history(thing, 'reported', since_days=since_days)
+    displayables = db.load_state(thing, 'displayables')
+    should_graph = flat_map(displayables, "graph")
+    displayable_color = flat_map(displayables, "color")
 
     times = list(map(lambda s: parse_isoformat(s['timestamp_utc']), history))
     plot_times = list(map(lambda t: date2num(t), times))
@@ -69,10 +72,16 @@ def handle_graph(db, a_thing, since_days=1):
         # get keys in the latest senses state, this will result in senses omitted from graph
         # if latest update did not report them
         sense_types = sorted(senses[-1].keys()) 
+        sense_types = list(filter(lambda s: should_graph.get(s, "yes") == "yes", sense_types))
         if 'time' in sense_types:
             sense_types.remove('time')
     else:
         sense_types = []
+
+    if len(sense_types) == 0:
+        content_type = 'text/plain'
+        data = "No data"
+        return content_type, data
 
     for sense_type in sense_types:
         alias = ""
@@ -111,7 +120,8 @@ def handle_graph(db, a_thing, since_days=1):
         else: 
             label = alias
 
-        senses_plot.plot(times, values, label=label)
+        color = displayable_color[sense_type]
+        senses_plot.plot(times, values, label=label, color=color)
         senses_plot.plot(wrong_times, wrong_values, 'rx')
 
     if len(writes) > 0:
@@ -180,10 +190,6 @@ def handle_graph(db, a_thing, since_days=1):
     # legend to top of plot, based on example from http://matplotlib.org/users/legend_guide.html
     senses_plot.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
                        ncol=3, mode="expand", borderaxespad=0.)
-
-    # legend to top of plot, based on example from http://matplotlib.org/users/legend_guide.html
-    #senses_plot.legend(bbox_to_anchor=(1, 1),
-    #                   ncol=3, bbox_transform = plt.gcf().transFigure)
 
     plt.savefig(image_location, dpi=100, bbox_inches='tight')
 

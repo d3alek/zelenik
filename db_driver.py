@@ -82,7 +82,7 @@ def collect_non_dict_value_keys(d):
 
     return collected
 
-def flat_map(field, d):
+def flat_map(d, field):
     filtered = {}
     for key, value in d.items():
         filtered[key] = value.get(field, "")
@@ -143,7 +143,7 @@ class DatabaseDriver:
 
             with a.open() as f:
                 displayables = json.loads(f.read())
-                aliases = flat_map('alias', displayables)
+                aliases = flat_map(displayables, 'alias')
 
         aliased = {}
         
@@ -179,7 +179,7 @@ class DatabaseDriver:
         keys = collect_non_dict_value_keys(value)
         keys = sorted(filter(is_displayable, keys))
         previous_keys = previous_displayables.keys()
-        used_colors = flat_map("color", previous_displayables).values()
+        used_colors = flat_map(previous_displayables, "color").values()
         unused_colors = set_subtract(COLORS, used_colors)
         for key in keys:
             if key not in previous_keys:
@@ -243,22 +243,6 @@ class DatabaseDriver:
         else:
             info("archive_history", "No history for %s older than %s" % (thing, two_days_ago))
 
-    def _load_state(self, thing, state_name):
-        thing_directory = self.directory / thing
-        state_path = thing_directory / state_name
-        state_file = state_path.with_suffix(".json")
-
-        if state_file.exists():
-            with state_file.open() as f:
-                contents = f.read()
-
-            deserialized = json.loads(contents)
-            return deserialized
-        else:
-            info("load_state", "Tried to load state that does not exist: %s/%s" % (thing, state_name))
-
-            return {}
-
     # Level 2: mqtt_operator callables
 
     def update_reported(self, thing, value):
@@ -290,7 +274,7 @@ class DatabaseDriver:
             self.update_desired(thing, value.get('config', {}))
             log_updated.append('created_desired')
         
-        displayables = self._load_state(thing, "displayables")
+        displayables = self.load_state(thing, "displayables")
 
         new_displayables = self._get_new_displayables(value, displayables)
         if len(new_displayables) > 0:
@@ -298,7 +282,7 @@ class DatabaseDriver:
             self.update_displayables(thing, displayables)
             log_updated.append('updated_displayables')
 
-        aliases = flat_map('alias', displayables)
+        aliases = flat_map(displayables, 'alias')
         aliased_value = self._apply_aliases(thing, value, aliases = aliases)
 
         encapsulated_value = encapsulate_and_timestamp(aliased_value, "state")
@@ -315,13 +299,13 @@ class DatabaseDriver:
         info("update", "[%s] updated %s" % (thing, pretty_list(log_updated)))
 
     def get_delta(self, thing):
-        from_state = self._load_state(thing, "reported")
+        from_state = self.load_state(thing, "reported")
         if from_state.get('state') is None or from_state.get('state').get('config') is None:
             error("get_delta", "Unexpected from_state format, expected to begin with state/config. %s %s" % (thing, from_state))
             return {"error":1}
         from_state = from_state['state']['config']
 
-        to_state = self._load_state(thing, "desired")
+        to_state = self.load_state(thing, "desired")
 
         if to_state == {}:
             info("get_delta", "desired of %s is empty. Assuming no delta needed." % thing)
@@ -356,6 +340,22 @@ class DatabaseDriver:
         return delta_dict
 
     # Level 1: gui/user callables. Thing may be aliased, thus a_thing
+
+    def load_state(self, thing, state_name):
+        thing_directory = self.directory / thing
+        state_path = thing_directory / state_name
+        state_file = state_path.with_suffix(".json")
+
+        if state_file.exists():
+            with state_file.open() as f:
+                contents = f.read()
+
+            deserialized = json.loads(contents)
+            return deserialized
+        else:
+            info("load_state", "Tried to load state that does not exist: %s/%s" % (thing, state_name))
+
+            return {}
 
     def resolve_thing(self, a_thing):
         if (self.directory / a_thing).is_dir():
@@ -506,7 +506,7 @@ class DatabaseDriver:
         history.extend(self._load_history_for_day(thing, state_name, yesterday))
         history.extend(self._load_history_for_day(thing, state_name, today))
 
-        state = self._load_state(thing, state_name)
+        state = self.load_state(thing, state_name)
         history.append(state)
         since_day = datetime.utcnow() - timedelta(days=since_days)
         filtered_history = list(filter(lambda s: parse_isoformat(s['timestamp_utc']) > since_day, history))
