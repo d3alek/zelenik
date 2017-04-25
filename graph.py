@@ -45,6 +45,7 @@ def handle_graph(db, a_thing, since_days=1):
     displayables = db.load_state(thing, 'displayables')
     should_graph = flat_map(displayables, "graph")
     displayable_color = flat_map(displayables, "color")
+    displayable_type = flat_map(displayables, "type")
 
     times = list(map(lambda s: parse_isoformat(s['timestamp_utc']), history))
     plot_times = list(map(lambda t: date2num(t), times))
@@ -55,18 +56,24 @@ def handle_graph(db, a_thing, since_days=1):
 
     gs = gridspec.GridSpec(2, 1, height_ratios=[7,1])
 
-    senses_plot = plt.subplot(gs[0])
-    writes_plot = plt.subplot(gs[1], sharex=senses_plot)
+    degree_plot = plt.subplot(gs[0])
+    writes_plot = plt.subplot(gs[1], sharex=degree_plot)
+    percent_plot = degree_plot.twinx()
+    percent_plot.axes.yaxis.tick_left()
 
     writes_plot.axes.xaxis.set_visible(False)
     
     locator = AutoDateLocator(tz=timezone)
-    senses_plot.set_ylabel('senses')
-    senses_plot.axes.yaxis.tick_right()
-    senses_plot.axes.xaxis.set_major_locator(locator)
-    senses_plot.axes.xaxis.set_major_formatter(AutoDateFormatter(locator, tz=timezone))
-    writes_plot.set_ylabel('gpio')
+    degree_plot.axes.yaxis.tick_right()
+    degree_plot.axes.xaxis.set_major_locator(locator)
+    degree_plot.axes.xaxis.set_major_formatter(AutoDateFormatter(locator, tz=timezone))
     writes_plot.axes.yaxis.tick_right()
+
+    percent_plot.set_ylabel('%')
+    percent_plot.axes.yaxis.set_label_position('left')
+
+    degree_plot.set_ylabel('°C')
+    degree_plot.axes.yaxis.set_label_position('right')
 
     if len(senses) > 0:
         # get keys in the latest senses state, this will result in senses omitted from graph
@@ -120,9 +127,14 @@ def handle_graph(db, a_thing, since_days=1):
         else: 
             label = alias
 
-        color = displayable_color[sense_type]
-        senses_plot.plot(times, values, label=label, color=color)
-        senses_plot.plot(wrong_times, wrong_values, 'rx')
+        color = displayable_color.get(sense_type, 'black')
+        if displayable_type.get(sense_type, 'number') == 'percent':
+            p = percent_plot
+        else:
+            p = degree_plot
+
+        p.plot(times, values, label=label, color=color)
+        p.plot(wrong_times, wrong_values, 'rx')
 
     if len(writes) > 0:
         writes_types = sorted(writes[-1].keys()) 
@@ -178,8 +190,8 @@ def handle_graph(db, a_thing, since_days=1):
     writes_plot.set_yticks(yticks)
     writes_plot.set_yticklabels(labels)
         
-    senses_plot.axes.autoscale()
-    senses_plot.grid(True)
+    degree_plot.axes.autoscale()
+    degree_plot.grid(True)
 
     # importantly here we should use the dealiased thing
     since_days_suffix = ''
@@ -188,8 +200,10 @@ def handle_graph(db, a_thing, since_days=1):
     image_location = 'db/%s/graph%s.png' % (thing, since_days_suffix)
 
     # legend to top of plot, based on example from http://matplotlib.org/users/legend_guide.html
-    senses_plot.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
-                       ncol=3, mode="expand", borderaxespad=0.)
+    percent_plot.legend(bbox_to_anchor=(0., 1.02, 0.5, .102), loc=3,
+                       ncol=2, mode="expand", borderaxespad=0.)
+    degree_plot.legend(bbox_to_anchor=(0.5, 1.02, 0.5, .102), loc=3,
+                       ncol=2, mode="expand", borderaxespad=0.)
 
     plt.savefig(image_location, dpi=100, bbox_inches='tight')
 

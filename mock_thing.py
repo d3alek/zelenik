@@ -30,7 +30,8 @@ DEFAULT_STATE = {
         "lawake": 0,
         "b": -1, # seconds from boot
         "senses": {
-            "mock-sense": 0
+            "percent": 0,
+            "temp": 0
         },
         "state": "local_publish",
         "version": "mock",
@@ -142,7 +143,7 @@ def seconds_today():
     return (boot_seconds + seconds()) % (60*60*24)
 
 def update_senses():
-    state['senses'] = {'mock-sense': random.randint(0, 100), "time": seconds_today()}
+    state['senses'] = {'percent': random.randint(0, 100), 'temp': random.randint(0,50), "time": seconds_today()}
 
 write_to_int = {'low': 0, 'high': 1}
 def do_actions():
