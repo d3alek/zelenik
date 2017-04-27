@@ -22,7 +22,7 @@ function toggleAutoRefresh(cb) {
     }
 }
 
-window.onload=checkReloading;
+checkReloading();
 
 // -Reloading
 
