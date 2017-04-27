@@ -81,16 +81,24 @@ function postToServer(checkbox) {
 // -Switches
 
 // Stale data warning
-moment.locale('bg')
-reported_utc = moment.utc(reported['timestamp_utc'])
-seconds_since_update = (moment.utc() - reported_utc) / 1000
+reported_utc = new Date(reported['timestamp_utc'] + "Z") // Adding Z so that parse assumes UTC 
+reported_utc.getTime() // reported utc time in millis
+now = new Date().getTime() // current utc time in millis 
 
-if (seconds_since_update > 60) {
-    connection_problem = document.getElementById('connection-problem')
-    connection_problem_text = document.getElementById('connection-problem-text')
-    connection_problem_text.textContent = connection_problem_text.textContent + " от " + reported_utc.tz('Europe/Sofia').format('lll')
-    connection_problem.style.display = 'block'
+if (now - reported_utc > 1000*60) {
+    require(['moment-timezone-with-data-2012-2022.min', 'locale/bg'], function(moment) {
+        moment.locale('bg')
+        reported_utc = moment.utc(reported['timestamp_utc'])
+        seconds_since_update = (moment.utc() - reported_utc) / 1000
 
+        if (seconds_since_update > 60) {
+            connection_problem = document.getElementById('connection-problem')
+            connection_problem_text = document.getElementById('connection-problem-text')
+            connection_problem_text.textContent = connection_problem_text.textContent + " от " + reported_utc.tz('Europe/Sofia').format('lll')
+            connection_problem.style.display = 'block'
+    }
+    });
 }
+
 
 // --Stale data warning
