@@ -54,3 +54,39 @@ footer ul li {
     list-style-type: none;
     padding-right: 20px;
 }
+
+.vertical-list li {
+    list-style-type: none;
+    padding-right: 20px;
+}
+
+.switch-text {
+    font-size: 65px;
+}
+
+.fa-circle-o-notch {
+    font-size: 60px;
+    width: 180px;
+}
+
+#connection-problem {
+    font-size: 22px;
+    max-width: 450px;
+    display: block;
+    margin: 10px auto;
+    color: white;
+    padding:10px 10px 10px 36px;
+    border-radius:10px;
+    background: red;
+    display: none;
+}
+
+#switches-view {
+    text-align: center;
+}
+
+.excl-mark {
+    font-size: 45px;
+    display:block;
+    float:left;
+}
