@@ -64,9 +64,10 @@ footer ul li {
     font-size: 65px;
 }
 
-.fa-circle-o-notch {
+.icon-spin {
     font-size: 60px;
     width: 180px;
+    display: inline-block;
 }
 
 #connection-problem {
