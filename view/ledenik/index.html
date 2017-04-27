@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width" />
+        <title>Зеленик <!--# echo var="thing" --></title>
+        <link href="view/fontello/css/fontello.css" rel="stylesheet" type="text/css"/>
+        <link href="view/fontello/css/animation.css" rel="stylesheet" type="text/css"/>
+        <link href="view/style.css" rel="stylesheet" type="text/css" />
+        <link href="view/switch.css" rel="stylesheet" type="text/css" />
+    </head>
+    <body>
+        <!--# block name="none" -->None<!--# endblock -->
+
+        <div id="switches-view">
+        <ul class="vertical-list">
+            <li id="connection-problem">
+                <span class="excl-mark">!</span>
+                <span id="connection-problem-text">
+               проблем при връзка с устройството 
+                </span>
+            </li>
+            <li>
+                <span class="switch-text">A </span>
+                <div class="onoffswitch">
+                    <input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="A">
+                    <label class="onoffswitch-label" for="A"></label>
+                </div>
+                <i id="A-loading" class="icon-spin animate-spin"></i>
+            </li>
+
+            <li>
+                <span class="switch-text">B </span>
+                <div class="onoffswitch">
+                    <input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="B">
+                    <label class="onoffswitch-label" for="B"></label>
+                </div>
+
+                <i id="B-loading" class="icon-spin animate-spin"></i>
+
+            </li>
+
+            <li>
+                <span class="switch-text">C </span>
+                <div class="onoffswitch">
+                    <input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="C">
+                    <label class="onoffswitch-label" for="C"></label>
+                </div>
+
+                <i id="C-loading" class="icon-spin animate-spin"></i>
+            </li>
+
+            <li>
+                <span class="switch-text">D </span>
+                <div class="onoffswitch">
+                    <input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="D">
+                    <label class="onoffswitch-label" for="D"></label>
+                </div>
+
+                <i id="D-loading" class="icon-spin animate-spin"></i>
+            </li>
+
+            <li>
+                <span class="switch-text">E </span>
+                <div class="onoffswitch">
+                    <input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="E">
+                    <label class="onoffswitch-label" for="E"></label>
+                </div>
+
+                <i id="E-loading" class="icon-spin animate-spin"></i>
+            </li>
+
+            <li>
+                <span class="switch-text">F </span>
+                <div class="onoffswitch">
+                    <input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="F">
+                    <label class="onoffswitch-label" for="F"></label>
+                </div>
+                <i id="F-loading" class="icon-spin animate-spin"></i>
+            </li>
+
+        </ul>
+
+        <input type="checkbox" onclick="toggleAutoRefresh(this);" id="reloadCB"> Auto Refresh
+
+        <button onclick="configure()">Configuration</button>
+
+        </div>
+
+        <div id="configuration">
+
+            <form action="update" method="POST">
+                <h1>Зеленик 
+                    <input type="text" name="thing-alias" value="<!--# echo var='thing' -->">
+                    <input type="submit" value="Update">
+                </h1>
+            </form>
+
+            <hr />
+
+            <div id="reported">
+                <pre><!--#include file="reported.json" --></pre>
+            </div>
+
+            <div id="desired">
+                <form id="desired-form" action="update" method="POST">
+                    <textarea id="desired-input" name="desired" wrap="off" rows="15" cols="40"><!--#include file="desired.json" stub="none"--></textarea>
+                    <br>
+                    <input type="submit" value="Update">
+                </form>
+            </div>
+
+            <div class="clear"></div>
+
+            <div id="displayables">
+                <form action="update" method="POST">
+                    <textarea name="displayables" wrap="off" rows="10" cols="40"><!--#include file="displayables.json" stub="none"--></textarea>
+                    <br>
+                    <input type="submit" value="Update">
+                </form>
+                <hr />
+                <footer>
+                    Зеленик 2017
+                    <ul>
+                        <li><a href="/">Начало</a></li>
+                        <li><a href="/db">Всички устройства</a></li>
+                        <li><a href="mailto:akodzhabashev@gmail.com">Свържете се с нас</a></li>
+                    </ul>
+                </footer>
+            </div>
+
+        <script src="view/scripts/moment.min.js"></script>
+        <script src="view/scripts/moment-timezone-with-data-2012-2022.min.js"></script>
+        <script src="view/scripts/locale/bg.js"></script>
+        <script src="view/scripts/switch.js"></script>
+    </body>
+</html>
