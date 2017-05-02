@@ -512,4 +512,9 @@ class DatabaseDriver:
         filtered_history = list(filter(lambda s: parse_isoformat(s['timestamp_utc']) > since_day, history))
         return filtered_history
 
+    def update_plot_background(self, a_thing, svg_bytes):
+        thing = self.resolve_thing(a_thing)
+        plot_path = self.directory / thing / 'plot.svg'
+        with open(plot_path, 'wb') as f:
+            f.write(svg_bytes)
 

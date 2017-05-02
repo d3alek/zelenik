@@ -1,13 +1,13 @@
 import re
 import db_driver
 import datetime
+import cgi
 
-from urllib import parse
-
-from gui_update import handle_update
+from gui_update import handle_update, update_plot_background
 from graph import handle_graph
 
 db = db_driver.DatabaseDriver()
+UPDATEABLE = set(['reported', 'desired', 'displayables'])
 
 def info(method, message):
     print("  uwsgi/%s: %s" % (method, message))
@@ -43,13 +43,18 @@ def application(env, start_response):
         return data
 
     if method == 'POST':
-        raw_in = env['wsgi.input'].read().decode('utf-8')
-        query = parse.parse_qsl(raw_in)
-        state, value = query[0]
-        state = state
-        value = value
+        formdata = cgi.FieldStorage(environ=env, fp=env['wsgi.input'])
 
-        content_type, data = handle_update(db, thing, state, value)
+        if 'plot' in formdata and formdata['plot'].filename != '':
+            file_data = formdata['plot'].file.read()
+
+            content_type, data = update_plot_background(db, thing, file_data)
+
+        to_update = UPDATEABLE.intersection(formdata.keys())
+
+        for state in to_update:
+            content_type, data = handle_update(db, thing, state, formdata[state].value)
+
     else:
         since_days = parse_since_days(uri)
         content_type, data = handle_graph(db, thing, since_days)

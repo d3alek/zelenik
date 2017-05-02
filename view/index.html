@@ -43,14 +43,23 @@
         </div>
 
         <div class="clear"></div>
-
         
         <div id="displayables">
         <form action="update" method="POST">
-        <textarea name="displayables" wrap="off" rows="10" cols="40"><!--#include file="displayables.json" stub="none"--></textarea>
+        <textarea id="displayables-input" name="displayables" wrap="off" rows="10" cols="40"><!--#include file="displayables.json" stub="none"--></textarea>
         <br>
         <input type="submit" value="Update">
         </form>
+        <div id="plot">
+            <object data="plot.svg" type="image/svg+xml">
+            </object>
+        </div>
+        <form action="update" method="POST" enctype="multipart/form-data">
+                <input type="file" id="plot" name="plot" accept="image/svg+xml">
+                <input type="submit" value="Промени чертежа">
+        </form>
+        <div class="clear"></div>
+
         <hr />
         <footer>
             Зеленик 2017
@@ -60,5 +69,6 @@
                 <li><a href="mailto:akodzhabashev@gmail.com">Свържете се с нас</a></li>
             </ul>
         </footer>
+        <script src="script.js"></script>
     </body>
 </html>

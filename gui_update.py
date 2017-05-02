@@ -15,6 +15,19 @@ REDIRECT = '<meta http-equiv="refresh" content="0; url=%s" /> %s <a href="%s"> �
 def error(method, message):
     print("! gui_update/%s: %s" % (method, message))
 
+def update_plot_background(db, a_thing, svg_bytes):
+    content_type = 'text/html'
+    thing = db.resolve_thing(a_thing)
+
+    db.update_plot_background(thing, svg_bytes)
+
+    if thing == a_thing:
+        back_url = ('/db/' + thing)
+    else:
+        back_url = ('/na/' + a_thing)
+
+    return content_type, HTML % REDIRECT % (back_url, 'Успешно.', back_url)
+
 def update_db(db, a_thing, state, value):
     thing = db.resolve_thing(a_thing)
 

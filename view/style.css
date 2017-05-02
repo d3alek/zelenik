@@ -91,3 +91,13 @@ footer ul li {
     display:block;
     float:left;
 }
+
+#plot {
+    position: relative;
+    width: 100%;
+}
+.sense {
+    position: absolute;
+    width: 100%;
+}
+
