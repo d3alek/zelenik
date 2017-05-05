@@ -76,9 +76,11 @@ def handle_graph(db, a_thing, since_days=1):
     degree_plot.axes.yaxis.set_label_position('right')
 
     if len(senses) > 0:
-        # get keys in the latest senses state, this will result in senses omitted from graph
-        # if latest update did not report them
-        sense_types = sorted(senses[-1].keys()) 
+        sense_types = set()
+        for sense_state in senses:
+            sense_types = sense_types.union(sense_state.keys())
+
+        sense_types = sorted(sense_types) 
         sense_types = list(filter(lambda s: should_graph.get(s, "yes") == "yes", sense_types))
         if 'time' in sense_types:
             sense_types.remove('time')
@@ -86,9 +88,10 @@ def handle_graph(db, a_thing, since_days=1):
         sense_types = []
 
     if len(sense_types) == 0:
-        content_type = 'text/plain'
-        data = "No data"
-        return content_type, data
+        content_type = 'image/png'
+        with open('view/no-data.png', 'rb') as f:
+            bytes = f.read()
+        return content_type, bytes
 
     for sense_type in sense_types:
         alias = ""

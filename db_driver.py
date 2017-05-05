@@ -98,12 +98,12 @@ class DatabaseDriver:
     def _prepare_directory(self, directory):
         directory.mkdir()
         index = directory / "index.html"
-        style = directory / "style.css"
+        view = directory / "view"
         if not self.view.is_dir():
             self.view.mkdir()
         self.view = self.view.resolve() # need it to be absolute for symlinking to work
         index.symlink_to(self.view / "index.html")
-        style.symlink_to(self.view / "style.css")
+        view.symlink_to(self.view)
 
     def _append_history(self, thing, state, previous_value):
         history_path = self.directory / thing / "history"
@@ -514,7 +514,7 @@ class DatabaseDriver:
 
     def update_plot_background(self, a_thing, svg_bytes):
         thing = self.resolve_thing(a_thing)
-        plot_path = self.directory / thing / 'plot.svg'
+        plot_path = self.directory / thing / 'plot.png'
         with open(plot_path, 'wb') as f:
             f.write(svg_bytes)
 

@@ -232,6 +232,8 @@ class TestDatabaseDriverUpdate(TestDatabaseDriver):
     def then_thing_has_view(self):
         p = self.db_directory / THING / "index.html"
         self.assertTrue(p.exists())
+        p = self.db_directory / THING / "view"
+        self.assertTrue(p.exists())
 
     def then_has_timestamp(self, state):
         p = self.db_directory / THING / state 

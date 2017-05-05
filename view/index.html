@@ -1,74 +1,73 @@
-<!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width" />
-        <title>Зеленик <!--# echo var="thing" --></title>
-        <link href="style.css" rel="stylesheet" type="text/css" />
-    </head>
-    <body>
-        <!--# block name="none" -->None<!--# endblock -->
+    <!DOCTYPE html>
+    <html lang="en">
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width" />
+            <title>Зеленик <!--# echo var="thing" --></title>
+            <link href="view/style/style.css" rel="stylesheet" type="text/css" />
+        </head>
+        <body>
+            <!--# block name="none" -->None<!--# endblock -->
 
-        <form action="update" method="POST">
-        <h1>Зеленик 
-        <input type="text" name="thing-alias" value="<!--# echo var='thing' -->">
-        <input type="submit" value="Update">
-        </h1>
-        </form>
+            <form action="update" method="POST">
+            <h1>Зеленик 
+            <input type="text" name="thing-alias" value="<!--# echo var='thing' -->">
+            <input type="submit" value="Update">
+            </h1>
+            </form>
 
-        <hr />
+            <hr />
 
-        <div id="graph">
-            <img src="graph.png">
-            <ul class="horizontal-list">
-                <li>Ден</li>
-                <li><a href="graph-2.png">Два дни</a></li>
-                <li><a href="graph-7.png">Седмица</a></li>
-                <li><a href="graph-31.png">Месец</a></li>
-                <li><a href="graph-256.png">Година</a></li>
-            </ul>
-        </div>
+            <div id="graph">
+                <img src="graph.png">
+                <ul class="horizontal-list">
+                    <li>Ден</li>
+                    <li><a href="graph-2.png">Два дни</a></li>
+                    <li><a href="graph-7.png">Седмица</a></li>
+                    <li><a href="graph-31.png">Месец</a></li>
+                    <li><a href="graph-256.png">Година</a></li>
+                </ul>
+            </div>
 
 
-        <div id="reported">
-        <pre><!--#include file="reported.json" --></pre>
-        </div>
+            <div id="reported">
+            <pre><!--#include file="reported.json" --></pre>
+            </div>
 
-        <div id="desired">
-        <form action="update" method="POST">
-        <textarea name="desired" wrap="off" rows="15" cols="40"><!--#include file="desired.json" stub="none"--></textarea>
-        <br>
-        <input type="submit" value="Update">
-        </form>
-        </div>
+            <div id="desired">
+            <form action="update" method="POST">
+            <textarea name="desired" wrap="off" rows="15" cols="40"><!--#include file="desired.json" stub="none"--></textarea>
+            <br>
+            <input type="submit" value="Update">
+            </form>
+            </div>
 
-        <div class="clear"></div>
-        
-        <div id="displayables">
-        <form action="update" method="POST">
-        <textarea id="displayables-input" name="displayables" wrap="off" rows="10" cols="40"><!--#include file="displayables.json" stub="none"--></textarea>
-        <br>
-        <input type="submit" value="Update">
-        </form>
-        <div id="plot">
-            <object data="plot.svg" type="image/svg+xml">
-            </object>
-        </div>
-        <form action="update" method="POST" enctype="multipart/form-data">
-                <input type="file" id="plot" name="plot" accept="image/svg+xml">
-                <input type="submit" value="Промени чертежа">
-        </form>
-        <div class="clear"></div>
+            <div class="clear"></div>
+            
+            <div id="displayables">
+            <form action="update" method="POST">
+            <textarea id="displayables-input" name="displayables" wrap="off" rows="10" cols="40"><!--#include file="displayables.json" stub="none"--></textarea>
+            <br>
+            <input type="submit" value="Update">
+            </form>
+            <div id="plot">
+                <img id="plot-image" src="plot.png">
+            </div>
+            <form action="update" method="POST" enctype="multipart/form-data">
+                    <input type="file" id="plot-input" name="plot" accept="image/png">
+                    <input type="submit" value="Промени чертежа">
+            </form>
+            <div class="clear"></div>
 
-        <hr />
-        <footer>
-            Зеленик 2017
-            <ul>
-                <li><a href="/">Начало</a></li>
-                <li><a href="/db">Всички устройства</a></li>
-                <li><a href="mailto:akodzhabashev@gmail.com">Свържете се с нас</a></li>
-            </ul>
-        </footer>
-        <script src="script.js"></script>
-    </body>
-</html>
+            <hr />
+            <footer>
+                Зеленик 2017
+                <ul>
+                    <li><a href="/">Начало</a></li>
+                    <li><a href="/db">Всички устройства</a></li>
+                    <li><a href="mailto:akodzhabashev@gmail.com">Свържете се с нас</a></li>
+                </ul>
+            </footer>
+            <script src="view/scripts/script.js"></script>
+        </body>
+    </html>

@@ -52,6 +52,9 @@ desired_mode = JSON.parse(desiredInput.textContent)['mode']
 
 for (output in write) {
     checkbox = document.getElementById(output)
+    if (!checkbox) {
+        continue;
+    }
     loading = document.getElementById(output+'-loading')
     reported_checked = write[output]
     desired_checked = desired_mode[output]

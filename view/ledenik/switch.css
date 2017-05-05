@@ -2,6 +2,7 @@
     position: relative; width: 180px;
     -webkit-user-select:none; -moz-user-select:none; -ms-user-select: none;
     display:inline-block;
+    vertical-align: top;
 }
 .onoffswitch-checkbox {
     display: none;
