@@ -28,3 +28,15 @@ Then 127.0.0.1 should be accessible but empty. Now arrange for mqtt traffic to r
 May need to execute the following command for the index page to work
 
 git submodule update --init
+
+uwsgi should run as a separate user (zelenik). On arch:
+
+sudo useradd -s /usr/bin/nologin otselo
+sudo chgrp -R otselo db
+sudo chmod -R 774 db
+
+And add your user to otselo...
+
+sudo usermod -a -G otselo <your user>
+
+

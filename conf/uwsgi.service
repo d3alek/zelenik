@@ -3,7 +3,7 @@ Description=uWSGI Module
 After=syslog.target
 
 [Service]
-ExecStart=/www/zelenik/venv/bin/uwsgi --socket 127.0.0.1:3031 --wsgi-file uwsgi.py --master --processes 4 --threads 2 --stats 127.0.0.1:9191 --chdir /www/zelenik/ --virtualenv=/www/zelenik/venv
+ExecStart=/www/zelenik/venv/bin/uwsgi /www/zelenik/conf/uwsgi.ini
 Restart=always
 KillSignal=SIGQUIT
 Type=notify
