@@ -6,6 +6,7 @@ After=mosquitto.service
 Restart=always
 ExecStart=/www/zelenik/mqtt_operator.py
 StandardError=syslog
+User=otselo
 
 [Install]
 WantedBy=multi-user.target
