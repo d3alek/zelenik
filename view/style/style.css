@@ -26,14 +26,7 @@ textarea {
     }
 }
 
-footer ul {
-    float:right;
-    list-style: none;
-    margin: 0;
-    padding: 0;
-}
-
-footer ul li {
+ul li {
     float: none;
     list-style: none;
     margin: 0;
@@ -44,15 +37,13 @@ footer ul li {
     footer * {
         margin: 15px 0 0 10px;
     }
-    footer ul li {
-        float: left;
-    }
 }
 
 .horizontal-list li {
-    display: inline;
+    display: inline-block;
     list-style-type: none;
     padding-right: 20px;
+    padding-bottom: 8px;
 }
 
 .vertical-list li {
@@ -64,13 +55,13 @@ footer ul li {
 
 .switch-text {
     font-size: 24px;
-    width: 120px;
+    width: 110px;
     display: inline-block;
 }
 
 .icon-spin {
     font-size: 60px;
-    width: 180px;
+    width: 120px;
     display: inline-block;
 }
 

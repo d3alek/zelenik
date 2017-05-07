@@ -1,5 +1,5 @@
 .onoffswitch {
-    position: relative; width: 180px;
+    position: relative; width: 120px;
     -webkit-user-select:none; -moz-user-select:none; -ms-user-select: none;
     display:inline-block;
     vertical-align: top;
@@ -18,7 +18,7 @@
     display: block; width: 48px; margin: 9.5px;
     background: #A1A1A1;
     position: absolute; top: 0; bottom: 0;
-    right: 109px;
+    right: 52px;
     border-radius: 48px;
     box-shadow: 0 6px 12px 0px #757575;
 }
@@ -37,3 +37,21 @@
     box-shadow: 3px 6px 18px 0px rgba(0, 0, 0, 0.2);
 }
 
+@media all and (max-width: 310px) {
+    .onoffswitch {
+        display: block;
+        margin: auto;
+    }
+    .icon-spin {
+        display: block;
+        margin: auto;
+    }
+    .switch-text {
+        display:block;
+        margin: auto;
+    }
+    .vertical-list li {
+        height: auto;
+    }
+
+}
