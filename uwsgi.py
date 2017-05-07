@@ -3,11 +3,11 @@ import db_driver
 import datetime
 import cgi
 
-from gui_update import handle_update, update_plot_background
-from graph import handle_graph
+import gui_update
+import graph
 
 db = db_driver.DatabaseDriver()
-UPDATEABLE = set(['reported', 'desired', 'displayables'])
+UPDATEABLE = set(['reported', 'desired', 'displayables', 'thing-alias'])
 
 def info(method, message):
     print("  uwsgi/%s: %s" % (method, message))
@@ -48,16 +48,16 @@ def application(env, start_response):
         if 'plot' in formdata and formdata['plot'].filename != '':
             file_data = formdata['plot'].file.read()
 
-            content_type, data = update_plot_background(db, thing, file_data)
+            content_type, data = gui_update.update_plot_background(db, thing, file_data)
 
         to_update = UPDATEABLE.intersection(formdata.keys())
 
         for state in to_update:
-            content_type, data = handle_update(db, thing, state, formdata[state].value)
+            content_type, data = gui_update.handle_update(db, thing, state, formdata[state].value)
 
     else:
         since_days = parse_since_days(uri)
-        content_type, data = handle_graph(db, thing, since_days)
+        content_type, data = graph.handle_graph(db, thing, since_days)
 
     start_response('200 OK', [('Content-Type', content_type)])
     if 'text' in content_type:
