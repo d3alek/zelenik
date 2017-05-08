@@ -27,6 +27,21 @@ def info(method, message):
 def error(method, message):
     print("! db_driver/%s: %s" % (method, message))
 
+def change_action_diff_format(path_parts, value, compact_to):
+    # Go from ['actions', 'A|I2C-8|4H', 0], '10~2' 
+    # and to_compact {"actions": {"A|I2C-8|4H": ['10~1', '10~3']
+    # to ['actions','A|I2C-8|4H'], ['10~2', '10~3']
+    if len(path_parts) == 3 and path_parts[0] == 'actions':
+        action_key = path_parts[1]
+        action_list = list(compact_to['actions'][action_key])
+        changed_index = path_parts[2]
+        action_list.pop(changed_index)
+        action_list.insert(changed_index, value)
+        path_parts.pop() # remove changed_index
+        return path_parts, action_list
+
+    return path_parts, value 
+
 def parse_day_from_history_file(history_name):
     m = history_day_pattern.match(history_name)
     if m:
@@ -328,6 +343,7 @@ class DatabaseDriver:
                 info("get_delta", "No value specified in diff, seems like field present in from is missing in to - skipping. %s %s" % (thing, diff))
                 continue
             value = diff[1]
+            path_parts, value = change_action_diff_format(path_parts, value, compact_to)
             d = value
             post_config = path_parts
             post_config.reverse()
