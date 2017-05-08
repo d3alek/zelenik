@@ -1,15 +1,12 @@
 import re
 
-DELETE = -2
 DEFAULT_WRITE = "high" 
 DEFAULT_DELTA = 0
 DEFAULT_DELETE = "no"
+REQUIRED_ACTION_ATTRIBUTES = ['sense', 'gpio', 'threshold']
 
-# key has the form A|sense|<pin#><H,L or absent>
-ACTION_KEY_PATTERN = re.compile(r'^A\|([a-zA-Z0-9-]+)\|(\d+)([HL]?)$')
-
-# value has the form <tresh>~<delta>
-ACTION_VALUE_PATTERN = re.compile(r'^(\d+)~(-?\d+)$')
+# action has the form sense|<pin#>|<H,L>|<thresh>|<delta>
+ACTION_PATTERN = re.compile(r'^([a-zA-Z0-9-]+)\|(\d+)\|([HL])\|(\d+)\|(\d+)$')
 
 def error(method, message):
     print("! state_processor/%s: %s" % (method, message))
@@ -47,80 +44,48 @@ def timestamp_to_seconds(timestamp):
 
     return hours * 3600 + minutes * 60
 
-def parse_actions(key, values):
-    m = ACTION_KEY_PATTERN.match(key)
+def action(sense, gpio, write, threshold, delta):
+    return {"sense": sense, "gpio": gpio, "write": write, "threshold": threshold, "delta": delta}
+
+def explode_action(compact_action):
+    m = ACTION_PATTERN.match(compact_action)
     if m is None:
-        error("parse_actions", "Could not parse action key %s" % key)
-        return None, []
+        error("explode_action", "Could not explode action %s" % compact_action)
+        return compact_action
     sense = m.group(1)
     gpio = int(m.group(2))
     write = explode_write(m.group(3))
+    threshold = int(m.group(4))
+    delta = int(m.group(5))
 
-    actions = []
-    for value in values:
-        m = ACTION_VALUE_PATTERN.match(value)
-        if m is None:
-            error("parse_actions", "Could not parse action value %s" % value)
-            return None, []
+    if sense == 'time':
+        threshold = seconds_to_timestamp(threshold)
+        delta = seconds_to_timestamp(delta)
 
-        threshold = int(m.group(1))
-        delta = int(m.group(2))
-        if delta == -2:
-            delete = "yes"
-        else:
-            delete = "no"
+    return action(sense, gpio, write, threshold, delta)
 
-        if delete != "yes" and sense == 'time':
-            threshold = seconds_to_timestamp(threshold)
-            delta = seconds_to_timestamp(delta)
+def compact_action(exploded):
+    if type(exploded) is not dict:
+        error('compact_action', 'Could not compact action because it is not a dict: %s' % exploded)
+        return exploded
+    if not set(exploded.keys()).issuperset(REQUIRED_ACTION_ATTRIBUTES):
+        error('compact_actions', 'Could not compact action because it does not have all the required attributes: %s' % exploded)
+        return exploded
 
-        actions.append({"gpio": gpio, "write": write, "threshold": threshold, "delta": delta, "delete": delete})
+    threshold = exploded['threshold']
+    delta = exploded.get('delta', DEFAULT_DELTA)
+    if exploded['sense'] == 'time':
+        threshold = timestamp_to_seconds(threshold)
+        delta = timestamp_to_seconds(delta)
 
-    return sense, actions
+    write = compact_write(exploded.get('write', DEFAULT_WRITE))
+    return '%s|%d|%s|%d|%d' % (exploded['sense'], exploded['gpio'], write, threshold, delta)
 
 def explode_actions(actions):
-    exploded = {}
-    for key, value in actions.items():
-        sense, actions = parse_actions(key, value)
-        if not actions:
-            exploded[key] = value
-        else:
-            exploded.setdefault(sense, []).extend(actions)
-
-    return exploded
+    return list(map(explode_action, actions))
 
 def compact_actions(actions):
-    compacted = {}
-
-    for key, values in actions.items():
-        for value in values:
-            if type(value) is not dict:
-                error('compact_actions', 'Could not compact action with non-dict value: %s' % actions)
-                compacted.setdefault(key, []).append(value)
-                continue
-            if value.get('gpio') is None or value.get('threshold') is None:
-                error('compact_actions', 'Could not compact action incomplete dict value: %s' % actions)
-                compacted.setdefault(key, []).append(value)
-                continue
-            sense = key
-            compacted_key = 'A|%s|%d%s' % (sense, value['gpio'], compact_write(value.get('write', DEFAULT_WRITE)))
-
-            delta = value.get('delta', DEFAULT_DELTA)
-            threshold = value['threshold']
-
-            if sense == 'time':
-                delta = timestamp_to_seconds(delta)
-                threshold = timestamp_to_seconds(threshold)
-
-            if value.get('delete', DEFAULT_DELETE) == 'yes':
-                delta_or_delete = DELETE
-            else:
-                delta_or_delete = delta
-
-            compacted_value = '%d~%d' % (threshold, delta_or_delete)
-
-            compacted.setdefault(compacted_key, []).append(compacted_value)
-    return compacted
+    return list(map(compact_action, actions))
 
 def scale_capacitive_humidity(value):
     normalized = (value - 300) / (800 - 300)

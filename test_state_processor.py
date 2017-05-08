@@ -5,6 +5,9 @@ import json
 ACTIONS = '{"actions": %s}'
 SENSES = '{"senses": %s}'
 
+def action(sense, gpio, write, threshold, delta): 
+    return json.dumps(state_processor.action(sense, gpio, write, threshold, delta))
+
 class TestStateProcessor(unittest.TestCase):
     def test_explode_identity(self):
         simple = '{"value": "1"}'
@@ -14,74 +17,40 @@ class TestStateProcessor(unittest.TestCase):
         self.then_exploded(simple)
 
     def test_explode_action(self):
-        compact = ACTIONS % '{"A|sense|1H":["10~2"]}'
-        exploded = ACTIONS % '{"sense": [{"gpio": 1, "write": "high", "threshold": 10, "delta": 2, "delete": "no"}]}'
+        compact = ACTIONS % '["sense|1|H|10|2"]'
+        exploded = ACTIONS % '[%s]' % action('sense', 1, 'high', 10, 2)
 
         self.when_exploding(compact)
 
         self.then_exploded(exploded)
 
     def test_explode_action_multiple(self):
-        compact = ACTIONS % '{"A|sense|1H":["10~2", "2~3"]}'
-        exploded = ACTIONS % '{"sense": [{"gpio": 1, "write": "high", "threshold": 10, "delta": 2, "delete": "no"}, {"gpio": 1, "write": "high", "threshold": 2, "delta": 3, "delete": "no"}]}'
-
-        self.when_exploding(compact)
-
-        self.then_exploded(exploded)
-
-    def test_explode_action_multiple_different_output(self):
-        compact = ACTIONS % '{"A|sense|1H":["10~2"], "A|sense|2H":["10~2"]}'
-        exploded = ACTIONS % '{"sense": [{"gpio": 1, "write": "high", "threshold": 10, "delta": 2, "delete": "no"}, {"gpio": 2, "write": "high", "threshold": 10, "delta": 2, "delete": "no"}]}'
-
-        self.when_exploding(compact)
-
-        self.then_exploded(exploded)
-
-    def test_explode_action_defaults_high(self):
-        compact = ACTIONS % '{"A|sense|1": ["10~2"]}'
-        exploded = ACTIONS % '{"sense": [{"gpio": 1, "write": "high", "threshold": 10, "delta": 2, "delete": "no"}]}'
+        compact = ACTIONS % '["sense|1|H|10|2", "sense|1|H|2|3"]'
+        exploded = ACTIONS % '[%s, %s]' % (action('sense', 1, 'high', 10, 2), action('sense', 1, 'high', 2, 3))
 
         self.when_exploding(compact)
 
         self.then_exploded(exploded)
 
     def test_explode_action_low(self):
-        compact = ACTIONS % '{"A|sense|1L": ["10~2"]}'
-        exploded = ACTIONS % '{"sense": [{"gpio": 1, "write": "low", "threshold": 10, "delta": 2, "delete": "no"}]}'
+        compact = ACTIONS % '["sense|1|L|10|2"]'
+        exploded = ACTIONS % '[%s]' % action('sense', 1, 'low', 10, 2)
 
         self.when_exploding(compact)
 
         self.then_exploded(exploded)
 
     def test_compact_action_identity(self):
-        compact = ACTIONS % '{"A|sense|1L": ["10~2"]}'
+        compact = ACTIONS % '["sense|1|L|10|2"]'
 
         self.when_exploding(compact)
         self.when_compacting(json.dumps(self.exploded))
 
         self.then_compact(compact)
 
-    def test_compact_action_writes_delete(self):
-        exploded = ACTIONS % '{"sense": [{"gpio": 1, "write": "low", "threshold": 10, "delta": 2, "delete": "yes"}]}'
-        compact = ACTIONS % '{"A|sense|1L": ["10~-2"]}'
-
-        self.when_compacting(exploded)
-
-        self.then_compact(compact)
-
-    def test_compact_action_multiple_different_gpios(self):
-        exploded = ACTIONS % '{"sense": [{"gpio": 1, "write": "low", "threshold": 10, "delta": 2, "delete": "yes"}, {"gpio": 2, "write": "low", "threshold": 10, "delta": 2, "delete": "yes"}]}'
-        compact = ACTIONS % '{"A|sense|1L": ["10~-2"], "A|sense|2L": ["10~-2"]}'
-
-        self.when_compacting(exploded)
-
-        self.then_compact(compact)
-
-
-
     def test_compact_action_assumes_defaults(self):
-        exploded = ACTIONS % '{"sense": [{"gpio": 1, "threshold": 10}]}'
-        compact = ACTIONS % '{"A|sense|1H": ["10~0"]}'
+        exploded = ACTIONS % '[{"sense": "sense", "gpio": 1, "threshold": 10}]'
+        compact = ACTIONS % '["sense|1|H|10|0"]'
 
         self.when_compacting(exploded)
 
@@ -90,8 +59,8 @@ class TestStateProcessor(unittest.TestCase):
     def test_explode_action_seconds(self):
         seconds_from_midnight = 41100 # 11:25:00 UTC
         one_hour = 3600 
-        compact = ACTIONS % '{"A|time|1H": ["%d~%d"]}' % (seconds_from_midnight, one_hour)
-        exploded = ACTIONS % '{"time": [{"gpio": 1, "write": "high", "threshold": "11:25", "delta": "1:00", "delete": "no"}]}'
+        compact = ACTIONS % '["time|1|H|%d|%d"]' % (seconds_from_midnight, one_hour)
+        exploded = ACTIONS % "[%s]" % action('time', 1, 'high', '11:25', '1:00')
 
         self.when_exploding(compact)
 
@@ -100,8 +69,8 @@ class TestStateProcessor(unittest.TestCase):
     def test_compact_action_seconds(self):
         seconds_from_midnight = 41100 # 11:25:00 UTC
         one_hour = 3600 
-        exploded = ACTIONS % '{"time": [{"gpio": 1, "write": "high", "threshold": "11:25", "delta": "1:00", "delete": "no"}]}'
-        compact = ACTIONS % '{"A|time|1H": ["%d~%d"]}' % (seconds_from_midnight, one_hour)
+        exploded = ACTIONS % "[%s]" % action('time', 1, 'high', '11:25', '1:00')
+        compact = ACTIONS % '["time|1|H|%d|%d"]' % (seconds_from_midnight, one_hour)
 
         self.when_compacting(exploded)
 

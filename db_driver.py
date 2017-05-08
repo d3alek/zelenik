@@ -28,17 +28,13 @@ def error(method, message):
     print("! db_driver/%s: %s" % (method, message))
 
 def change_action_diff_format(path_parts, value, compact_to):
-    # Go from ['actions', 'A|I2C-8|4H', 0], '10~2' 
-    # and to_compact {"actions": {"A|I2C-8|4H": ['10~1', '10~3']
-    # to ['actions','A|I2C-8|4H'], ['10~2', '10~3']
-    if len(path_parts) == 3 and path_parts[0] == 'actions':
-        action_key = path_parts[1]
-        action_list = list(compact_to['actions'][action_key])
-        changed_index = path_parts[2]
-        action_list.pop(changed_index)
-        action_list.insert(changed_index, value)
+    # Go from ['actions', 0], 'I2C-8|4|H|10|2'
+    # and to_compact {"actions": {'I2C-8|4|H|10|2', 'I2C-8|4|H|10|3'}}
+    # to ['actions'], ['I2C-8|4|H|10|2', 'I2C-8|4|H|10|3']
+    if len(path_parts) == 2 and path_parts[0] == 'actions':
+        action_list = list(compact_to['actions'])
         path_parts.pop() # remove changed_index
-        return path_parts, action_list
+        return ['actions'], action_list
 
     return path_parts, value 
 

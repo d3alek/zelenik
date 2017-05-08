@@ -6,7 +6,7 @@ import json
 import time
 import threading
 from mqtt_operator import parse_username_password
-from state_processor import parse_action, timestamp_to_seconds
+from state_processor import explode_actions, timestamp_to_seconds
 
 from datetime import datetime as dt
 from datetime import timedelta
@@ -19,7 +19,7 @@ MAX_ACTIONS_SIZE = 5
 NAME = "mock-thing"
 DEFAULT_STATE = {
         "config": {
-            "actions": {},
+            "actions": [],
             "gpio": {
                 "4": "OneWire"
             },
@@ -50,36 +50,7 @@ def info(method, message):
     print("  mock_thing/%s: %s" % (method, message))
 
 def load_actions(actions):
-    global config_changed
-    for key, value in actions.items():
-        config_changed = True 
-        sense, action = parse_action(key, value)
-        found_same_sense_gpio = False
-
-        existing_actions = state['config']['actions']
-        new_actions = {}
-        for ex_key, ex_value in existing_actions.items():
-            ex_sense, ex_action = parse_action(ex_key, ex_value)
-            if sense == ex_sense and action['gpio'] == ex_action['gpio']:
-                found_same_sense_gpio = True
-                if action['delta'] == -2:
-                    info('load_actions', 'Removing %s because delta is -2' % ex_action)
-                else:
-                    info('load_actions', 'Replacing %s' % ex_action)
-                    new_actions[key] = value
-            else:
-                new_actions[ex_key] = ex_value
-
-        if not found_same_sense_gpio:
-            if action['delta'] == -2:
-                info('load_actions', 'Not adding action %s because delta is -2' % action)
-            elif len(existing_actions.items()) + 1 >= MAX_ACTIONS_SIZE:
-                info('load_actions', 'Too many actions already, ignoring this one %s' % action)
-            else:
-                new_actions[key] = value
-
-
-        state['config']['actions'] = new_actions
+    state['config']['actions'] = actions
 
 def make_device_pin_pairing(gpio_config, pin_number, device):
     if device in ['DHT11', 'DHT22', 'OneWire']:
@@ -133,6 +104,7 @@ def on_message(client, userdata, msg):
     if delta.get('mode') is not None:
         load_mode(delta['mode'])
     if delta.get('actions') is not None:
+        config_changed = True
         load_actions(delta['actions'])
     if delta.get('t') is not None:
         boot_time = delta.get('t') - seconds()
@@ -154,17 +126,17 @@ def do_actions():
     write = {}
     actions = config['actions']
     auto_actions = []
-    for action_key, action_value in actions.items():
-        target_sense, action = parse_action(action_key, action_value)
+    for action in explode_actions(actions):
         gpio_string = str(action['gpio'])
         m = mode.get(gpio_string, 'a')
         if m == 'a':
-            auto_actions.append((target_sense, action)) 
+            auto_actions.append(action) 
         else:
             info('do_actions', 'Not doing action %s:%s due to gpio mode %s' % (target_sense, action, m))
 
     for sense, value in state['senses'].items():
-        for target_sense, action in auto_actions:
+        for action in auto_actions:
+            target_sense = action['sense']
             write_key = str(action['gpio'])
     
             if target_sense == sense:

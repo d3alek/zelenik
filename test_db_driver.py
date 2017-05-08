@@ -125,9 +125,9 @@ class TestDatabaseDriverUpdate(TestDatabaseDriver):
 
     def test_update_desired_action_fills_missing_fields(self):
         self.given_thing()
-        actions_wrapper = '{"actions":%s}'
-        incomplete_action = '{"sense":[{"gpio": 1, "threshold": 10}]}'
-        complete_action = '{"sense":[{"gpio": 1, "threshold": 10, "delta": 0, "delete": "no", "write": "high"}]}'
+        actions_wrapper = '{"actions":[%s]}'
+        incomplete_action = '{"sense":"sense", "gpio": 1, "threshold": 10}'
+        complete_action = '{"sense": "sense", "gpio": 1, "threshold": 10, "delta": 0, "write": "high"}'
 
         self.when_updating_desired(actions_wrapper % incomplete_action)
 
@@ -294,37 +294,37 @@ class TestDatabaseDriverGetDelta(TestDatabaseDriver):
         self.then_delta_is(gpio % "DHT11")
 
     def test_get_delta_actions(self):
-        actions = '{"actions":{"A|I2C-8|4H":["10~%d"]}}'
+        actions = '{"actions":["I2C-8|4|H|10|%d"]}'
         self.when_getting_reported_desired_delta(actions, 1, 2)
 
         self.then_delta_is(actions % 2)
 
     def test_get_delta_multiple(self):
-        gpio_actions = '{"gpio": {"0":"%d"}, "actions":{"A|I2C-8|4H":["10~%d"]}}'
+        gpio_actions = '{"gpio": {"0":"%d"}, "actions":["I2C-8|4|H|10|%d"]}'
         self.when_getting_reported_desired_delta(gpio_actions, (1, 1), (2, 2))
 
         self.then_delta_is(gpio_actions % (2, 2))
 
     def test_get_delta_multi_level(self):
-        multi_level = '{"sleep": "%d", "actions":{"A|I2C-8|4H":["10~%d"]}}'
+        multi_level = '{"sleep": "%d", "actions":["I2C-8|4|H|10|%d"]}'
         self.when_getting_reported_desired_delta(multi_level, (1, 1), (2, 2))
 
         self.then_delta_is(multi_level % (2, 2))
 
     def test_get_delta_multiple_one_level(self):
-        one_level = '{"actions":{"A|I2C-8|4H":["10~%d"],"A|I2C-9|4L":["5~%d"]}}'
+        one_level = '{"actions":["I2C-8|4|H|10|%d","I2C-9|4|L|5|%d"]}'
         self.when_getting_reported_desired_delta(one_level, (1, 1), (2, 2))
 
         self.then_delta_is(one_level % (2, 2))
 
     def test_get_delta_multiple_one_key(self):
-        one_level = '{"actions":{"A|I2C-8|4H":["10~1","5~%d"]}}'
+        one_level = '{"actions":["I2C-8|4|H||10|1","I2C-8|4|H||5~%d"]}'
         self.when_getting_reported_desired_delta(one_level, (1), (2))
 
         self.then_delta_is(one_level % (2))
 
     def test_get_delta_multiple_one_key_both_changed(self):
-        one_level = '{"actions":{"A|I2C-8|4H":["10~%d","5~%d"]}}'
+        one_level = '{"actions":["I2C-8|4|H|10|%d","I2C-8|4|H|5|%d"]}'
         self.when_getting_reported_desired_delta(one_level, (1, 1), (2, 2))
 
         self.then_delta_is(one_level % (2, 2))
@@ -569,7 +569,7 @@ class TestDatabaseDriverHistory(TestDatabaseDriver):
 
 class TestDatabaseDriverStateProcessor(TestDatabaseDriver):
     def test_update_action_prettifies(self):
-        action = '{"actions": {"A|sense|10H":["21~1"]}}'
+        action = '{"actions": ["sense|10|H|21|1"]}'
         exploded_action = json.dumps(state_processor.explode(json.loads(action)))
 
         self.when_updating_reported(action)
@@ -577,8 +577,8 @@ class TestDatabaseDriverStateProcessor(TestDatabaseDriver):
         self.then_state_exists("reported", FORMAT % exploded_action )
 
     def test_get_delta_compacts(self):
-        compact_from = '{"actions":{"A|I2C-9|4L":["5~1"]}}'
-        compact_to = '{"actions":{"A|I2C-9|4H":["5~1"]}}'
+        compact_from = '{"actions":["I2C-9|4|L|5|1"]}'
+        compact_to = '{"actions":["I2C-9|4|H|5|1"]}'
         exploded_from = json.dumps(state_processor.explode(json.loads(compact_from)))
         exploded_to = json.dumps(state_processor.explode(json.loads(compact_to)))
         state_reported = FORMAT % BASE_STATE % exploded_from
