@@ -527,6 +527,6 @@ class DatabaseDriver:
     def update_plot_background(self, a_thing, svg_bytes):
         thing = self.resolve_thing(a_thing)
         plot_path = self.directory / thing / 'plot.png'
-        with open(plot_path, 'wb') as f:
+        with plot_path.open('wb') as f:
             f.write(svg_bytes)
 
