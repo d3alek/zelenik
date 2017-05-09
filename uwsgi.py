@@ -36,6 +36,8 @@ def application(env, start_response):
     uri = env['REQUEST_URI']
     thing = parse_thing(uri)
 
+    content_type = None
+    data = None
     if not thing:
         start_response('200 OK', [('Content-Type', "text/plain")])
         data = "Could not parse thing from uri %s" % uri
@@ -58,6 +60,10 @@ def application(env, start_response):
     else:
         since_days = parse_since_days(uri)
         content_type, data = graph.handle_graph(db, thing, since_days)
+
+    if content_type is None or data is None:
+        content_type = "text/html"
+        data = gui_update.HTML % "Нищо за вършене."
 
     start_response('200 OK', [('Content-Type', content_type)])
     if 'text' in content_type:

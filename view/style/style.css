@@ -91,14 +91,75 @@ ul li {
 }
 
 #plot {
+    margin:8px;
     position: relative;
     width: 100%;
 }
 
-.sense {
+.displayable {
     position: absolute;
+    border: 3px solid #4CAF50; /*Green */
+    border-radius: 30px;
+    padding:8px;
+    -webkit-transition-duration: 0.1s; /* Safari */
+    transition-duration: 0.1s;
+    cursor: pointer;
+    -webkit-user-select: none; /* Chrome/Safari */
+    -moz-user-select: none; /* Firefox */
+    -ms-user-select: none; /* IE10+ */
+
+    /* Rules below not implemented in browsers yet */
+    -o-user-select: none;
+    user-select: none;
 }
 
 .active {
-    background: red;
+    background: #f44336;
+    color: white;
+}
+
+/* src: http://stackoverflow.com/a/13407898 */
+
+.unselectable {
+    /* For Opera and <= IE9, we need to add unselectable="on" attribute onto each element */
+    /* Check this site for more details: http://help.dottoro.com/lhwdpnva.php */
+    -moz-user-select: none; /* These user-select properties are inheritable, used to prevent text selection */
+    -webkit-user-select: none;
+    -ms-user-select: none; /* From IE10 only */
+    user-select: none; /* Not valid CSS yet, as of July 2012 */
+
+    -webkit-user-drag: none; /* Prevents dragging of images/divs etc */
+    user-drag: none;
+}
+
+#plot-image {
+    max-height: 480px;
+}
+
+#plot-control * {
+    display: inline-block;
+}
+
+.button {
+    background-color: #4CAF50; /* Green */
+    border: none;
+    color: white;
+    padding: 15px 32px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 2px;
+    -webkit-transition-duration: 0.1s; /* Safari */
+    transition-duration: 0.1s;
+}
+
+.button:hover {
+    background-color: #f44336;; /* Red */
+    color: white;
+}
+
+#plot-input {
+    display: none;
 }

@@ -9,15 +9,32 @@
         <body>
             <!--# block name="none" -->None<!--# endblock -->
 
-            <form action="update" method="POST">
             <h1>Зеленик 
-            <input type="text" name="thing-alias" value="<!--# echo var='thing' -->">
-            <input type="submit" value="Update">
+            <!--# echo var='thing' -->
             </h1>
-            </form>
 
             <hr />
 
+            <div id="plot-control">
+                <p id="active-info"></p>
+                <button id="change-plot-positions" class="button">Премести</button>
+                <form action="update" method="POST" enctype="multipart/form-data">
+
+                    <label for="plot-input" class="button">
+                        Качи нов чертеж
+                    </label>
+                    <input type="file" id="plot-input" name="plot" accept="image/png">
+                    <input id="change-plot" class="button" type="submit" value="Промени чертежа">
+                </form>
+            </div>
+            <div class="clear"></div>
+
+
+
+            <div id="plot">
+                <img id="plot-image" class="unselectable" src="plot.png">
+
+            </div>
             <div id="graph">
                 <img src="graph.png">
                 <ul class="horizontal-list">
@@ -38,26 +55,25 @@
             <form action="update" method="POST">
             <textarea name="desired" wrap="off" rows="15" cols="40"><!--#include file="desired.json" stub="none"--></textarea>
             <br>
-            <input type="submit" value="Update">
+            <input class="button" type="submit" value="Запази">
             </form>
             </div>
 
             <div class="clear"></div>
             
             <div id="displayables">
-            <form action="update" method="POST">
+            <form id="displayables-form" action="update" method="POST">
             <textarea id="displayables-input" name="displayables" wrap="off" rows="10" cols="40"><!--#include file="displayables.json" stub="none"--></textarea>
             <br>
-            <input type="submit" value="Update">
+            <input type="submit" value="Запази" class="button">
             </form>
-            <div id="plot">
-                <img id="plot-image" src="plot.png">
-            </div>
-            <form action="update" method="POST" enctype="multipart/form-data">
-                    <input type="file" id="plot-input" name="plot" accept="image/png">
-                    <input type="submit" value="Промени чертежа">
+
+            <form action="update" method="POST">
+            <h1>Зеленик 
+            <input type="text" name="thing-alias" value="<!--# echo var='thing' -->">
+            <input class="button" type="submit" value="Запази">
+            </h1>
             </form>
-            <div class="clear"></div>
 
             <hr />
             <footer>

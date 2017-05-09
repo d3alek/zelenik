@@ -8,7 +8,7 @@ import state_processor
 import re
 from matplotlib import colors
 
-NON_ALIASABLE = ['lawake', 'sleep', 'state', 'version', 'voltage', 'wifi', 'delete', 'delta', 'gpio', 'threshold', 'write', 'alias', 'value', 'original', 'b', 'time']
+NON_ALIASABLE = ['lawake', 'sleep', 'state', 'version', 'voltage', 'wifi', 'delete', 'delta', 'gpio', 'threshold', 'write', 'alias', 'value', 'original', 'b', 'time', 'actions']
 
 history_day_pattern = re.compile('[a-z]*.([0-9-]*).txt')
 
