@@ -19,12 +19,21 @@ AttachEvent(document.getElementById('plot-input'), 'change', function() {
 
 plot_image = document.getElementById('plot-image')
 
-if (imageOk(plot_image)) {
-    initialize_plot();
+if (!plot_image.complete) {
+    AttachEvent(plot_image, 'load', initialize_or_hide_plot)
 }
 else {
-    plot.style.display = 'none'
-    document.getElementById('change-plot-positions').style.display = 'none'
+    initialize_or_hide_plot()
+}
+
+function initialize_or_hide_plot() {
+    if (imageOk(plot_image)) {
+        initialize_plot();
+    }
+    else {
+        plot.style.display = 'none'
+        document.getElementById('change-plot-positions').style.display = 'none'
+    }
 }
 
 // src http://stackoverflow.com/a/1977898
