@@ -88,7 +88,7 @@ function initialize_plot() {
             }
 
             span.style['border-color'] = color
-            span.setAttribute('onclick', "set_active("+key+")")
+            AttachEvent(span, 'click', set_active)
 
             type = displayable['type']
             if (type == 'percent') {
@@ -114,13 +114,16 @@ function initialize_plot() {
 }
 
 
-function set_active(sense) {
+function set_active(e) {
+    e = e || window.event
+    var target = e.target || e.srcElement;
+
     if (window.active) {
         window.active.setAttribute('class', 'displayable')
     }
-    sense.setAttribute('class', 'active displayable')
-    document.getElementById('active-info').textContent = sense.title + ": " + sense.innerHTML
-    window.active = sense
+    target.setAttribute('class', 'active displayable')
+    document.getElementById('active-info').textContent = target.title + ": " + target.innerHTML
+    window.active = target
 }
 
 function move_to_click_position(e) {
