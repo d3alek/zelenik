@@ -76,6 +76,30 @@ class TestStateProcessor(unittest.TestCase):
 
         self.then_compact(compact)
 
+    def test_explode_resistive_humidity(self):
+        compact = SENSES % '{"I2C-8": 800}'
+        exploded = SENSES % '{"I2C-8": {"original": 800, "value": 100}}'
+
+        self.when_exploding(compact)
+
+        self.then_exploded(exploded)
+
+    def test_compact_resistive_humidity_action(self):
+        exploded = ACTIONS % '[{"sense":"I2C-8", "threshold": 100, "gpio": 0}]'
+        compact = ACTIONS % '["I2C-8|0|H|800|0"]'
+
+        self.when_compacting(exploded)
+
+        self.then_compact(compact)
+
+    def test_explode_resistive_humidity_action(self):
+        compact = ACTIONS % '["I2C-8|0|H|800|0"]'
+        exploded = ACTIONS % '[{"sense":"I2C-8", "threshold": 100, "gpio": 0, "delta": 0, "write": "high"}]'
+
+        self.when_exploding(compact)
+
+        self.then_exploded(exploded)
+
     def test_explode_capacitive_humidity_no_alias(self):
         compact = SENSES % '{"I2C-32c": 300}'
         exploded = SENSES % '{"I2C-32c": {"original": 300, "value": 0}}'
@@ -99,6 +123,18 @@ class TestStateProcessor(unittest.TestCase):
         self.when_exploding(compact)
 
         self.then_exploded(exploded)
+
+    def test_explode_wrong_sense_does_nothing(self):
+        compact = SENSES % '{"I2C-8": {"alias": "a", "value": "w0"}}'
+        self.when_exploding(compact)
+
+        self.then_exploded(compact)
+
+    def test_compact_wrong_sense_does_nothing(self):
+        exploded = SENSES % '{"I2C-8": {"alias": "a", "value": "w0"}}'
+        self.when_compacting(exploded)
+
+        self.then_compact(exploded)
 
     def when_exploding(self, json_string):
         self.exploded = state_processor.explode(json.loads(json_string))

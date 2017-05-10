@@ -4,6 +4,7 @@ DEFAULT_WRITE = "high"
 DEFAULT_DELTA = 0
 DEFAULT_DELETE = "no"
 REQUIRED_ACTION_ATTRIBUTES = ['sense', 'gpio', 'threshold']
+RESISTIVE_MOISTURE_SENSES = ['I2C-8', 'I2C-9', 'I2C-10']
 
 # action has the form sense|<pin#>|<H,L>|<thresh>|<delta>
 ACTION_PATTERN = re.compile(r'^([a-zA-Z0-9-]+)\|(\d+)\|([HL])\|(\d+)\|(\d+)$')
@@ -62,6 +63,14 @@ def explode_action(compact_action):
         threshold = seconds_to_timestamp(threshold)
         delta = seconds_to_timestamp(delta)
 
+    elif sense in RESISTIVE_MOISTURE_SENSES:
+        threshold = resistive_humidity_to_percent(threshold)
+        delta = resistive_humidity_to_percent(delta)
+
+    elif sense == "I2C-32c":
+        threshold = scale_capactive_humidity(threshold)
+        delta = capacitive_humidity_to_percent(delta)
+
     return action(sense, gpio, write, threshold, delta)
 
 def compact_action(exploded):
@@ -74,9 +83,16 @@ def compact_action(exploded):
 
     threshold = exploded['threshold']
     delta = exploded.get('delta', DEFAULT_DELTA)
-    if exploded['sense'] == 'time':
+    sense = exploded['sense']
+    if sense == 'time':
         threshold = timestamp_to_seconds(threshold)
         delta = timestamp_to_seconds(delta)
+    elif sense in RESISTIVE_MOISTURE_SENSES:
+        threshold = resistive_humidity_to_analog(threshold)
+        delta = resistive_humidity_to_analog(delta)
+    elif sense == "I2C-32c":
+        threshold = capacitive_humidity_to_analog(threshold)
+        delta = capacitive_humidity_to_analog(delta)
 
     write = compact_write(exploded.get('write', DEFAULT_WRITE))
     return '%s|%d|%s|%d|%d' % (exploded['sense'], exploded['gpio'], write, threshold, delta)
@@ -87,8 +103,20 @@ def explode_actions(actions):
 def compact_actions(actions):
     return list(map(compact_action, actions))
 
-def scale_capacitive_humidity(value):
-    normalized = (value - 300) / (800 - 300)
+def capacitive_humidity_to_percent(value):
+    return scale_to_percent(value, 300, 800)
+
+def resistive_humidity_to_percent(value):
+    return scale_to_percent(value, 0, 800)
+
+def capacitive_humidity_to_analog(value):
+    return scale_to_analog(value, 300, 800)
+
+def resistive_humidity_to_analog(value):
+    return scale_to_analog(value, 0, 800)
+
+def scale_to_percent(value, low, high):
+    normalized = (value - low) / (high - low)
     normalized = int(normalized * 100)
     if normalized < 0:
         normalized = 0
@@ -97,26 +125,36 @@ def scale_capacitive_humidity(value):
     
     return normalized
 
-def normalize_capacitive_humidity(value):
+def scale_to_analog(value, low, high):
+    normalized = value / 100
+    normalized = int(normalized * (high - low) + low)
+
+    if normalized < 0:
+        normalized = 0
+    elif normalized > 1024:
+        normalized = 1024
+    
+    return normalized
+
+def normalize(value, scale_function):
     if type(value) is dict and value.get('original'):
-        info('normalize_capacitive_humidity', 'Capacitive humidity seems already normalized: %s' % value)
+        info('normalize', 'Value seems already normalized: %s' % value)
         return value
 
     elif type(value) is int:
         d = {}
         original = value
-    elif type(value) is dict and value.get('value'):
+    elif type(value) is dict and type(value.get('value')) is int:
         d = value
         original = value.get('value')
     else:
-        error('normalize_capacitive_humidity', 'Expected capacitive humidity value to be either an integer or a dict with value element, got %s instead.' % value)
+        error('normalize', 'Expected value to be either an integer or a dict with value element, got %s instead.' % value)
         return value
 
-    scaled_value = scale_capacitive_humidity(original) 
+    scaled_value = scale_function(original) 
     d['original'] = original
     d['value'] = scaled_value
     return d
-
 
 def explode(json):
     exploded = {}
@@ -126,7 +164,9 @@ def explode(json):
         elif key == 'time' and type(value) is int:
             exploded_value = seconds_to_timestamp(value)
         elif key == 'I2C-32c':
-            exploded_value = normalize_capacitive_humidity(value)
+            exploded_value = normalize(value, capacitive_humidity_to_percent)
+        elif key in RESISTIVE_MOISTURE_SENSES:
+            exploded_value = normalize(value, resistive_humidity_to_percent)
         elif type(value) is dict:
             exploded_value = explode(value)
         else:
