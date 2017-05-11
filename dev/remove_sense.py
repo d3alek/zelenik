@@ -3,6 +3,10 @@
 import json
 import sys
 from pathlib import Path
+import getpass
+
+if not getpass.getuser() == 'otselo':
+    raise Exception('Should run as user "otselo"')
 
 removed = 0
 
