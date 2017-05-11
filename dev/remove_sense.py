@@ -9,20 +9,35 @@ removed = 0
 def to_compact_json(s):
     return json.dumps(s, separators=(',', ':'))
 
+def extract_value(sense):
+    if type(sense) is dict:
+        value = sense['value']
+    else:
+        value = sense
+
+    if type(value) is str and value.startswith('w'):
+        return 0
+    else:
+        return float(value)
+
+
 def remove_sense(j):
     global sense, clamping, removed
     copy = dict(j)
     sense_value = copy['state']['senses'].get(sense, None)
     if sense_value:
-        if type(sense_value) is dict:
-            value = float(sense_value['value'])
-        else:
-            value = float(sense_value)
+        value = extract_value(sense_value)
         if value > clamping:
             copy['state']['senses'].pop(sense, None)
             removed += 1
 
     return copy
+
+def clear_graphs(thing_directory):
+    graphs = [x for x in thing_directory.iterdir() if x.match('graph*.png')]
+    if len(graphs) > 0:
+        for graph in graphs:
+            graph.unlink()
 
 if len(sys.argv) < 5:
     raise Exception("Please provide thing alias and timestamp and sense and clamping value as an argument")
@@ -55,9 +70,17 @@ with file.open('w') as f:
     f.write("\n")
 
 
-graphs = [x for x in thing_directory.iterdir() if x.match('graph*.png')]
-if len(graphs) > 0:
-    for graph in graphs:
-        graph.unlink()
+clear_graphs(thing_directory)
 
 print("Removed %d" % removed)
+
+print("Does graph look okay? I will delete old reported history if yes or bring it back if no. (yes/No)")
+yes_no = input()
+if yes_no.lower() == "yes":
+    backup.unlink()
+    print("Applied changes permanently")
+else:
+    backup.replace(file)
+    clear_graphs(thing_directory)
+    print("Reverted changes")
+
