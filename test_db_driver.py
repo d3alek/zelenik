@@ -183,6 +183,15 @@ class TestDatabaseDriverUpdate(TestDatabaseDriver):
 
         self.then_state_exists("reported", FORMAT % ('{"value": {"value": "a", "alias": "temperature"}}'))
 
+    def test_update_reported_resistive_humidity_includes_alias(self):
+        self.given_thing()
+        self.given_alias("I2C-8", "humidity")
+        self.given_state("reported", BASE_STATE % '{}') # necessary otherwise next command will override displayables
+
+        self.when_updating_reported('{"senses":{"I2C-8": 800}}')
+
+        self.then_state_exists("reported", FORMAT % ('{"senses": {"I2C-8":{"value": 100, "original": 800, "alias": "humidity"}}}'))
+
     def test_update_desired_resolves_alias(self):
         aliased_thing = "aliased-%s" % THING
         self.given_thing()
@@ -577,8 +586,8 @@ class TestDatabaseDriverStateProcessor(TestDatabaseDriver):
         self.then_state_exists("reported", FORMAT % exploded_action )
 
     def test_get_delta_compacts(self):
-        compact_from = '{"actions":["I2C-9|4|L|5|1"]}'
-        compact_to = '{"actions":["I2C-9|4|H|5|1"]}'
+        compact_from = '{"actions":["I2C-9|4|L|200|50"]}'
+        compact_to = '{"actions":["I2C-9|4|H|200|50"]}'
         exploded_from = json.dumps(state_processor.explode(json.loads(compact_from)))
         exploded_to = json.dumps(state_processor.explode(json.loads(compact_to)))
         state_reported = FORMAT % BASE_STATE % exploded_from

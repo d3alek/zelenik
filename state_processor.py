@@ -1,4 +1,5 @@
 import re
+from numbers import Number
 
 DEFAULT_WRITE = "high" 
 DEFAULT_DELTA = 0
@@ -38,7 +39,7 @@ def seconds_to_timestamp(seconds):
     return "%d:%02d" % (hours, minutes)
 
 def timestamp_to_seconds(timestamp):
-    if type(timestamp) is int:
+    if isinstance(timestamp, Number):
         return timestamp
 
     hours, minutes = map(int, timestamp.split(':'))
@@ -117,7 +118,7 @@ def resistive_humidity_to_analog(value):
 
 def scale_to_percent(value, low, high):
     normalized = (value - low) / (high - low)
-    normalized = int(normalized * 100)
+    normalized = normalized * 100
     if normalized < 0:
         normalized = 0
     elif normalized > 100:
@@ -140,15 +141,14 @@ def normalize(value, scale_function):
     if type(value) is dict and value.get('original'):
         info('normalize', 'Value seems already normalized: %s' % value)
         return value
-
-    elif type(value) is int:
+    elif isinstance(value, Number):
         d = {}
         original = value
-    elif type(value) is dict and type(value.get('value')) is int:
+    elif type(value) is dict and isinstance(value.get('value'), Number):
         d = value
         original = value.get('value')
     else:
-        error('normalize', 'Expected value to be either an integer or a dict with value element, got %s instead.' % value)
+        error('normalize', 'Expected value to be either a number or a dict with value element, got %s instead.' % value)
         return value
 
     scaled_value = scale_function(original) 
@@ -161,7 +161,7 @@ def explode(json):
     for key, value in json.items():
         if key == 'actions':
             exploded_value = explode_actions(value)
-        elif key == 'time' and type(value) is int:
+        elif key == 'time' and isinstance(value, Number):
             exploded_value = seconds_to_timestamp(value)
         elif key == 'I2C-32c':
             exploded_value = normalize(value, capacitive_humidity_to_percent)

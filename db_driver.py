@@ -159,12 +159,18 @@ class DatabaseDriver:
         aliased = {}
         
         for key, value in d.items():
+            alias = aliases.get(key, "")
             if type(value) is dict:
-                aliased[key] = self._apply_aliases(thing, value, aliases)
-            elif key in aliases.keys() and aliases[key] != "":
+                if value.get('value', None) is not None and alias != "":
+                    # something already exploded it, probably state_processor, so just append alias
+                    aliased[key] = value
+                    aliased[key]['alias'] = alias
+                else:
+                    aliased[key] = self._apply_aliases(thing, value, aliases)
+            elif key in aliases.keys() and alias != "":
                 aliased[key] = {
                         'value': value,
-                        'alias': aliases[key]
+                        'alias': alias
                         }
             else:
                 aliased[key] = value
