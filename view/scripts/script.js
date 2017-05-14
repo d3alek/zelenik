@@ -58,14 +58,21 @@ function imageOk(img) {
 }
 
 function extract_value(sense) {
-    if (typeof sense == 'object') {
-        value = sense['value']
-        if (value) {
-            return value
-        }
+    if (isNumeric(sense)) {
+        return sense;
     }
+    try {
+        return sense['value']
+    }
+    catch (e) {
+        console.log("Could not extract value. Expected a dict with element 'value' but got " + sense + "." + e);
+        return sense
+    }
+}
 
-    return sense 
+// source: http://stackoverflow.com/a/1830844 
+function isNumeric(n) {
+  return !isNaN(parseFloat(n)) && isFinite(n);
 }
 
 function initialize_plot() {
@@ -100,13 +107,14 @@ function initialize_plot() {
             AttachEvent(span, 'click', set_active)
 
             type = displayable['type']
+            value_string = parseFloat(value).toFixed(1)
             if (type == 'percent') {
-                value = value + '%'
+                value_string = value_string + '%'
             }
             else if (type == 'temp') {
-                value = value + '°'
+                value_string = value_string + '°'
             }
-            span.innerHTML = value
+            span.innerHTML = value_string
             plot.appendChild(span)
         }
 

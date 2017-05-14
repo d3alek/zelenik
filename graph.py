@@ -10,6 +10,8 @@ from dateutil import tz
 
 import matplotlib.gridspec as gridspec
 
+from scipy import signal
+
 timezone = tz.gettz('Europe/Sofia')
 
 def get_write(state):
@@ -39,7 +41,20 @@ def parse_sense(maybe_wrong):
 
     return (wrong, value)
 
-def handle_graph(db, a_thing, since_days=1):
+def graph_types(displayable_type, should_graph):
+    number_found = False
+    percent_found = False
+    for key, value in displayable_type.items():
+        if should_graph.get(key, 'no') == 'no':
+            continue
+        if value == 'number' or value == 'temp':
+            number_found = True
+        elif value == 'percent':
+            percent_found = True
+
+    return number_found, percent_found
+
+def handle_graph(db, a_thing, since_days=1, median_kernel=1):
     thing = db.resolve_thing(a_thing)
     history = db.load_history(thing, 'reported', since_days=since_days)
     displayables = db.load_state(thing, 'displayables')
@@ -56,24 +71,35 @@ def handle_graph(db, a_thing, since_days=1):
 
     gs = gridspec.GridSpec(2, 1, height_ratios=[7,1])
 
-    degree_plot = plt.subplot(gs[0])
-    writes_plot = plt.subplot(gs[1], sharex=degree_plot)
-    percent_plot = degree_plot.twinx()
-    percent_plot.axes.yaxis.tick_left()
+    sense_plot = plt.subplot(gs[0])
+    writes_plot = plt.subplot(gs[1], sharex=sense_plot)
 
     writes_plot.axes.xaxis.set_visible(False)
     
     locator = AutoDateLocator(tz=timezone)
-    degree_plot.axes.yaxis.tick_right()
-    degree_plot.axes.xaxis.set_major_locator(locator)
-    degree_plot.axes.xaxis.set_major_formatter(AutoDateFormatter(locator, tz=timezone))
+    sense_plot.axes.xaxis.set_major_locator(locator)
+    sense_plot.axes.xaxis.set_major_formatter(AutoDateFormatter(locator, tz=timezone))
     writes_plot.axes.yaxis.tick_right()
 
-    percent_plot.set_ylabel('%')
-    percent_plot.axes.yaxis.set_label_position('left')
+    numbers, percents = graph_types(displayable_type, should_graph)
 
-    degree_plot.set_ylabel('°C')
-    degree_plot.axes.yaxis.set_label_position('right')
+    if numbers and percents: 
+        sense_twin_plot = sense_plot.twinx()
+        sense_twin_plot.axes.yaxis.tick_left()
+        sense_plot.axes.yaxis.tick_right()
+        sense_plot.set_ylabel('°C')
+        sense_plot.axes.yaxis.set_label_position('right')
+        sense_twin_plot.set_ylabel('%')
+        sense_twin_plot.axes.yaxis.set_label_position('left')
+    elif numbers:
+        sense_twin_plot = None
+        sense_plot.set_ylabel('°C')
+        sense_plot.axes.yaxis.set_label_position('right')
+    elif percents:
+        sense_twin_plot = None
+        sense_plot.set_ylabel('%')
+        sense_plot.axes.yaxis.tick_left()
+        sense_plot.axes.yaxis.set_label_position('left')
 
     if len(senses) > 0:
         sense_types = set()
@@ -81,7 +107,7 @@ def handle_graph(db, a_thing, since_days=1):
             sense_types = sense_types.union(sense_state.keys())
 
         sense_types = sorted(sense_types) 
-        sense_types = list(filter(lambda s: should_graph.get(s, "yes") == "yes", sense_types))
+        sense_types = list(filter(lambda s: should_graph.get(s, "no") == "yes", sense_types))
         if 'time' in sense_types:
             sense_types.remove('time')
     else:
@@ -131,12 +157,14 @@ def handle_graph(db, a_thing, since_days=1):
             label = alias
 
         color = displayable_color.get(sense_type, 'black')
-        if displayable_type.get(sense_type, 'number') == 'percent':
-            p = percent_plot
-        else:
-            p = degree_plot
 
-        p.plot(times, values, label=label, color=color)
+        if sense_twin_plot and displayable_type.get(sense_type, 'number') == 'percent':
+            p = sense_twin_plot
+        else:
+            p = sense_plot
+
+        filtered_values = signal.medfilt(values, median_kernel)
+        p.plot(times, filtered_values, label=label, color=color)
         p.plot(wrong_times, wrong_values, 'rx')
 
     if len(writes) > 0:
@@ -193,20 +221,18 @@ def handle_graph(db, a_thing, since_days=1):
     writes_plot.set_yticks(yticks)
     writes_plot.set_yticklabels(labels)
         
-    degree_plot.axes.autoscale()
-    degree_plot.grid(True)
+    sense_plot.axes.autoscale()
+    sense_plot.grid(True)
 
     # importantly here we should use the dealiased thing
-    since_days_suffix = ''
-    if since_days > 1:
-        since_days_suffix = '-%d' % since_days
-    image_location = 'db/%s/graph%s.png' % (thing, since_days_suffix)
+    image_location = 'db/%s/graph-%d-median-%d.png' % (thing, since_days, median_kernel)
 
     # legend to top of plot, based on example from http://matplotlib.org/users/legend_guide.html
-    percent_plot.legend(bbox_to_anchor=(0., 1.02, 0.5, .102), loc=3,
-                       ncol=2, mode="expand", borderaxespad=0.)
-    degree_plot.legend(bbox_to_anchor=(0.5, 1.02, 0.5, .102), loc=3,
-                       ncol=2, mode="expand", borderaxespad=0.)
+    if sense_twin_plot:
+        sense_twin_plot.legend(bbox_to_anchor=(0., 1.02, 0.5, .102), loc=3, ncol=2, mode="expand", borderaxespad=0.)
+        sense_plot.legend(bbox_to_anchor=(0.5, 1.02, 0.5, .102), loc=3, ncol=2, mode="expand", borderaxespad=0.)
+    else:
+        sense_plot.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3, ncol=3, mode="expand", borderaxespad=0.)
 
     plt.savefig(image_location, dpi=100, bbox_inches='tight')
 
