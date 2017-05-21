@@ -54,7 +54,7 @@ def graph_types(displayable_type, should_graph):
 
     return number_found, percent_found
 
-def handle_graph(db, a_thing, since_days=1, median_kernel=1):
+def handle_graph(db, a_thing, since_days=1, median_kernel=1, wrongs=False):
     thing = db.resolve_thing(a_thing)
     history = db.load_history(thing, 'reported', since_days=since_days)
     displayables = db.load_state(thing, 'displayables')
@@ -165,7 +165,8 @@ def handle_graph(db, a_thing, since_days=1, median_kernel=1):
 
         filtered_values = signal.medfilt(values, median_kernel)
         p.plot(times, filtered_values, label=label, color=color)
-        p.plot(wrong_times, wrong_values, 'rx')
+        if wrongs:
+            p.plot(wrong_times, wrong_values, 'rx')
 
     if len(writes) > 0:
         writes_types = sorted(writes[-1].keys()) 
@@ -225,7 +226,11 @@ def handle_graph(db, a_thing, since_days=1, median_kernel=1):
     sense_plot.grid(True)
 
     # importantly here we should use the dealiased thing
-    image_location = 'db/%s/graph-%d-median-%d.png' % (thing, since_days, median_kernel)
+    image_location = 'db/%s/graph-%d-median-%d' % (thing, since_days, median_kernel)
+    if wrongs:
+        image_location += '-w'
+
+    image_location += '.png'
 
     # legend to top of plot, based on example from http://matplotlib.org/users/legend_guide.html
     if sense_twin_plot:

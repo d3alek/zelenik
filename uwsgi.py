@@ -21,7 +21,7 @@ def parse_thing(uri):
     return thing
 
 def parse_graph_attributes(uri):
-    match = re.match(r'/(db|na)/([a-zA-Z0-9-]+)\/graph-([0-9]*)-median-([0-9]*)', uri)
+    match = re.match(r'/(db|na)/([a-zA-Z0-9-]+)\/graph-([0-9]*)-median-([0-9]*)(-w)?', uri)
     if not match:
         info("parse_graph_attributes", "Could not parse graph attributes from uri %s. Default to 1" % uri)
         return 1, 1
@@ -29,8 +29,13 @@ def parse_graph_attributes(uri):
     median_kernel = int(match.group(4))
     if median_kernel % 2 != 1:
         median_kernel += 1
+    if match.group(5) == '-w':
+        wrongs = True
+    else:
+        wrongs = False
 
-    return since_days, median_kernel
+
+    return since_days, median_kernel, wrongs
 
 def application(env, start_response):
     method = env['REQUEST_METHOD']
@@ -59,8 +64,8 @@ def application(env, start_response):
             content_type, data = gui_update.handle_update(db, thing, state, formdata[state].value)
 
     else:
-        since_days, median_kernel = parse_graph_attributes(uri)
-        content_type, data = graph.handle_graph(db, thing, since_days, median_kernel)
+        since_days, median_kernel, wrongs = parse_graph_attributes(uri)
+        content_type, data = graph.handle_graph(db, thing, since_days, median_kernel, wrongs)
 
     if content_type is None or data is None:
         content_type = "text/html"

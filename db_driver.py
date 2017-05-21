@@ -108,6 +108,7 @@ class DatabaseDriver:
     # Level 3: this class callables
     def _prepare_directory(self, directory):
         directory.mkdir()
+        directory.chmod(0o774)
         index = directory / "index.html"
         view = directory / "view"
         if not self.view.is_dir():
