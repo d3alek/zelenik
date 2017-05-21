@@ -1,0 +1,69 @@
+    <!DOCTYPE html>
+    <html lang="en">
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width" />
+            <title>Зеленик <!--# echo var="herd" --></title>
+            <link href="view/style/style.css" rel="stylesheet" type="text/css" />
+        </head>
+        <body>
+            <!--# block name="none" -->None<!--# endblock -->
+
+            <h1>Зеленик <!--# echo var="herd" --></h1>
+
+            <hr />
+            <div id="active-info"></div>
+
+            <div id="plots">
+                <div class="bliznak-1 bliznak-2">
+                    <img class="plot-image unselectable" src="bliznak-1/plot.png">
+                </div>
+
+                <div class="bliznak-3">
+                    <img class="plot-image unselectable" src="bliznak-3/plot.png">
+                </div>
+
+                <div class="bliznak-4">
+                    <img class="plot-image unselectable" src="bliznak-4/plot.png">
+                </div>
+            </div>
+
+
+            <div id="bliznak-1">
+                <a href="/na/bliznak-1">bliznak-1</a>
+                <pre class="bliznak-1 reported"><!--#include file="bliznak-1/reported.json" --></pre>
+                <pre class="bliznak-1 displayables"><!--#include file="bliznak-1/displayables.json" --></pre>
+            </div>
+
+            <div id="bliznak-2">
+                <a href="/na/bliznak-2">bliznak-2</a>
+                <pre class="bliznak-2 reported"><!--#include file="bliznak-2/reported.json" --></pre>
+                <pre class="bliznak-2 displayables"><!--#include file="bliznak-2/displayables.json" --></pre>
+            </div>
+
+            <div id="bliznak-3">
+                <a href="/na/bliznak-3">bliznak-3</a>
+                <pre class="bliznak-3 reported"><!--#include file="bliznak-3/reported.json" --></pre>
+                <pre class="bliznak-3 displayables"><!--#include file="bliznak-3/displayables.json" --></pre>
+            </div>
+
+            <div id="bliznak-4">
+                <a href="/na/bliznak-4">bliznak-4</a>
+                <pre class="bliznak-4 reported"><!--#include file="bliznak-4/reported.json" --></pre>
+                <pre class="bliznak-4 displayables"><!--#include file="bliznak-4/displayables.json" --></pre>
+            </div>
+
+            <hr />
+            <footer>
+                <ul class="horizontal-list">
+                    <li>Зеленик 2017</li>
+                    <li><a href="/">Начало</a></li>
+                    <li><a href="/db">Всички устройства</a></li>
+                    <li><a href="mailto:akodzhabashev@gmail.com">Свържете се с нас</a></li>
+                </ul>
+            </footer>
+            <script src="view/scripts/event.js"></script>
+            <script src="view/scripts/plot.js"></script>
+            <script src="view/scripts/herd.js"></script>
+        </body>
+    </html>

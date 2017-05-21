@@ -11,13 +11,15 @@ displayables_config = JSON.parse(document.getElementById('displayables-input').t
 plot = document.getElementById('plot')
 
 document.getElementById('change-plot').style.display = 'none'
+
+
+plot_image = document.getElementsByClassName('plot-image')[0]
+
 AttachEvent(document.getElementById('plot-input'), 'change', function() { 
     document.getElementById('change-plot').style.display = 'initial';
-    plot_image = document.getElementById('plot-image')
     plot_image.src = plot_image.src + '?refresh=yes'
 });
 
-plot_image = document.getElementById('plot-image')
 
 if (!plot_image.complete) {
     AttachEvent(plot_image, 'load', initialize_or_hide_plot)
@@ -28,7 +30,7 @@ else {
 
 function initialize_or_hide_plot() {
     if (imageOk(plot_image)) {
-        initialize_plot();
+        initialize_plot(plot_image, senses, displayables_config, set_active, move_to_click_position);
     }
     else {
         plot.style.display = 'none'
@@ -57,86 +59,16 @@ function imageOk(img) {
     return true;
 }
 
-function extract_value(sense) {
-    if (isNumeric(sense)) {
-        return sense;
-    }
-    try {
-        return sense['value']
-    }
-    catch (e) {
-        console.log("Could not extract value. Expected a dict with element 'value' but got " + sense + "." + e);
-        return sense
-    }
-}
-
-// source: http://stackoverflow.com/a/1830844 
-function isNumeric(n) {
-  return !isNaN(parseFloat(n)) && isFinite(n);
-}
-
-function initialize_plot() {
-    for (key in senses) {
-        var span = document.createElement('span')
-        span.setAttribute('id', key)
-        span.setAttribute('class', 'displayable')
-
-        value = extract_value(senses[key])
-
-        displayable = displayables_config[key]
-        if (displayable && displayable['plot'] == 'yes') {
-            p = displayable['position']
-            if (p) {
-                spl = p.split(',')
-                t = spl[0]; l = spl[1]
-                span.style = 'top:' + t + 'px;left:' + l +  'px;'
-            }
-            alias = displayable['alias']
-
-            if (!alias) {
-                alias = key
-            }
-
-            span.setAttribute('title', alias);
-            color = displayable['color']
-            if (!color) {
-                color = 'black' // green
-            }
-
-            span.style['border-color'] = color
-            AttachEvent(span, 'click', set_active)
-
-            type = displayable['type']
-            value_string = parseFloat(value).toFixed(1)
-            if (type == 'percent') {
-                value_string = value_string + '%'
-            }
-            else if (type == 'temp') {
-                value_string = value_string + '°'
-            }
-            span.innerHTML = value_string
-            plot.appendChild(span)
-        }
-
-    }
-
-    AttachEvent(document.getElementById('plot'),"click", move_to_click_position);
-
-    // src: https://www.sitepoint.com/javascript-this-event-handlers/
-    change_plot_positions_btn = document.getElementById("change-plot-positions");
-    AttachEvent(change_plot_positions_btn, "click", change_plot_positions);
-
-    plot_image = document.getElementById('plot-image')
-    makeUnselectable(plot_image)
-}
-
-
 function set_active(e) {
     e = e || window.event
     var target = e.target || e.srcElement;
 
     if (window.active) {
         window.active.setAttribute('class', 'displayable')
+        if (window.active === target) {
+            window.active = null;
+            return;
+        }
     }
     target.setAttribute('class', 'active displayable')
     document.getElementById('active-info').textContent = target.title + ": " + target.innerHTML
@@ -232,18 +164,3 @@ function post_displayables(displayables_config) {
     displayables_form = document.getElementById('displayables-form') 
     displayables_form.submit()
 }
-
-
-function AttachEvent(element, type, handler) {
-    if (element.addEventListener) element.addEventListener(type, handler, false);
-    else element.attachEvent("on"+type, handler);
-}
-
-// src: http://stackoverflow.com/a/13407898
-function makeUnselectable( target ) {
-    target.setAttribute('class', 'unselectable')
-    target.setAttribute('unselectable', 'on')
-    target.setAttribute('draggable', 'false')
-    target.setAttribute('ondragstart', 'return false;')
-}
-

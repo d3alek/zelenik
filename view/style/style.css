@@ -90,10 +90,13 @@ ul li {
     margin-left: 8px;
 }
 
-#plot {
-    margin:8px;
+#plot, #plots > div {
     position: relative;
-    width: 100%;
+    display: inline-block;
+    vertical-align: top;
+}
+.plot-image {
+    max-width: 340px;
 }
 
 .displayable {
@@ -113,9 +116,9 @@ ul li {
     user-select: none;
 }
 
-.active {
-    background: #f44336;
-    color: white;
+.displayable.active {
+    padding: 12px;
+    font-weight: bold;
 }
 
 /* src: http://stackoverflow.com/a/13407898 */
@@ -132,11 +135,8 @@ ul li {
     user-drag: none;
 }
 
-#plot-image {
-    max-height: 480px;
-}
-
 #plot-control * {
+    margin: 8px;
     display: inline-block;
 }
 

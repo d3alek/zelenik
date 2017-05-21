@@ -113,6 +113,7 @@ class DatabaseDriver:
         view = directory / "view"
         if not self.view.is_dir():
             self.view.mkdir()
+            self.view.chmod(0o774)
         self.view = self.view.resolve() # need it to be absolute for symlinking to work
         index.symlink_to(self.view / "index.html")
         view.symlink_to(self.view)
@@ -122,6 +123,7 @@ class DatabaseDriver:
         log_updated = []
         if not history_path.is_dir():
             history_path.mkdir()
+            history-path.chmod(0o774)
             info("append_history", "Created new history directory for %s" % thing)
             log_updated.append('new_history_directory')
         history_state_path = history_path / state
@@ -228,6 +230,7 @@ class DatabaseDriver:
             archive_directory = thing_directory / "history" / "archive"
             if not archive_directory.is_dir():
                 archive_directory.mkdir()
+                archive_directory.chmod(0o774)
                 info("archive_history", "Created new archive directory for %s" % thing)
 
             yearly_archive = [x for x in archive_directory.iterdir() if x.match('%s.until-%d*.zip' % (state, day.year))]
