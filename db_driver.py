@@ -208,7 +208,19 @@ class DatabaseDriver:
                     unused_colors = list(COLORS)
 
                 new_displayables[key] = dict(NEW_DISPLAYABLE)
-                new_displayables[key]['color'] = unused_colors.pop()
+                if key == 'A0':
+                    new_displayables[key]['color'] = 'yellow'
+                    new_displayables[key]['type'] = 'percent'
+                    new_displayables[key]['alias'] = 'светлина'
+                else:
+                    new_displayables[key]['color'] = unused_colors.pop()
+
+                if key.startswith('OW-'):
+                    new_displayables[key]['type'] = 'temp'
+                elif key.startswith('I2C-'):
+                    new_displayables[key]['type'] = 'percent'
+                    new_displayables[key]['alias'] = key.split('-')[1]
+
 
         return new_displayables
 
