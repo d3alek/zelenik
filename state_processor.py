@@ -137,38 +137,69 @@ def scale_to_analog(value, low, high):
     
     return normalized
 
+def extract_value(value_json):
+    if isinstance(value_json, Number):
+        return value_json, False
+    elif isinstance(value_json, str) and value_json.startswith('w'):
+        return value_json, True
+    elif type(value_json) is dict:
+        value = value_json.get('original')
+        wrong = 'wrong' in value_json.keys()
+        if isinstance(value, Number):
+            return value, wrong
+
+        value = value_json.get('value')
+        if isinstance(value, Number):
+            return value, wrong
+        elif isinstance(value, str) and value.startswith('w'):
+            return value, True
+    error('extract_value', 'Expected value to be either a number or a dict with value number or marked as wrong, got %s instead.' % value_json)
+    return "unexpected", True
+
 def normalize(value, scale_function):
-    if type(value) is dict and value.get('original'):
-        info('normalize', 'Value seems already normalized: %s' % value)
-        return value
-    elif isinstance(value, Number):
-        d = {}
-        original = value
-    elif type(value) is dict and isinstance(value.get('value'), Number):
-        d = value
-        original = value.get('value')
-    else:
-        error('normalize', 'Expected value to be either a number or a dict with value element, got %s instead.' % value)
-        return value
+    return scale_function(value) 
 
-    scaled_value = scale_function(original) 
-    d['original'] = original
-    d['value'] = scaled_value
-    return d
-
-def explode(json):
+def explode(json, previous_json={}):
     exploded = {}
+    previous_timestamp = previous_json.get('timestamp_utc', None)
     for key, value in json.items():
+        previous_value = previous_json.get(key, {})
         if key == 'actions':
             exploded_value = explode_actions(value)
         elif key == 'time' and isinstance(value, Number):
             exploded_value = seconds_to_timestamp(value)
-        elif key == 'I2C-32c':
-            exploded_value = normalize(value, capacitive_humidity_to_percent)
-        elif key in RESISTIVE_MOISTURE_SENSES:
-            exploded_value = normalize(value, resistive_humidity_to_percent)
+        elif key == 'I2C-32c' or key in RESISTIVE_MOISTURE_SENSES:
+            if key == 'I2C-32c':
+                transform = capacitive_humidity_to_percent
+            else:
+                transform = resistive_humidity_to_percent
+
+            exploded_value = {}
+            to_normalize = None
+            if isinstance(value, dict):
+                exploded_value = dict(value)
+                exploded_value.pop('value', None)
+
+            extracted_number, wrong = extract_value(value)
+
+            if wrong:
+                exploded_value['wrong'] = extracted_number
+                if previous_value:
+                    prev_extracted_number, prev_wrong = extract_value(previous_value)
+                    to_normalize = prev_extracted_number
+                    if prev_wrong:
+                        exploded_value['from'] = previous_value.get('from', None)
+                    else:
+                        exploded_value['from'] = previous_timestamp 
+            else:
+                to_normalize = extracted_number
+
+            if to_normalize:
+                exploded_value['original'] =to_normalize 
+                normalized = normalize(to_normalize, transform)
+                exploded_value['value'] = normalized
         elif type(value) is dict:
-            exploded_value = explode(value)
+            exploded_value = explode(value, previous_value)
         else:
             exploded_value = value
         exploded[key] = exploded_value 

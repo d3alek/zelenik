@@ -293,14 +293,15 @@ class DatabaseDriver:
         state = "reported"
         state_file = self._get_state_path(thing, state)
 
-        value = state_processor.explode(value)
-        
         if state_file.exists():
             with state_file.open() as f:
                 previous_value = json.loads(f.read())
             result = self._append_history(thing, state, previous_value)
             log_updated.extend(result)
+        else:
+            previous_value = None
 
+        value = state_processor.explode(value, previous_value)
         
         desired_file = self._get_state_path(thing, "desired")
         if not desired_file.exists():
