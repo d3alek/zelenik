@@ -147,8 +147,12 @@ class TestStateProcessor(unittest.TestCase):
 
     def test_explode_wrong_value_picks_previous_good(self):
         compact = SENSES % '{"I2C-8": "w800"}'
-        previous_exploded = SENSES % '{"I2C-8": {"original": 500, "value": 30}, "timestamp_utc": "yesterday"}'
-        exploded = SENSES % '{"I2C-8": {"wrong": "w800", "value": 30, "from": "yesterday"}}'
+        previous_exploded = SENSES % '{"I2C-8": {"original": 800, "value": 100}}'
+        exploded = SENSES % '{"I2C-8": {"wrong": "w800", "original":800, "value": 100, "from": "yesterday"}}'
+
+        self.when_exploding(compact, previous_exploded, "yesterday")
+        self.then_exploded(exploded)
+
     def test_explode_wrong_value_picks_previous_good_and_timestamp(self):
         compact = SENSES % '{"I2C-8": "w700"}'
         previous_exploded = SENSES % '{"I2C-8": {"wrong": "w800", "original": 800, "value": 100, "from": "two-days-ago"}, "timestamp_utc": "yesterday"}'
@@ -158,8 +162,8 @@ class TestStateProcessor(unittest.TestCase):
 
         self.then_exploded(exploded)
 
-    def when_exploding(self, json_string, previous = "{}"):
-        self.exploded = state_processor.explode(json.loads(json_string), json.loads(previous))
+    def when_exploding(self, json_string, previous = "{}", previous_timestamp = None):
+        self.exploded = state_processor.explode(json.loads(json_string), json.loads(previous), previous_timestamp)
 
     def when_compacting(self, json_string):
         self.compact = state_processor.compact(json.loads(json_string))

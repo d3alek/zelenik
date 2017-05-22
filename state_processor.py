@@ -159,9 +159,8 @@ def extract_value(value_json):
 def normalize(value, scale_function):
     return scale_function(value) 
 
-def explode(json, previous_json={}):
+def explode(json, previous_json={}, previous_timestamp=None):
     exploded = {}
-    previous_timestamp = previous_json.get('timestamp_utc', None)
     for key, value in json.items():
         previous_value = previous_json.get(key, {})
         if key == 'actions':
@@ -200,7 +199,7 @@ def explode(json, previous_json={}):
                 normalized = normalize(to_normalize, transform)
                 exploded_value['value'] = normalized
         elif type(value) is dict:
-            exploded_value = explode(value, previous_value)
+            exploded_value = explode(value, previous_value, previous_timestamp)
         else:
             exploded_value = value
         exploded[key] = exploded_value 

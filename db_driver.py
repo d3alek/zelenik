@@ -299,10 +299,12 @@ class DatabaseDriver:
             result = self._append_history(thing, state, previous_value)
             log_updated.extend(result)
             previous_state = previous_value.get('state', {})
+            previous_timestamp = previous_value.get('timestamp_utc', None)
         else:
             previous_state = {}
+            previous_timestamp = None
 
-        value = state_processor.explode(value, previous_state)
+        value = state_processor.explode(value, previous_state, previous_timestamp)
         
         desired_file = self._get_state_path(thing, "desired")
         if not desired_file.exists():
