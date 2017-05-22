@@ -29,6 +29,8 @@ def get_senses(state):
         return {}
 
 def parse_sense(maybe_wrong):
+    if not maybe_wrong:
+        return (True, 0)
     wrong = False
     value = 0
     if type(maybe_wrong) is str and maybe_wrong.startswith('w'):
@@ -133,7 +135,7 @@ def handle_graph(db, a_thing, since_days=1, median_kernel=1, wrongs=False):
 
                 value = sense_state[sense_type]
                 if type(value) is dict:
-                    wrong, float_value = parse_sense(value['value'])
+                    wrong, float_value = parse_sense(value.get('value', None))
                     if not wrong:
                         values.append(float_value)
                         times.append(time)

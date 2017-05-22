@@ -298,10 +298,11 @@ class DatabaseDriver:
                 previous_value = json.loads(f.read())
             result = self._append_history(thing, state, previous_value)
             log_updated.extend(result)
+            previous_state = previous_value.get('state', {})
         else:
-            previous_value = None
+            previous_state = {}
 
-        value = state_processor.explode(value, previous_value)
+        value = state_processor.explode(value, previous_state)
         
         desired_file = self._get_state_path(thing, "desired")
         if not desired_file.exists():
