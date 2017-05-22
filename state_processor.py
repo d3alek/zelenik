@@ -186,16 +186,17 @@ def explode(json, previous_json={}):
                 exploded_value['wrong'] = extracted_number
                 if previous_value:
                     prev_extracted_number, prev_wrong = extract_value(previous_value)
-                    to_normalize = prev_extracted_number
-                    if prev_wrong:
-                        exploded_value['from'] = previous_value.get('from', None)
-                    else:
-                        exploded_value['from'] = previous_timestamp 
+                    if isinstance(prev_extracted_number, Number):
+                        to_normalize = prev_extracted_number
+                        if prev_wrong:
+                            exploded_value['from'] = previous_value.get('from', None)
+                        else:
+                            exploded_value['from'] = previous_timestamp 
             else:
                 to_normalize = extracted_number
 
             if to_normalize:
-                exploded_value['original'] =to_normalize 
+                exploded_value['original'] = to_normalize 
                 normalized = normalize(to_normalize, transform)
                 exploded_value['value'] = normalized
         elif type(value) is dict:
