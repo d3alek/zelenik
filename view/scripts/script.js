@@ -6,6 +6,8 @@ window.state = INITIAL
 reported = JSON.parse(document.getElementById('reported').innerText)
 senses = reported['state']['senses']
 
+desired = JSON.parse(document.getElementById('desired-input').textContent)
+
 displayables_config = JSON.parse(document.getElementById('displayables-input').textContent)
 
 plot = document.getElementById('plot')
@@ -30,7 +32,7 @@ else {
 
 function initialize_or_hide_plot() {
     if (imageOk(plot_image)) {
-        initialize_plot(plot_image, senses, displayables_config, set_active, move_to_click_position);
+        initialize_plot(plot_image, senses, desired['mode'], reported['state']['write'], displayables_config, set_active, move_to_click_position);
     }
     else {
         plot.style.display = 'none'
@@ -63,16 +65,60 @@ function set_active(e) {
     e = e || window.event
     var target = e.target || e.srcElement;
 
+
+    set_active_displayable(target)
+}
+
+function set_active_displayable(target) {
+    if (!target.classList.contains("displayable")) {
+        console.log("Going from " + target + " to parent " + target.parentElement)
+        set_active_displayable(target.parentElement)
+        return;
+    }
+
     if (window.active) {
-        window.active.setAttribute('class', 'displayable')
+        window.active.classList.remove('active')
         if (window.active === target) {
             window.active = null;
             return;
         }
     }
-    target.setAttribute('class', 'active displayable')
-    document.getElementById('active-info').textContent = target.title + ": " + target.innerHTML
+
+    classes = target.classList.toString()
+    target.setAttribute('class', classes + ' active')
+    pretty_active_info(document.getElementById('active-info'), target)
     window.active = target
+}
+
+function pretty_active_info(object, html) {
+    object.innerHTML = ""
+    if (html.tagName == 'SPAN') {
+        object.innerHTML = html.title + ": " + html.innerHTML;
+    }
+    else if (html.tagName == 'DIV') {
+        var div = document.createElement('div')
+        var span = document.createElement('span')
+        text = "Стойност: " + html.dataset['actual'] + " Желана: " + html.dataset['desired'] + " Автоматично: " + html.dataset['auto']
+        span.innerHTML = text
+        div.appendChild(span)
+        div.appendChild(switch_button(html.id, 'Включи', 1))
+        div.appendChild(switch_button(html.id, 'Изключи', 0))
+        div.appendChild(switch_button(html.id, 'Автоматично', "a"))
+        object.appendChild(div)
+    }
+    else {
+        object.innerHTML = "Cannot prettify active info for " + html
+    }
+}
+
+function switch_button(switch_id, text, state) {
+    var button = document.createElement('button')
+    button.setAttribute('class', 'button')
+    button.innerText = text
+    button.setAttribute('data-switch-id', switch_id);
+    button.setAttribute('data-state', state);
+    AttachEvent(button, 'click', post_desired_switch)
+    return button
 }
 
 function move_to_click_position(e) {
@@ -163,4 +209,21 @@ function post_displayables(displayables_config) {
     displayables_input.textContent = JSON.stringify(displayables_config, null, 4)
     displayables_form = document.getElementById('displayables-form') 
     displayables_form.submit()
+}
+
+function post_desired_switch(e) {
+	e = e || window.event;
+	var target = e.target || e.srcElement;
+
+    switch_id = target.dataset['switchId']
+    state = target.dataset['state']
+
+    console.log("Setting " + switch_id + " to " + state)
+    desiredInput = document.getElementById('desired-input')
+    desired = JSON.parse(desiredInput.textContent)
+    desired['mode'][switch_id] = state
+    desiredInput.textContent = JSON.stringify(desired, null, 4)
+
+    desiredForm = document.getElementById('desired-form')
+    desiredForm.submit()
 }

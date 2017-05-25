@@ -4,7 +4,11 @@
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width" />
             <title>Зеленик <!--# echo var="thing" --></title>
+            <link href="view/style/fontello/css/fontello.css" rel="stylesheet" type="text/css"/>
+            <link href="view/style/fontello/css/animation.css" rel="stylesheet" type="text/css"/>
+
             <link href="view/style/style.css" rel="stylesheet" type="text/css" />
+            <link href="view/style/switch.css" rel="stylesheet" type="text/css" />
         </head>
         <body>
             <!--# block name="none" -->None<!--# endblock -->
@@ -16,7 +20,6 @@
             <hr />
 
             <div id="plot-control">
-                <p id="active-info"></p>
                 <button id="change-plot-positions" class="button">Премести</button>
                 <form action="update" method="POST" enctype="multipart/form-data">
 
@@ -26,6 +29,7 @@
                     <input type="file" id="plot-input" name="plot" accept="image/png">
                     <input id="change-plot" class="button" type="submit" value="Промени чертежа">
                 </form>
+                <div id="active-info"></div>
             </div>
             <div class="clear"></div>
 
@@ -52,8 +56,8 @@
             </div>
 
             <div id="desired">
-            <form action="update" method="POST">
-            <textarea name="desired" wrap="off" rows="15" cols="40"><!--#include file="desired.json" stub="none"--></textarea>
+            <form id="desired-form" action="update" method="POST">
+            <textarea id="desired-input" name="desired" wrap="off" rows="15" cols="40"><!--#include file="desired.json" stub="none"--></textarea>
             <br>
             <input class="button" type="submit" value="Запази">
             </form>

@@ -53,18 +53,6 @@ ul li {
     padding-bottom: 8px;
 }
 
-.switch-text {
-    font-size: 24px;
-    width: 110px;
-    display: inline-block;
-}
-
-.icon-spin {
-    font-size: 60px;
-    width: 120px;
-    display: inline-block;
-}
-
 #connection-problem {
     font-size: 22px;
     max-width: 450px;
@@ -162,4 +150,13 @@ ul li {
 
 #plot-input {
     display: none;
+}
+
+.hidden {
+    display: none;
+}
+
+#active-info {
+    display:block;
+
 }

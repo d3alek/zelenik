@@ -220,6 +220,8 @@ class DatabaseDriver:
                 elif key.startswith('I2C-'):
                     new_displayables[key]['type'] = 'percent'
                     new_displayables[key]['alias'] = key.split('-')[1]
+                elif key in ['4', '5', '13']:
+                    new_displayables[key]['type'] = 'switch'
 
 
         return new_displayables

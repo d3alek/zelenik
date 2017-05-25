@@ -28,7 +28,7 @@ def update_plot_background(db, a_thing, svg_bytes):
 
     return content_type, HTML % REDIRECT % (back_url, 'Успешно.', back_url)
 
-def update_db(db, a_thing, state, value):
+def update_db(db, a_thing, state, value, ret):
     thing = db.resolve_thing(a_thing)
 
     if state == "thing-alias":
@@ -49,15 +49,17 @@ def update_db(db, a_thing, state, value):
             error("update_db", "Not allowed to change state. %s %s %s" % (thing, state, value_dict))
             return 'Not allowed to change state. %s %s %s' % (thing, state, value_dict)
 
-    if thing == a_thing:
+    if ret:
+        back_url = ret
+    elif thing == a_thing:
         back_url = ('/db/' + thing)
     else:
         back_url = ('/na/' + a_thing)
     return REDIRECT % (back_url, 'Успешно.', back_url)
 
-def handle_update(db, thing, state, value):
+def handle_update(db, thing, state, value, ret):
     content_type = 'text/html'
 
-    text = update_db(db, thing, state, value)
+    text = update_db(db, thing, state, value, ret)
 
     return content_type, HTML % text

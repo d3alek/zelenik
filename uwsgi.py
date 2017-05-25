@@ -6,24 +6,26 @@ import cgi
 import gui_update
 import graph
 
+import urllib.parse
+
 db = db_driver.DatabaseDriver()
 UPDATEABLE = set(['reported', 'desired', 'displayables', 'thing-alias'])
 
 def info(method, message):
     print("  uwsgi/%s: %s" % (method, message))
 
-def parse_thing(uri):
-    match = re.match(r'/(db|na)/([a-zA-Z0-9-]+)\/', uri)
+def parse_thing(url_path):
+    match = re.match(r'/(db|na)/([a-zA-Z0-9-]+)\/', url_path)
     if not match:
-        info("parse_thing", "Could not parse thing from uri %s" % uri)
+        info("parse_thing", "Could not parse thing from url path %s" % url_path)
         return None
     thing = match.group(2)
     return thing
 
-def parse_graph_attributes(uri):
-    match = re.match(r'/(db|na)/([a-zA-Z0-9-]+)\/graph-([0-9]*)-median-([0-9]*)(-w)?', uri)
+def parse_graph_attributes(url_path):
+    match = re.match(r'/(db|na)/([a-zA-Z0-9-]+)\/graph-([0-9]*)-median-([0-9]*)(-w)?', url_path)
     if not match:
-        info("parse_graph_attributes", "Could not parse graph attributes from uri %s. Default to 1" % uri)
+        info("parse_graph_attributes", "Could not parse graph attributes from url_path %s. Default to 1" % url_path)
         return 1, 1
     since_days = int(match.group(3))
     median_kernel = int(match.group(4))
@@ -39,20 +41,23 @@ def parse_graph_attributes(uri):
 
 def application(env, start_response):
     method = env['REQUEST_METHOD']
-    uri = env['REQUEST_URI']
-    thing = parse_thing(uri)
+    raw_uri = env['REQUEST_URI']
+
+    url = urllib.parse.urlparse(raw_uri)
+    queries = urllib.parse.parse_qs(url.query)
+
+    thing = parse_thing(url.path)
 
     content_type = None
     data = None
     if not thing:
         start_response('200 OK', [('Content-Type', "text/plain")])
-        data = "Could not parse thing from uri %s" % uri
+        data = "Could not parse thing from uri %s" % raw_uri
         data = data.encode('utf-8')
         return data
 
     if method == 'POST':
         formdata = cgi.FieldStorage(environ=env, fp=env['wsgi.input'])
-
         if 'plot' in formdata and formdata['plot'].filename != '':
             file_data = formdata['plot'].file.read()
 
@@ -61,10 +66,10 @@ def application(env, start_response):
         to_update = UPDATEABLE.intersection(formdata.keys())
 
         for state in to_update:
-            content_type, data = gui_update.handle_update(db, thing, state, formdata[state].value)
+            content_type, data = gui_update.handle_update(db, thing, state, formdata[state].value, queries.get('ret', [None])[0])
 
     else:
-        since_days, median_kernel, wrongs = parse_graph_attributes(uri)
+        since_days, median_kernel, wrongs = parse_graph_attributes(url.path)
         content_type, data = graph.handle_graph(db, thing, since_days, median_kernel, wrongs)
 
     if content_type is None or data is None:
