@@ -1,9 +1,11 @@
 #!/www/zelenik/venv/bin/python
 
 import paho.mqtt.client as mqtt
+import sys
 
 import smtplib
-from email.mime.text import MIMEText
+from email.message import EmailMessage
+from email.headerregistry import Address
 
 ERROR_TOPIC = "error"
 DIR = '/www/zelenik/'
@@ -50,15 +52,20 @@ class ErrorReporter:
 
 
 def notify_human_operator(body):
-    msg = MIMEText(body)
-    msg['Subject'] = 'Zelenik error report'
-    msg['From'] = 'reporter@otselo.eu'
-    msg['To'] = HUMAN_OPERATOR
+    msg = EmailMessage()
+    msg['Subject'] = 'Zelenik Error Report'
+    msg['From'] = Address("Zelenik Error Reporter", 'reporter", "otselo.eu')
+    msg['To'] = Address("", "akodzhabashev", "gmail.com")
+    msg.set_content(body)
 
-    s = smtplib.SMTP('localhost')
-    s.send_message(msg)
-    s.quit()
+    with smtplib.SMTP('localhost') as s:
+        s.send_message(msg)
 
 if __name__ == '__main__':
-    mqtt_operator = ErrorReporter()
-    mqtt_operator.operate()
+    if len(sys.argv) > 1:
+        info("main", "Sending direct email to human operator and quitting")
+        notify_human_operator(sys.argv[1])
+
+    else:
+        mqtt_operator = ErrorReporter()
+        mqtt_operator.operate()
