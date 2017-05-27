@@ -1,0 +1,12 @@
+[Unit]
+Description=Error reporter (zelenik)
+After=mosquitto.service
+
+[Service]
+Restart=always
+ExecStart=/www/zelenik/error_reporter.py
+StandardError=syslog
+User=otselo
+
+[Install]
+WantedBy=multi-user.target

@@ -6,6 +6,8 @@ import smtplib
 from email.mime.text import MIMEText
 
 ERROR_TOPIC = "error"
+DIR = '/www/zelenik/'
+HUMAN_OPERATOR = "akodzhabashev@gmail.com"
 
 def info(method, message):
     print("  error_reporter/%s: %s" % (method, message))
@@ -49,14 +51,14 @@ class ErrorReporter:
 
 def notify_human_operator(body):
     msg = MIMEText(body)
-    msg['Subject'] = 'Error detected'`
-    msg['From'] = 'error-reporter@otselo.eu'
-    msg['To'] = 'human-operator'
+    msg['Subject'] = 'Zelenik error report'
+    msg['From'] = 'reporter@otselo.eu'
+    msg['To'] = HUMAN_OPERATOR
 
     s = smtplib.SMTP('localhost')
     s.send_message(msg)
     s.quit()
 
 if __name__ == '__main__':
-    mqtt_operator = MqttOperator()
+    mqtt_operator = ErrorReporter()
     mqtt_operator.operate()
