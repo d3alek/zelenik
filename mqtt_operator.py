@@ -13,6 +13,7 @@ MESSAGE_NOT_HANDLED = '{"reason": "Message not handled. See mqtt_operator logs f
 MESSAGE_NOT_JSON = '{"reason": "Message not a valid json. See mqtt_operator logs for details"}'
 WRONG_FORMAT_STATE = '{"reason": "Message payload did not begin with state object. See mqtt_operator logs for details"}'
 WRONG_FORMAT_REPORTED_DESIRED = '{"reason": "Message payload did not begin with state/reported or state/desired objects. See mqtt_operator logs for details"}'
+UPDATE_REPORTED_EXCEPTION = '{"reason": "Caught exception while updating reported: %s. See mqtt_operator logs for details"}'
 
 DIR = '/www/zelenik/'
 
@@ -86,8 +87,14 @@ class MqttOperator:
                 return answer_topic, answer_payload
 
             if payload["state"].get("reported"): # these come from things
-                #TODO handle the case where update explodes with exception
-                db.update_reported(thing, payload["state"]["reported"])
+                try:
+                    db.update_reported(thing, payload["state"]["reported"])
+                except Exception:
+                    e = sys.exc_info()[0]
+                    answer_topic = ERROR_TOPIC
+                    answer_payload = UPDATE_REPORTED_EXCEPTION % e
+
+                    return answer_topic, answer_payload
             else:
                 error("get_answer", "Update does not contain reported. %s - %s" % (topic, payload))
                 answer_topic = ERROR_TOPIC
