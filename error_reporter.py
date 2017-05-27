@@ -4,8 +4,7 @@ import paho.mqtt.client as mqtt
 import sys
 
 import smtplib
-from email.message import EmailMessage
-from email.headerregistry import Address
+from email.mime.text import MIMEText
 
 ERROR_TOPIC = "error"
 DIR = '/www/zelenik/'
@@ -52,11 +51,10 @@ class ErrorReporter:
 
 
 def notify_human_operator(body):
-    msg = EmailMessage()
+    msg = MIMEText(body)
     msg['Subject'] = 'Zelenik Error Report'
-    msg['From'] = Address("Zelenik Error Reporter", 'reporter", "otselo.eu')
-    msg['To'] = Address("", "akodzhabashev", "gmail.com")
-    msg.set_content(body)
+    msg['From'] = "reporter@otselo.eu"
+    msg['To'] = "akodzhabashev@gmail.com"
 
     with smtplib.SMTP('localhost') as s:
         s.send_message(msg)
