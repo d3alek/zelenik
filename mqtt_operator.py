@@ -8,7 +8,7 @@ import time
 
 from db_driver import to_compact_json
 
-OPERATOR_ERROR_TOPIC = "operator_error"
+ERROR_TOPIC = "operator_error"
 MESSAGE_NOT_HANDLED = '{"reason": "Message not handled. See mqtt_operator logs for details"}'
 MESSAGE_NOT_JSON = '{"reason": "Message not a valid json. See mqtt_operator logs for details"}'
 WRONG_FORMAT_STATE = '{"reason": "Message payload did not begin with state object. See mqtt_operator logs for details"}'
@@ -72,7 +72,7 @@ class MqttOperator:
             payload = json.loads(payload_string)
         except ValueError:
             error("get_answer", "Payload is not a valid json. %s - %s" % (topic, payload_string))
-            answer_topic = OPERATOR_ERROR_TOPIC
+            answer_topic = ERROR_TOPIC
             answer_payload = MESSAGE_NOT_JSON
             return answer_topic, answer_payload
 
@@ -81,7 +81,7 @@ class MqttOperator:
         if action == "update":
             if not payload.get("state"):
                 error("get_answer", "Update payload does not begin with a state object. %s - %s" % (topic, payload))
-                answer_topic = OPERATOR_ERROR_TOPIC
+                answer_topic = ERROR_TOPIC
                 answer_payload = WRONG_FORMAT_STATE
                 return answer_topic, answer_payload
 
@@ -90,7 +90,7 @@ class MqttOperator:
                 db.update_reported(thing, payload["state"]["reported"])
             else:
                 error("get_answer", "Update does not contain reported. %s - %s" % (topic, payload))
-                answer_topic = OPERATOR_ERROR_TOPIC
+                answer_topic = ERROR_TOPIC
                 answer_payload = WRONG_FORMAT_REPORTED_DESIRED 
                 return answer_topic, answer_payload
 
@@ -105,7 +105,7 @@ class MqttOperator:
             answer_payload = to_compact_json(delta)
         else:
             error("get_answer", "We got a message on a topic we should not be listening to: %s - %s" % (topic, payload))
-            answer_topic = OPERATOR_ERROR_TOPIC
+            answer_topic = ERROR_TOPIC
             answer_payload = MESSAGE_NOT_HANDLED
 
         return answer_topic, answer_payload

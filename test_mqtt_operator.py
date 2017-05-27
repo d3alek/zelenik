@@ -22,7 +22,7 @@ class TestMqttOperator(unittest.TestCase):
     def test_safely_log_non_json(self):
         self.given_message('non-json', 'non-json')
 
-        self.then_answer_is(mqtt_operator.OPERATOR_ERROR_TOPIC,
+        self.then_answer_is(mqtt_operator.ERROR_TOPIC,
                 mqtt_operator.MESSAGE_NOT_JSON)
 
     def test_parse_thing_action_failure(self):
@@ -39,13 +39,13 @@ class TestMqttOperator(unittest.TestCase):
     def test_unknown_topic1(self):
         self.given_message('unknown', '{}')
 
-        self.then_answer_is(mqtt_operator.OPERATOR_ERROR_TOPIC,
+        self.then_answer_is(mqtt_operator.ERROR_TOPIC,
                 mqtt_operator.MESSAGE_NOT_HANDLED)
 
     def test_unknown_topic2(self):
         self.given_message('things/ESP-12/exterminate', '{}')
 
-        self.then_answer_is(mqtt_operator.OPERATOR_ERROR_TOPIC,
+        self.then_answer_is(mqtt_operator.ERROR_TOPIC,
                 mqtt_operator.MESSAGE_NOT_HANDLED)
 
     def test_wrong_format(self):
@@ -53,7 +53,7 @@ class TestMqttOperator(unittest.TestCase):
                 '{"reported": {"value": 1}}') # missing outermost object 'state'
 
         self.then_parsed_thing_action_are(THING, "update")
-        self.then_answer_is(mqtt_operator.OPERATOR_ERROR_TOPIC, 
+        self.then_answer_is(mqtt_operator.ERROR_TOPIC, 
                 mqtt_operator.WRONG_FORMAT_STATE)
         self.then_state_does_not_exist("reported")
 
