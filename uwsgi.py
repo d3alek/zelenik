@@ -22,6 +22,9 @@ def parse_thing(url_path):
     thing = match.group(2)
     return thing
 
+def parse_post_action(url_path):
+   return url_path.split('/')[-1]
+
 def parse_graph_attributes(url_path):
     match = re.match(r'/(db|na)/([a-zA-Z0-9-]+)\/graph-([0-9]*)-median-([0-9]*)(-w)?', url_path)
     if not match:
@@ -58,16 +61,21 @@ def application(env, start_response):
 
     if method == 'POST':
         formdata = cgi.FieldStorage(environ=env, fp=env['wsgi.input'])
-        if 'plot' in formdata and formdata['plot'].filename != '':
-            file_data = formdata['plot'].file.read()
+        action = parse_post_action(url.path)
+        if action == "update":
+            if 'plot' in formdata and formdata['plot'].filename != '':
+                file_data = formdata['plot'].file.read()
 
-            content_type, data = gui_update.update_plot_background(db, thing, file_data)
+                content_type, data = gui_update.update_plot_background(db, thing, file_data)
 
-        to_update = UPDATEABLE.intersection(formdata.keys())
+            to_update = UPDATEABLE.intersection(formdata.keys())
 
-        for state in to_update:
-            content_type, data = gui_update.handle_update(db, thing, state, formdata[state].value, queries.get('ret', [None])[0])
-
+            for state in to_update:
+                content_type, data = gui_update.handle_update(db, thing, state, formdata[state].value, queries.get('ret', [None])[0])
+        elif action == "graph":
+            content_type, data = graph.handle_graph(db, thing, formdata=formdata)
+        else:
+            error("application", "Unexpected POST action %s" % action)
     else:
         since_days, median_kernel, wrongs = parse_graph_attributes(url.path)
         content_type, data = graph.handle_graph(db, thing, since_days, median_kernel, wrongs)

@@ -53,6 +53,10 @@ ul li {
     padding-bottom: 8px;
 }
 
+.float-left {
+    float: left;
+}
+
 #connection-problem {
     font-size: 22px;
     max-width: 450px;

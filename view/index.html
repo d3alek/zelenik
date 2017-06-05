@@ -48,6 +48,19 @@
                     <li><a href="graph-31-median-3.png">Месец</a></li>
                     <li><a href="graph-256-median-3.png">Година</a></li>
                 </ul>
+                <form action="graph" method="POST">
+                    <input type="radio" name="since" value="1" checked>Ден</input>
+                    <input type="radio" name="since" value="2">Два дни</input>
+                    <input type="radio" name="since" value="7">Седмица</input>
+                    <input type="radio" name="since" value="31">Месец</input>
+                    <input type="radio" name="since" value="256">Година</input>
+                    <input type="number" name="median" placeholder="Осредняване" value="3"></input>
+                    <input type="checkbox" name="wrongs" value="True">Маркирай грешките</input>
+                    <div id="graphable-checkboxes">
+                    </div>
+                    <div class="clear"></div>
+                    <input type="submit" value="Submit">
+                </form>
             </div>
 
 
@@ -90,6 +103,7 @@
             </footer>
             <script src="view/scripts/event.js"></script>
             <script src="view/scripts/plot.js"></script>
+            <script src="view/scripts/graph.js"></script>
             <script src="view/scripts/script.js"></script>
         </body>
     </html>

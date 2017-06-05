@@ -14,6 +14,10 @@ from scipy import signal
 
 timezone = tz.gettz('Europe/Sofia')
 
+DEFAULT_SINCE_DAYS = 1
+DEFAULT_MEDIAN_KERNEL = 3
+DEFAULT_WRONGS = False
+
 def get_write(state):
     if state.get('write'):
         return state['write']
@@ -56,7 +60,36 @@ def graph_types(displayable_type, should_graph):
 
     return number_found, percent_found
 
-def handle_graph(db, a_thing, since_days=1, median_kernel=1, wrongs=False):
+def parse_formdata(formdata):
+    since_days = DEFAULT_SINCE_DAYS
+    median_kernel = DEFAULT_MEDIAN_KERNEL
+    wrongs = DEFAULT_WRONGS
+    graphable = None
+    if 'since' in formdata:
+        since_days = int(formdata['since'].value)
+    if 'median' in formdata:
+        median_kernel = int(formdata['median'].value)
+    if 'wrongs' in formdata:
+        wrongs = formdata['wrongs'].value == 'True'
+    if 'graphable' in formdata:
+        graphable = {}
+        graphable_list = formdata['graphable']
+        if not isinstance(graphable_list, list):
+            graphable_list = [graphable_list]
+        for graphable_text in graphable_list:
+            split = graphable_text.value.split('/')
+            sense = split[0]
+            subsense = split[1]
+            graphable.setdefault(sense, []).append(subsense)
+
+    return since_days, median_kernel, wrongs, graphable
+
+def handle_graph(db, a_thing, since_days=DEFAULT_SINCE_DAYS, median_kernel=DEFAULT_MEDIAN_KERNEL, wrongs=DEFAULT_WRONGS, graphable=None, formdata=None):
+    if formdata:
+        print("Formdata is:", formdata)
+        since_days, median_kernel, wrongs, graphable = parse_formdata(formdata)
+        print("Parsed: ", parse_formdata(formdata))
+
     thing = db.resolve_thing(a_thing)
     history = db.load_history(thing, 'reported', since_days=since_days)
     displayables = db.load_state(thing, 'displayables')
@@ -104,14 +137,17 @@ def handle_graph(db, a_thing, since_days=1, median_kernel=1, wrongs=False):
         sense_plot.axes.yaxis.set_label_position('left')
 
     if len(senses) > 0:
-        sense_types = set()
-        for sense_state in senses:
-            sense_types = sense_types.union(sense_state.keys())
+        if graphable:
+            sense_types = graphable.keys() 
+        else:
+            sense_types = set()
+            for sense_state in senses:
+                sense_types = sense_types.union(sense_state.keys())
 
-        sense_types = sorted(sense_types) 
-        sense_types = list(filter(lambda s: should_graph.get(s, "no") == "yes", sense_types))
-        if 'time' in sense_types:
-            sense_types.remove('time')
+            sense_types = sorted(sense_types) 
+            sense_types = list(filter(lambda s: should_graph.get(s, "no") == "yes", sense_types))
+            if 'time' in sense_types:
+                sense_types.remove('time')
     else:
         sense_types = []
 
@@ -127,31 +163,33 @@ def handle_graph(db, a_thing, since_days=1, median_kernel=1, wrongs=False):
         times = []
         wrong_times = []
         wrong_values = []
-        for sense_state, time in zip(senses, plot_times):
-            if sense_state.get(sense_type) is not None:
-                previous_value = 0
-                if len(values) > 0:
-                    previous_value = values[-1]
+        subtypes = graphable.get(sense_type, ['value'])
+        for subtype in subtypes:
+            for sense_state, time in zip(senses, plot_times):
+                if sense_state.get(sense_type) is not None:
+                    previous_value = 0
+                    if len(values) > 0:
+                        previous_value = values[-1]
 
-                value = sense_state[sense_type]
-                if type(value) is dict:
-                    wrong, float_value = parse_sense(value.get('value', None))
-                    if not wrong:
-                        values.append(float_value)
-                        times.append(time)
-                    else:
-                        wrong_times.append(time)
-                        wrong_values.append(previous_value)
-                    if value.get('alias'):
-                        alias = value['alias']
-                else:
-                    wrong, float_value = parse_sense(value)
-                    if not wrong:
-                        values.append(float_value)
-                        times.append(time)
-                    else:
-                        wrong_times.append(time)
-                        wrong_values.append(previous_value)
+                    value = sense_state[sense_type]
+                    if type(value) is dict:
+                        wrong, float_value = parse_sense(value.get(subtype, None))
+                        if not wrong:
+                            values.append(float_value)
+                            times.append(time)
+                        else:
+                            wrong_times.append(time)
+                            wrong_values.append(previous_value)
+                        if value.get('alias'):
+                            alias = value['alias']
+                    elif subtype == "value":
+                        wrong, float_value = parse_sense(value)
+                        if not wrong:
+                            values.append(float_value)
+                            times.append(time)
+                        else:
+                            wrong_times.append(time)
+                            wrong_values.append(previous_value)
 
         if not alias or alias == "":
             label = sense_type
@@ -228,11 +266,15 @@ def handle_graph(db, a_thing, since_days=1, median_kernel=1, wrongs=False):
     sense_plot.grid(True)
 
     # importantly here we should use the dealiased thing
-    image_location = 'db/%s/graph-%d-median-%d' % (thing, since_days, median_kernel)
-    if wrongs:
-        image_location += '-w'
+    if formdata:
+        image_location = "db/%s/temp.png" % thing
 
-    image_location += '.png'
+    else:
+        image_location = 'db/%s/graph-%d-median-%d' % (thing, since_days, median_kernel)
+        if wrongs:
+            image_location += '-w'
+
+        image_location += '.png'
 
     # legend to top of plot, based on example from http://matplotlib.org/users/legend_guide.html
     if sense_twin_plot:
