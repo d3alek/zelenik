@@ -190,7 +190,7 @@ class TestDatabaseDriverUpdate(TestDatabaseDriver):
 
         self.when_updating_reported('{"senses":{"I2C-8": 800}}')
 
-        self.then_state_exists("reported", FORMAT % ('{"senses": {"I2C-8":{"value": 100, "original": 800, "alias": "humidity"}}}'))
+        self.then_state_exists("reported", FORMAT % ('{"senses": {"I2C-8":{"value": 800, "normalized": 100, "alias": "humidity"}}}'))
 
     def test_update_desired_resolves_alias(self):
         aliased_thing = "aliased-%s" % THING

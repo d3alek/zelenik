@@ -5,6 +5,7 @@ import json
 import json_delta
 from datetime import datetime, timedelta, date
 import state_processor
+from state_processor import parse_isoformat
 import re
 from matplotlib import colors
 
@@ -62,10 +63,6 @@ def is_displayable(s):
     b = s not in NON_ALIASABLE
     return b and not s.startswith('A|')
 
-# parse iso format datetime with sep=' '
-def parse_isoformat(s):
-    return datetime.strptime(s, "%Y-%m-%d %H:%M:%S.%f")
-
 def pretty_json(d):
     return json.dumps(d, sort_keys=True, indent=4, separators=(',', ': '), ensure_ascii=False)
 
@@ -80,8 +77,12 @@ def validate_input(thing, state, value):
         error("update", "Called with a non-dict value - %s %s %s. Raising exception" % (thing, state, value))
         raise Exception("Expected value to be dict, got %s instead" % type(value))
 
+def timestamp(time):
+    time = time.replace(microsecond=0)
+    return time.isoformat(sep=' ')
+
 def encapsulate_and_timestamp(value, parent_name):
-    return {parent_name: value, "timestamp_utc": datetime.utcnow().isoformat(sep=' ')}
+    return {parent_name: value, "timestamp_utc": timestamp(datetime.utcnow())}
 
 def collect_non_dict_value_keys(d):
     collected = []
@@ -96,7 +97,8 @@ def collect_non_dict_value_keys(d):
 def flat_map(d, field):
     filtered = {}
     for key, value in d.items():
-        filtered[key] = value.get(field, "")
+        if type(value) is dict:
+            filtered[key] = value.get(field, "")
 
     return filtered
 
@@ -123,7 +125,7 @@ class DatabaseDriver:
         log_updated = []
         if not history_path.is_dir():
             history_path.mkdir()
-            history-path.chmod(0o774)
+            history_path.chmod(0o774)
             info("append_history", "Created new history directory for %s" % thing)
             log_updated.append('new_history_directory')
         history_state_path = history_path / state

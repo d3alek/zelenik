@@ -52,7 +52,7 @@ else:
     clamping = int(sys.argv[4])
     print("alias: %s, timestamp: %s, sense: %s, clamping value: %d" % (thing_alias, timestamp, sense, clamping))
 
-thing_directory = Path('db') / 'na' / thing_alias 
+thing_directory = Path('/www/zelenik/db/na') / thing_alias 
 file = thing_directory / 'history' / ("reported.%s.txt" % timestamp)
 
 if not file.exists():

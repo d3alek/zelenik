@@ -1,5 +1,6 @@
 import re
 from numbers import Number
+from datetime import datetime, timedelta
 
 DEFAULT_WRITE = "high" 
 DEFAULT_DELTA = 0
@@ -10,8 +11,23 @@ RESISTIVE_MOISTURE_SENSES = ['I2C-8', 'I2C-9', 'I2C-10']
 # action has the form sense|<pin#>|<H,L>|<thresh>|<delta>
 ACTION_PATTERN = re.compile(r'^([a-zA-Z0-9-]+)\|(\d+)\|([HL])\|(\d+)\|(\d+)$')
 
+WRONG_VALUE_INT = -1003 # taken from EspIdiot, keep it in sync
+
 def error(method, message):
     print("! state_processor/%s: %s" % (method, message))
+
+def info(method, message):
+    print("  state_processor/%s: %s" % (method, message))
+
+# parse iso format datetime with sep=' '
+def parse_isoformat(s):
+    try:
+        return datetime.strptime(s, "%Y-%m-%d %H:%M:%S.%f")
+    except ValueError:
+        return datetime.strptime(s, "%Y-%m-%d %H:%M:%S")
+
+def less_than_a_day_ago(time):
+    return time and datetime.utcnow() - timedelta(days=1) < parse_isoformat(time)
 
 def explode_write(letter):
     if letter == 'H':
@@ -137,27 +153,106 @@ def scale_to_analog(value, low, high):
     
     return normalized
 
-def extract_value(value_json):
-    if isinstance(value_json, Number):
-        return value_json, False
-    elif isinstance(value_json, str) and value_json.startswith('w'):
-        return value_json, True
-    elif type(value_json) is dict:
-        value = value_json.get('original')
-        wrong = 'wrong' in value_json.keys()
-        if isinstance(value, Number):
-            return value, wrong
-
-        value = value_json.get('value')
-        if isinstance(value, Number):
-            return value, wrong
-        elif isinstance(value, str) and value.startswith('w'):
-            return value, True
-    error('extract_value', 'Expected value to be either a number or a dict with value number or marked as wrong, got %s instead.' % value_json)
-    return "unexpected", True
-
 def normalize(value, scale_function):
     return scale_function(value) 
+
+def explode_deprecated_sense(value):
+    if isinstance(value, Number):
+        info("explode_deprecated_sense", "Deprecated sense value integer: %s" % value)
+        return {"value": value}
+
+    if len(value) > 0 and value[0] == 'w':
+        info("explode_deprecated_sense", "Deprecated sense value integer marked as wrong with a 'w' character: %s" % value)
+        return {"wrong": int(value[1:])}
+
+    return None
+
+def explode_sense(value):
+    alias = None
+    if isinstance(value, dict):
+        alias = value.get('alias', None)
+        value = value.get('value', None)
+
+    enriched_sense = explode_deprecated_sense(value)
+    if not enriched_sense:
+        split = value.split('|')
+        if len(split) != 4:
+            error("explode_sense", "Expected value to be 4 parts split by |, got %s instead" % value)
+            return None
+
+        enriched_sense = {}
+        if int(split[1]) != WRONG_VALUE_INT:
+            enriched_sense['expected'] = int(split[1])
+        if int(split[2]) != WRONG_VALUE_INT:
+            enriched_sense['ssd'] = int(split[2])
+        if split[3] == 'w':
+            enriched_sense['wrong'] = int(split[0])
+        else:
+            enriched_sense['value'] = int(split[0])
+
+    if alias:
+        enriched_sense['alias'] = alias
+
+    return enriched_sense
+
+def explode_senses(senses, previous_senses, previous_timestamp):
+    exploded = {}
+    for key, value in senses.items():
+        previous_value = previous_senses.pop(key, {})
+        if key == 'time' and isinstance(value, Number):
+            exploded_value = seconds_to_timestamp(value)
+            continue
+
+        enriched_sense = explode_sense(value)
+        previous_enriched_sense = previous_value
+
+        if enriched_sense is None:
+            info('explode_sense', 'Not exploding sense %s:%s because of a parsing failure' % (key, value))
+            exploded[key] = value
+            continue
+
+        if 'value' not in enriched_sense.keys() and 'expected' not in enriched_sense.keys():
+            # Pick value or expected from previous, idea is to always have an estimate of what a sensor shows and idea of how recent that showing is (leave it a UI responsibility)
+            if previous_enriched_sense:
+                if 'value' in previous_enriched_sense.keys():
+                    enriched_sense['value'] = previous_enriched_sense['value']
+                    enriched_sense['from'] = previous_timestamp
+                elif 'expected' in previous_enriched_sense.keys():
+                    enriched_sense['expected'] = previous_enriched_sense['expected']
+                    enriched_sense['from'] = previous_timestamp
+                if 'from' in previous_enriched_sense.keys():
+                    enriched_sense['from'] = previous_enriched_sense['from']
+
+        if key == 'I2C-32c' or key in RESISTIVE_MOISTURE_SENSES:
+            if key == 'I2C-32c':
+                transform = capacitive_humidity_to_percent
+            else:
+                transform = resistive_humidity_to_percent
+
+            to_normalize = None
+            to_normalize = enriched_sense.get('value', None)
+            if to_normalize is None:
+                to_normalize = enriched_sense.get('expected', None)
+            if to_normalize is not None:
+                normalized = normalize(to_normalize, transform)
+                enriched_sense['normalized'] = normalized
+
+        exploded[key] = enriched_sense
+
+    if previous_senses and less_than_a_day_ago(previous_timestamp):
+        # some senses remain from the past, take them if they are up to a day old
+        for key, value in previous_senses.items():
+            if isinstance(value, dict):
+                timestamp = value.get('from', previous_timestamp)
+                if less_than_a_day_ago(timestamp):
+                    value['from'] = previous = timestamp
+                    exploded[key] = value
+                else:
+                    info("explode_senses", "Forgetting previous sense %s because more than a day old: %s" % (key, timestamp))
+    else:
+        info("explode_senses", "Forgetting previous senses because more than a day old: %s" % previous_timestamp)
+
+    return exploded
 
 def explode(json, previous_json={}, previous_timestamp=None):
     exploded = {}
@@ -165,39 +260,8 @@ def explode(json, previous_json={}, previous_timestamp=None):
         previous_value = previous_json.get(key, {})
         if key == 'actions':
             exploded_value = explode_actions(value)
-        elif key == 'time' and isinstance(value, Number):
-            exploded_value = seconds_to_timestamp(value)
-        elif key == 'I2C-32c' or key in RESISTIVE_MOISTURE_SENSES:
-            if key == 'I2C-32c':
-                transform = capacitive_humidity_to_percent
-            else:
-                transform = resistive_humidity_to_percent
-
-            exploded_value = {}
-            to_normalize = None
-            if isinstance(value, dict):
-                exploded_value = dict(value)
-                exploded_value.pop('value', None)
-
-            extracted_number, wrong = extract_value(value)
-
-            if wrong:
-                exploded_value['wrong'] = extracted_number
-                if previous_value:
-                    prev_extracted_number, prev_wrong = extract_value(previous_value)
-                    if isinstance(prev_extracted_number, Number):
-                        to_normalize = prev_extracted_number
-                        if prev_wrong:
-                            exploded_value['from'] = previous_value.get('from', None)
-                        else:
-                            exploded_value['from'] = previous_timestamp 
-            else:
-                to_normalize = extracted_number
-
-            if to_normalize:
-                exploded_value['original'] = to_normalize 
-                normalized = normalize(to_normalize, transform)
-                exploded_value['value'] = normalized
+        elif key == 'senses':
+            exploded_value = explode_senses(value, previous_value, previous_timestamp)
         elif type(value) is dict:
             exploded_value = explode(value, previous_value, previous_timestamp)
         else:
