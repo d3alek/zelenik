@@ -239,18 +239,19 @@ def explode_senses(senses, previous_senses, previous_timestamp):
 
         exploded[key] = enriched_sense
 
-    if previous_senses and less_than_a_day_ago(previous_timestamp):
-        # some senses remain from the past, take them if they are up to a day old
-        for key, value in previous_senses.items():
-            if isinstance(value, dict):
-                timestamp = value.get('from', previous_timestamp)
-                if less_than_a_day_ago(timestamp):
-                    value['from'] = previous = timestamp
-                    exploded[key] = value
-                else:
-                    info("explode_senses", "Forgetting previous sense %s because more than a day old: %s" % (key, timestamp))
-    else:
-        info("explode_senses", "Forgetting previous senses because more than a day old: %s" % previous_timestamp)
+    if previous_senses: 
+        if less_than_a_day_ago(previous_timestamp):
+            # some senses remain from the past, take them if they are up to a day old
+            for key, value in previous_senses.items():
+                if isinstance(value, dict):
+                    timestamp = value.get('from', previous_timestamp)
+                    if less_than_a_day_ago(timestamp):
+                        value['from'] = previous = timestamp
+                        exploded[key] = value
+                    else:
+                        info("explode_senses", "Forgetting previous sense %s because more than a day old: %s" % (key, timestamp))
+        else:
+            info("explode_senses", "Forgetting previous senses because more than a day old: %s" % previous_timestamp)
 
     return exploded
 
