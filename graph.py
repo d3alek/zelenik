@@ -12,8 +12,6 @@ import matplotlib.gridspec as gridspec
 
 from scipy import signal
 
-import time
-
 timezone = tz.gettz('Europe/Sofia')
 
 DEFAULT_SINCE_DAYS = 1
@@ -165,7 +163,7 @@ def handle_graph(db, a_thing, since_days=DEFAULT_SINCE_DAYS, median_kernel=DEFAU
         times = []
         wrong_times = []
         wrong_values = []
-        subtypes = graphable.get(sense_type, ['value'])
+        subtypes = graphable.get(sense_type, ['valueOrNormalized'])
         for subtype in subtypes:
             for sense_state, time in zip(senses, plot_times):
                 if sense_state.get(sense_type) is not None:
@@ -175,7 +173,15 @@ def handle_graph(db, a_thing, since_days=DEFAULT_SINCE_DAYS, median_kernel=DEFAU
 
                     value = sense_state[sense_type]
                     if type(value) is dict:
-                        wrong, float_value = parse_sense(value.get(subtype, None))
+                        if subtype == 'valueOrNormalized':
+                            # check if 'normalized' exists, use it instead of value
+                            sense = value.get("normalized", None)
+                            if not sense:
+                                sense = value.get("value", None)
+                        else:
+                            sense = value.get(subtype)
+
+                        wrong, float_value = parse_sense(sense)
                         if not wrong:
                             values.append(float_value)
                             times.append(time)
@@ -286,8 +292,6 @@ def handle_graph(db, a_thing, since_days=DEFAULT_SINCE_DAYS, median_kernel=DEFAU
         sense_plot.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3, ncol=3, mode="expand", borderaxespad=0.)
 
     plt.savefig(image_location, dpi=100, bbox_inches='tight')
-
-    time.sleep(1) # prevent image looking half-loaded
 
     with open(image_location, 'rb') as f:
         image_bytes = f.read()
