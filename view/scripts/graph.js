@@ -21,8 +21,11 @@ function fill_graphable_checkboxes(senses, container) {
         }
 
         var ul = document.createElement('ul');
-        ul.setAttribute('class', 'vertical-list float-left');
-        ul.appendChild(document.createTextNode(alias));
+        ul.setAttribute('class', 'graphable-list float-left');
+        header = document.createElement("span");
+        header.setAttribute('class', 'graphable-list-header');
+        header.textContent = alias;
+        ul.appendChild(header);
         for (var i = 0; i < to_graph.length; ++i) {
             var graphable = to_graph[i];
             var li = document.createElement('li');

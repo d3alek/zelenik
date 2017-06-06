@@ -164,3 +164,12 @@ ul li {
     display:block;
 
 }
+
+.graphable-list li {
+    list-style-type: none;
+    padding-bottom: 8px;
+}
+
+.graphable-list-header {
+    font-weight: bold;
+}
