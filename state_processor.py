@@ -200,7 +200,7 @@ def explode_senses(senses, previous_senses, previous_timestamp):
     for key, value in senses.items():
         previous_value = previous_senses.pop(key, {})
         if key == 'time' and isinstance(value, Number):
-            exploded_value = seconds_to_timestamp(value)
+            exploded[key] = seconds_to_timestamp(value)
             continue
 
         enriched_sense = explode_sense(value)
