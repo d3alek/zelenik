@@ -86,9 +86,9 @@ def parse_formdata(formdata):
 
 def handle_graph(db, a_thing, since_days=DEFAULT_SINCE_DAYS, median_kernel=DEFAULT_MEDIAN_KERNEL, wrongs=DEFAULT_WRONGS, graphable=None, formdata=None):
     if formdata:
-        print("Formdata is:", formdata)
         since_days, median_kernel, wrongs, graphable = parse_formdata(formdata)
-        print("Parsed: ", parse_formdata(formdata))
+    else:
+        graphable = {}
 
     thing = db.resolve_thing(a_thing)
     history = db.load_history(thing, 'reported', since_days=since_days)
