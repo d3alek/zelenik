@@ -17,7 +17,9 @@ function fill_graphable_checkboxes(senses, container) {
             var keys = Object.keys(sense);
             keys.splice( keys.indexOf('alias'), 1 );
             to_graph = to_graph.concat(keys);
-            alias = senses[key]['alias']
+            if (senses[key]['alias']) {
+                alias = senses[key]['alias'];
+            } 
         }
 
         var ul = document.createElement('ul');
