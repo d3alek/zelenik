@@ -12,6 +12,8 @@ import matplotlib.gridspec as gridspec
 
 from scipy import signal
 
+import time
+
 timezone = tz.gettz('Europe/Sofia')
 
 DEFAULT_SINCE_DAYS = 1
@@ -284,6 +286,8 @@ def handle_graph(db, a_thing, since_days=DEFAULT_SINCE_DAYS, median_kernel=DEFAU
         sense_plot.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3, ncol=3, mode="expand", borderaxespad=0.)
 
     plt.savefig(image_location, dpi=100, bbox_inches='tight')
+
+    time.sleep(1) # prevent image looking half-loaded
 
     with open(image_location, 'rb') as f:
         image_bytes = f.read()
