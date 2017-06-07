@@ -10,10 +10,9 @@ var desired = JSON.parse(document.getElementById("desired-input").textContent);
 
 var displayables_config = JSON.parse(document.getElementById("displayables-input").textContent);
 
-var plot = document.getElementById("plot");
-
 document.getElementById("change-plot").style.display = "none";
 
+var plot = document.getElementById("plot");
 var plot_image = document.getElementsByClassName("plot-image")[0];
 
 AttachEvent(document.getElementById("plot-input"), "change", function() {
@@ -21,7 +20,7 @@ AttachEvent(document.getElementById("plot-input"), "change", function() {
     plot_image.src = plot_image.src + "?refresh=yes";
 });
 
-fill_graphable_checkboxes(senses, document.getElementById("graphable-checkboxes"))
+fill_graphable_checkboxes(senses, document.getElementById("graphable-checkboxes"));
 
 if (!plot_image.complete) {
     AttachEvent(plot_image, "load", initialize_or_hide_plot);
@@ -32,7 +31,7 @@ else {
 
 function initialize_or_hide_plot() {
     if (imageOk(plot_image)) {
-        initialize_plot(plot_image, senses, desired.mode, reported.state.write, displayables_config, set_active, move_to_click_position);
+        initialize_plot(plot, plot_image, senses, desired.mode, reported.state.write, displayables_config, set_active, move_to_click_position);
     }
     else {
         plot.style.display = "none";
@@ -94,7 +93,7 @@ function pretty_active_info(object, html) {
     if (html.tagName === "SPAN") {
         object.innerHTML = html.title + ": " + html.innerHTML;
     }
-    else if (html.tagName == "DIV") {
+    else if (html.tagName === "DIV") {
         var div = document.createElement("div");
         var span = document.createElement("span");
         text = "Стойност: " + html.dataset.actual + " Желана: " + html.dataset.desired + " Автоматично: " + html.dataset.auto;
@@ -168,17 +167,17 @@ function change_plot_positions(e) {
     e = e || window.event;
     var target = e.target || e.srcElement;
 
-    if (target.textContent == "Премести") {
+    if (target.textContent === "Премести") {
         window.state = MOVE_DISPLAYABLES;
 
         target.textContent = "Запази";
     }
-    else if (target.textContent == "Запази") {
+    else if (target.textContent === "Запази") {
         window.state = INITIAL;
         var displayables = document.getElementsByClassName("displayable");
-        var displayables_config = JSON.parse(document.getElementById("displayables-input").textContent);
-
-        for (i = 0; i < displayables.length; ++i) {
+        displayables_config = JSON.parse(document.getElementById("displayables-input").textContent);
+        var i;
+        for (i = 0; i < displayables.length; i += 1) {
             var displayable = displayables[i];
             var key = displayable.id;
             var displayable_config = displayables_config[key];
@@ -189,10 +188,10 @@ function change_plot_positions(e) {
                 }
 
                 var l = displayable.style.left;
-                if (l.endsWith("px")) {;
+                if (l.endsWith("px")) {
                     l = l.substring(0, l.length-2);
                 }
-                displayables_config[key]["position"]=t + "," + l;
+                displayables_config[key].position = t + "," + l;
             }
         }
 
@@ -206,7 +205,7 @@ function change_plot_positions(e) {
 function post_displayables(displayables_config) {
     var displayables_input = document.getElementById("displayables-input");
     displayables_input.textContent = JSON.stringify(displayables_config, null, 4);
-    var displayables_form = document.getElementById("displayables-form") ;
+    var displayables_form = document.getElementById("displayables-form");
     displayables_form.submit();
 }
 
@@ -214,12 +213,12 @@ function post_desired_switch(e) {
     e = e || window.event;
     var target = e.target || e.srcElement;
 
-    var switch_id = target.dataset["switchId"];
-    var state = target.dataset["state"];
+    var switch_id = target.dataset.switchId;
+    var state = target.dataset.state;
 
     console.log("Setting " + switch_id + " to " + state);
     var desiredInput = document.getElementById("desired-input");
-    var desired = JSON.parse(desiredInput.textContent);
+    desired = JSON.parse(desiredInput.textContent);
     desired.mode[switch_id] = state;
     desiredInput.textContent = JSON.stringify(desired, null, 4);
 
