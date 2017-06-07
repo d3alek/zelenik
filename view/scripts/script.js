@@ -220,7 +220,7 @@ function post_desired_switch(e) {
     console.log("Setting " + switch_id + " to " + state);
     var desiredInput = document.getElementById("desired-input");
     var desired = JSON.parse(desiredInput.textContent);
-    desired.mode.switch_id = state;
+    desired.mode[switch_id] = state;
     desiredInput.textContent = JSON.stringify(desired, null, 4);
 
     var desiredForm = document.getElementById("desired-form");
