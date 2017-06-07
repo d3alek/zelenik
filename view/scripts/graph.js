@@ -15,11 +15,14 @@ function fill_graphable_checkboxes(senses, container) {
         }
         else {
             var keys = Object.keys(sense);
-            keys.splice( keys.indexOf('alias'), 1 );
-            to_graph = to_graph.concat(keys);
             if (senses[key]['alias']) {
                 alias = senses[key]['alias'];
+                keys.splice( keys.indexOf('alias'), 1 );
             } 
+            if (keys.indexOf('value') === -1) {
+                to_graph = to_graph.concat('value'); // always give option to graph value 
+            }
+            to_graph = to_graph.concat(keys);
         }
 
         var ul = document.createElement('ul');
