@@ -166,7 +166,7 @@ class TestStateProcessor(unittest.TestCase):
 
     def test_explode_wrong_sense_removes_value(self):
         compact = SENSES % '{"I2C-8": "100|800|10|w"}'
-        exploded = SENSES % '{"I2C-8": {"wrong": 100, "expected": 800, "ssd": 10, "normalized": 100}}'
+        exploded = SENSES % '{"I2C-8": {"wrong": 100, "expected": 800, "ssd": 10, "expected-normalized": 100}}'
         self.when_exploding(compact)
 
         self.then_exploded(exploded)
@@ -204,7 +204,7 @@ class TestStateProcessor(unittest.TestCase):
     def test_explode_wrong_value_picks_expected(self):
         compact = SENSES % '{"I2C-8": "1000|800|100|w"}'
         previous_exploded = SENSES % '{"I2C-8": {"value": 800, "normalized": 100}}'
-        exploded = SENSES % '{"I2C-8": {"wrong": 1000, "normalized": 100, "ssd":100, "expected": 800}}'
+        exploded = SENSES % '{"I2C-8": {"wrong": 1000, "expected-normalized": 100, "ssd":100, "expected": 800}}'
 
         self.when_exploding(compact, previous_exploded, "yesterday")
         self.then_exploded(exploded)

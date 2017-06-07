@@ -140,6 +140,9 @@ function extract_value(raw_value) {
         if ('normalized' in raw_value) {
             return raw_value['normalized'];
         }
+        if ('expected-normalized' in raw_value) { 
+            return raw_value['expected-normalized'];
+        }
         if ('value' in raw_value) {
             return raw_value['value'];
         }

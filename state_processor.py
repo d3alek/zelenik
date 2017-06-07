@@ -230,12 +230,13 @@ def explode_senses(senses, previous_senses, previous_timestamp):
                 transform = resistive_humidity_to_percent
 
             to_normalize = None
-            to_normalize = enriched_sense.get('value', None)
-            if to_normalize is None:
-                to_normalize = enriched_sense.get('expected', None)
-            if to_normalize is not None:
-                normalized = normalize(to_normalize, transform)
-                enriched_sense['normalized'] = normalized
+            value = enriched_sense.get('value', None)
+            if value is not None:
+                enriched_sense['normalized'] = normalize(value, transform)
+
+            expected = enriched_sense.get('expected', None)
+            if expected is not None:
+                enriched_sense['expected-normalized'] = normalize(expected, transform)
 
         exploded[key] = enriched_sense
 
