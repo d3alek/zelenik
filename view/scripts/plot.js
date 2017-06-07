@@ -1,5 +1,8 @@
 function initialize_plot(plot_image, senses, desired_modes, reported_writes, displayables_config, span_click_event, plot_click_event, thing_name) {
     for (key in senses) {
+        if (key === 'time') {
+            continue;
+        }
         var span = document.createElement('span')
         span.setAttribute('id', key)
         span.setAttribute('class', 'displayable')
@@ -134,12 +137,21 @@ function extract_value(raw_value) {
         return raw_value;
     }
     try {
-        return raw_value['value']
+        if ('normalized' in raw_value) {
+            return raw_value['normalized'];
+        }
+        if ('value' in raw_value) {
+            return raw_value['value'];
+        }
+        if ('expected' in raw_value) { 
+            return raw_value['expected'];
+        }
     }
     catch (e) {
-        console.log("Could not extract value. Expected a dict with element 'value' but got " + raw_value + "." + e);
-        return raw_value
+        console.log("Exception: " + e);
     }
+    console.log("Could not extract value. Expected a dict with element 'value' or 'expected' but got " + raw_value);
+    return raw_value;
 }
 
 // src: http://stackoverflow.com/a/13407898
