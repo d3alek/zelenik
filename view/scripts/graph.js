@@ -22,6 +22,9 @@ function fill_graphable_checkboxes(senses, container) {
             if (keys.indexOf('value') === -1) {
                 to_graph = to_graph.concat('value'); // always give option to graph value 
             }
+            if (keys.indexOf('wrong') === -1) {
+                to_graph = to_graph.concat('wrong'); // always give option to graph wrong 
+            }
             to_graph = to_graph.concat(keys);
         }
 
