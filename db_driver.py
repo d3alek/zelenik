@@ -9,6 +9,9 @@ from state_processor import parse_isoformat
 import re
 from matplotlib import colors
 
+from logger import Logger
+logger = Logger("db_driver")
+
 NON_ALIASABLE = ['lawake', 'sleep', 'state', 'version', 'voltage', 'wifi', 'delete', 'delta', 'gpio', 'threshold', 'write', 'alias', 'value', 'original', 'b', 'time', 'actions']
 
 history_day_pattern = re.compile('[a-z]*.([0-9-]*).txt')
@@ -21,12 +24,6 @@ def set_subtract(subtract_from, to_subtract):
     return [item for item in subtract_from if item not in to_subtract]
 
 COLORS = list(reversed(FIRST_COLORS + set_subtract(colors.cnames.keys(), FIRST_COLORS))) # revsersing because the intended use is to instantiate a new list and pop out
-
-def info(method, message):
-    print("  db_driver/%s: %s" % (method, message))
-
-def error(method, message):
-    print("! db_driver/%s: %s" % (method, message))
 
 def change_action_diff_format(path_parts, value, compact_to):
     # Go from ['actions', 0], 'I2C-8|4|H|10|2'
@@ -48,7 +45,8 @@ def parse_day_from_history_file(history_name):
         except ValueError:
             pass
 
-    error("parse_day_from_history_file", "Could not parse day from history file %s. Using two days ago." % history_name)
+    log = logger.of("parse_day_from_history_file")
+    log.error("Could not parse day from history file %s. Using two days ago." % history_name)
     return date.today() - timedelta(days=2)
 
 def read_lines_single_zipped_file(file_path):
@@ -74,7 +72,8 @@ def pretty_list(l):
 
 def validate_input(thing, state, value):
     if not type(value) is dict:
-        error("update", "Called with a non-dict value - %s %s %s. Raising exception" % (thing, state, value))
+        log = logger.of('validate_input')
+        log.error("Called with a non-dict value - %s %s %s. Raising exception" % (thing, state, value))
         raise Exception("Expected value to be dict, got %s instead" % type(value))
 
 def timestamp(time):
@@ -121,19 +120,20 @@ class DatabaseDriver:
         view.symlink_to(self.view)
 
     def _append_history(self, thing, state, previous_value):
+        log = logger.of('_append_history')
         history_path = self.directory / thing / "history"
         log_updated = []
         if not history_path.is_dir():
             history_path.mkdir()
             history_path.chmod(0o774)
-            info("append_history", "Created new history directory for %s" % thing)
+            log.info("Created new history directory for %s" % thing)
             log_updated.append('new_history_directory')
         history_state_path = history_path / state
         history_state_file = history_state_path.with_suffix('.%s.txt' % date.today().isoformat())
 
         if not history_state_file.exists():
             # if this is the beginning of a new day, put day-2 history in archive
-            info("append_history", "First record for %s for the new day. Archiving more than 2 days old history" % thing)
+            log.info("First record for %s for the new day. Archiving more than 2 days old history" % thing)
             self._archive_history(thing, state)
             log_updated.append('archive')
 
@@ -151,10 +151,11 @@ class DatabaseDriver:
         return p.with_suffix(".json")
 
     def _apply_aliases(self, thing, d, aliases=None):
+        log = logger.of('_apply_aliases')
         if aliases is None:
             a = self._get_state_path(thing, 'displayables')
             if not a.exists():
-                info('apply_aliases', 'No aliases applied because file does not exist')
+                log.info('No aliases applied because file does not exist')
                 return d
 
             with a.open() as f:
@@ -206,7 +207,8 @@ class DatabaseDriver:
         for key in keys:
             if key not in previous_keys:
                 if not unused_colors:
-                    error("get_new_displayables", "No more unused colors. Starting to repeat")
+                    log = logger.of('_get_new_displayables')
+                    log.error("No more unused colors. Starting to repeat")
                     unused_colors = list(COLORS)
 
                 new_displayables[key] = dict(NEW_DISPLAYABLE)
@@ -229,6 +231,7 @@ class DatabaseDriver:
         return new_displayables
 
     def _archive_history(self, thing, state):
+        log = logger.of('_archive_history')
         two_days_ago = date.today() - timedelta(days=2)
         thing_directory = self.directory / thing
         history_path = thing_directory / "history" 
@@ -247,7 +250,7 @@ class DatabaseDriver:
             if not archive_directory.is_dir():
                 archive_directory.mkdir()
                 archive_directory.chmod(0o774)
-                info("archive_history", "Created new archive directory for %s" % thing)
+                log.info("Created new archive directory for %s" % thing)
 
             yearly_archive = [x for x in archive_directory.iterdir() if x.match('%s.until-%d*.zip' % (state, day.year))]
             if yearly_archive:
@@ -276,13 +279,14 @@ class DatabaseDriver:
             if yearly_archive:
                 yearly_archive.unlink()
 
-            info("archive_history", "Archived history from %s for %s" % (day, thing))
+            log.info("Archived history from %s for %s" % (day, thing))
         else:
-            info("archive_history", "No history for %s older than %s" % (thing, two_days_ago))
+            log.info("No history for %s older than %s" % (thing, two_days_ago))
 
     # Level 2: mqtt_operator callables
 
     def update_reported(self, thing, value):
+        log = logger.of('update_reported')
         validate_input(thing, "reported", value)
         if value.get('state') and not isinstance(value.get('state'), str): # there is a string state attribute that can get confused with a top level state object
             raise Exception('"state" object is not expected at top level, going to be added here. Got %s' % value)
@@ -291,7 +295,7 @@ class DatabaseDriver:
         thing_directory = self.directory / thing
         if not thing_directory.exists():
             self._prepare_directory(thing_directory)
-            info("update_reported", "Created new thing directory for %s" % thing)
+            log.info("Created new thing directory for %s" % thing)
             log_updated.append('new_thing')
 
         state = "reported"
@@ -337,19 +341,20 @@ class DatabaseDriver:
                 graph.unlink()
             log_updated.append('deleted_graph')
 
-        info("update", "[%s] updated %s" % (thing, pretty_list(log_updated)))
+        log.info("[%s] updated %s" % (thing, pretty_list(log_updated)))
 
     def get_delta(self, thing):
+        log = logger.of('get_delta')
         from_state = self.load_state(thing, "reported")
         if from_state.get('state') is None or from_state.get('state').get('config') is None:
-            error("get_delta", "Unexpected from_state format, expected to begin with state/config. %s %s" % (thing, from_state))
+            log.error("Unexpected from_state format, expected to begin with state/config. %s %s" % (thing, from_state))
             return {"error":1}
         from_state = from_state['state']['config']
 
         to_state = self.load_state(thing, "desired")
 
         if to_state == {}:
-            info("get_delta", "desired of %s is empty. Assuming no delta needed." % thing)
+            log.info("desired of %s is empty. Assuming no delta needed." % thing)
             return {}
         from_state = self._dealias(from_state) 
         to_state = self._dealias(to_state)
@@ -366,7 +371,7 @@ class DatabaseDriver:
             path_parts = diff[0]
             if len(diff) == 1:
                 #TODO happens when something existing in from is not in to - then only the path to the thing in from is given, signaling delete
-                info("get_delta", "No value specified in diff, seems like field present in from is missing in to - skipping. %s %s" % (thing, diff))
+                log.info("No value specified in diff, seems like field present in from is missing in to - skipping. %s %s" % (thing, diff))
                 continue
             value = diff[1]
             path_parts, value = change_action_diff_format(path_parts, value, compact_to)
@@ -395,7 +400,8 @@ class DatabaseDriver:
             deserialized = json.loads(contents)
             return deserialized
         else:
-            info("load_state", "Tried to load state that does not exist: %s/%s" % (thing, state_name))
+            log = logger.of('load_state')
+            log.info("Tried to load state that does not exist: %s/%s" % (thing, state_name))
 
             return {}
 
@@ -405,7 +411,8 @@ class DatabaseDriver:
         aliased_dir = self.directory / "na" / a_thing
         if aliased_dir.is_symlink():
             thing = aliased_dir.resolve().name
-            info("resolve_thing", "Resolved thing alias %s to %s" % (a_thing, thing))
+            log = logger.of('resolve_thing')
+            log.info("Resolved thing alias %s to %s" % (a_thing, thing))
             return thing
         else:
             raise Exception("%s is neither a thing or a thing alias." % a_thing)
@@ -422,9 +429,8 @@ class DatabaseDriver:
         actual = self.directory / thing
         symlinked = alias_directory / alias
         symlinked.symlink_to(actual.resolve())
-
-        info("update_thing_alias", "%s aliased to %s" % (thing, alias))
-
+        log = logger.of('update_thing_alias')
+        log.info("%s aliased to %s" % (thing, alias))
 
     def update_desired(self, a_thing, value):
         validate_input(a_thing, "desired", value)
@@ -460,12 +466,14 @@ class DatabaseDriver:
             f.write(pretty_json(value))
             log_updated.append('state')
 
-        info("update_desired", "[%s] updated %s" % (thing, pretty_list(log_updated)))
+        log = logger.of('update_desired')
+        log.info("[%s] updated %s" % (thing, pretty_list(log_updated)))
 
     def update_displayables(self, a_thing, value):
+        log = logger.of('update_displayables')
         validate_input(a_thing, "displayables", value)
         if len(list(filter(is_displayable, value.keys()))) != len(value.keys()): 
-            error('update_displayables', "Some of the keys are not displayable. Ignoring update. %s %s" % (a_thing, value))
+            log.error("Some of the keys are not displayable. Ignoring update. %s %s" % (a_thing, value))
             return
 
         log_updated = []
@@ -491,12 +499,14 @@ class DatabaseDriver:
             f.write(pretty_json(value))
             log_updated.append('state')
 
-        info("update_displayables", "[%s] updated %s" % (thing, pretty_list(log_updated)))
+        log.info("[%s] updated %s" % (thing, pretty_list(log_updated)))
 
     def _load_history_for_year(self, thing, state_name, year):
         archive_path = self.directory / thing / "history"/ "archive" 
+        log = logger.of('load_history_for_year')
         if not archive_path.is_dir():
-            info("load_history_for_year", "No history exists for %s %s for %s" % (thing, state_name, year))
+
+            log.info("No history exists for %s %s for %s" % (thing, state_name, year))
             return []
 
         complete = archive_path / state_name
@@ -512,7 +522,7 @@ class DatabaseDriver:
                 text = read_lines_single_zipped_file(incomplete)
                 history = list(map(json.loads, text))
             else:
-                info("load_history_for_year", "No history exists for %s %s for %s" % (thing, state_name, year))
+                log.info("No history exists for %s %s for %s" % (thing, state_name, year))
 
         return history 
 
@@ -524,7 +534,8 @@ class DatabaseDriver:
             with history_file.open() as f:
                 states = list(map(json.loads, f.readlines()))
         else:
-            info("load_history_for_day", "No history exists for %s %s for %s" % (thing, state_name, day))
+            log = logger.of("load_history_for_day")
+            log.info("No history exists for %s %s for %s" % (thing, state_name, day))
             states = []
 
         return states

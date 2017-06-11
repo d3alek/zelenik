@@ -6,15 +6,12 @@ import sys
 import smtplib
 from email.mime.text import MIMEText
 
+from logger import Logger
+logger = Logger("error_reporter")
+
 ERROR_TOPIC = "error"
 DIR = '/www/zelenik/'
 HUMAN_OPERATOR = "akodzhabashev@gmail.com"
-
-def info(method, message):
-    print("  error_reporter/%s: %s" % (method, message))
-
-def error(method, message):
-    print("! error_reporter/%s: %s" % (method, message))
 
 def parse_username_password():
     with open(DIR + 'secret/mqtt_password_file') as f:
@@ -40,13 +37,13 @@ class ErrorReporter:
         self.client.loop_forever()
 
     def on_connect(self, client, userdata, flags, rc):
-        info("on_connect", "Connected with result code %d" % rc)
+        logger.of("on_connect").info("Connected with result code %d" % rc)
         client.subscribe(ERROR_TOPIC)
 
     def on_message(self, client, userdata, msg):
         topic = msg.topic
         payload_string = msg.payload.decode('utf-8')
-        info("on_message", "[%s] %s | user: %s" % (topic, payload_string, userdata))
+        logger.of("on_message").info("[%s] %s | user: %s" % (topic, payload_string, userdata))
         notify_human_operator(payload_string)
 
 
@@ -61,7 +58,7 @@ def notify_human_operator(body):
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
-        info("main", "Sending direct email to human operator and quitting")
+        logger.of('__main__').info("Sending direct email to human operator and quitting")
         notify_human_operator(sys.argv[1])
 
     else:

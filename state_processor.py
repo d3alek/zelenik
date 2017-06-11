@@ -2,6 +2,9 @@ import re
 from numbers import Number
 from datetime import datetime, timedelta
 
+from logger import Logger
+logger = Logger("state_processor")
+
 DEFAULT_WRITE = "high" 
 DEFAULT_DELTA = 0
 DEFAULT_DELETE = "no"
@@ -12,12 +15,6 @@ RESISTIVE_MOISTURE_SENSES = ['I2C-8', 'I2C-9', 'I2C-10']
 ACTION_PATTERN = re.compile(r'^([a-zA-Z0-9-]+)\|(\d+)\|([HL])\|(\d+)\|(\d+)$')
 
 WRONG_VALUE_INT = -1003 # taken from EspIdiot, keep it in sync
-
-def error(method, message):
-    print("! state_processor/%s: %s" % (method, message))
-
-def info(method, message):
-    print("  state_processor/%s: %s" % (method, message))
 
 # parse iso format datetime with sep=' '
 def parse_isoformat(s):
@@ -46,7 +43,8 @@ def compact_write(word):
         return 'L'
 
     else:
-        error("compact_write", "Word is neither high nor low - %s. Returning default %s" % (word, DEFAULT_WRITE))
+        log = logger.of('compact_write')
+        log.error("Word is neither high nor low - %s. Returning default %s" % (word, DEFAULT_WRITE))
         return compact_write(DEFAULT_WRITE)
 
 def seconds_to_timestamp(seconds):
@@ -68,7 +66,8 @@ def action(sense, gpio, write, threshold, delta):
 def explode_action(compact_action):
     m = ACTION_PATTERN.match(compact_action)
     if m is None:
-        error("explode_action", "Could not explode action %s" % compact_action)
+        log = logger.of('explode_action')
+        log.error("Could not explode action %s" % compact_action)
         return compact_action
     sense = m.group(1)
     gpio = int(m.group(2))
@@ -91,11 +90,12 @@ def explode_action(compact_action):
     return action(sense, gpio, write, threshold, delta)
 
 def compact_action(exploded):
+    log = logger.of('compact_action')
     if type(exploded) is not dict:
-        error('compact_action', 'Could not compact action because it is not a dict: %s' % exploded)
+        log.error('compact_action', 'Could not compact action because it is not a dict: %s' % exploded)
         return exploded
     if not set(exploded.keys()).issuperset(REQUIRED_ACTION_ATTRIBUTES):
-        error('compact_actions', 'Could not compact action because it does not have all the required attributes: %s' % exploded)
+        log.error('compact_actions', 'Could not compact action because it does not have all the required attributes: %s' % exploded)
         return exploded
 
     threshold = exploded['threshold']
@@ -157,17 +157,19 @@ def normalize(value, scale_function):
     return scale_function(value) 
 
 def explode_deprecated_sense(value):
+    log = logger.of("explode_deprecated_sense")
     if isinstance(value, Number):
-        info("explode_deprecated_sense", "Deprecated sense value integer: %s" % value)
+        log.info("Deprecated sense value number: %s" % value)
         return {"value": value}
 
     if len(value) > 0 and value[0] == 'w':
-        info("explode_deprecated_sense", "Deprecated sense value integer marked as wrong with a 'w' character: %s" % value)
+        log.info("Deprecated sense value number marked as wrong with a 'w' character: %s" % value)
         return {"wrong": int(value[1:])}
 
     return None
 
 def explode_sense(value):
+    log = logger.of('explode_sense')
     alias = None
     if isinstance(value, dict):
         alias = value.get('alias', None)
@@ -177,7 +179,7 @@ def explode_sense(value):
     if not enriched_sense:
         split = value.split('|')
         if len(split) != 4:
-            error("explode_sense", "Expected value to be 4 parts split by |, got %s instead" % value)
+            log.error("Expected value to be 4 parts split by |, got %s instead" % value)
             return None
 
         enriched_sense = {}
@@ -196,6 +198,7 @@ def explode_sense(value):
     return enriched_sense
 
 def explode_senses(senses, previous_senses, previous_timestamp):
+    log = logger.of('explode_senses')
     exploded = {}
     for key, value in senses.items():
         previous_value = previous_senses.pop(key, {})
@@ -207,7 +210,7 @@ def explode_senses(senses, previous_senses, previous_timestamp):
         previous_enriched_sense = previous_value
 
         if enriched_sense is None:
-            info('explode_sense', 'Not exploding sense %s:%s because of a parsing failure' % (key, value))
+            log.info('Not exploding sense %s:%s because of a parsing failure' % (key, value))
             exploded[key] = value
             continue
 
@@ -250,9 +253,9 @@ def explode_senses(senses, previous_senses, previous_timestamp):
                         value['from'] = previous = timestamp
                         exploded[key] = value
                     else:
-                        info("explode_senses", "Forgetting previous sense %s because more than a day old: %s" % (key, timestamp))
+                        log.info("Forgetting previous sense %s because more than a day old: %s" % (key, timestamp))
         else:
-            info("explode_senses", "Forgetting previous senses because more than a day old: %s" % previous_timestamp)
+            log.info("Forgetting previous senses because more than a day old: %s" % previous_timestamp)
 
     return exploded
 

@@ -8,16 +8,16 @@ import graph
 
 import urllib.parse
 
+from logger import Logger
+logger = Logger("uwsgi")
+
 db = db_driver.DatabaseDriver()
 UPDATEABLE = set(['reported', 'desired', 'displayables', 'thing-alias'])
-
-def info(method, message):
-    print("  uwsgi/%s: %s" % (method, message))
 
 def parse_thing(url_path):
     match = re.match(r'/(db|na)/([a-zA-Z0-9-]+)\/', url_path)
     if not match:
-        info("parse_thing", "Could not parse thing from url path %s" % url_path)
+        logger.of("parse_thing").info("Could not parse thing from url path %s" % url_path)
         return None
     thing = match.group(2)
     return thing
@@ -28,7 +28,7 @@ def parse_post_action(url_path):
 def parse_graph_attributes(url_path):
     match = re.match(r'/(db|na)/([a-zA-Z0-9-]+)\/graph-([0-9]*)-median-([0-9]*)(-w)?', url_path)
     if not match:
-        info("parse_graph_attributes", "Could not parse graph attributes from url_path %s. Default to 1" % url_path)
+        logger.of("parse_graph_attributes").info("Could not parse graph attributes from url_path %s. Default to 1" % url_path)
         return 1, 1
     since_days = int(match.group(3))
     median_kernel = int(match.group(4))
@@ -75,7 +75,7 @@ def application(env, start_response):
         elif action == "graph":
             content_type, data = graph.handle_graph(db, thing, formdata=formdata)
         else:
-            error("application", "Unexpected POST action %s" % action)
+            logger.of('application').error("Unexpected POST action %s" % action)
     else:
         since_days, median_kernel, wrongs = parse_graph_attributes(url.path)
         content_type, data = graph.handle_graph(db, thing, since_days, median_kernel, wrongs)

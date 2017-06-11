@@ -8,6 +8,9 @@ import time
 
 from db_driver import to_compact_json
 
+from logger import Logger
+logger = Logger("mqtt_operator")
+
 ERROR_TOPIC = "operator_error"
 MESSAGE_NOT_HANDLED = '{"reason": "Message not handled. See mqtt_operator logs for details"}'
 MESSAGE_NOT_JSON = '{"reason": "Message not a valid json. See mqtt_operator logs for details"}'
@@ -16,12 +19,6 @@ WRONG_FORMAT_REPORTED_DESIRED = '{"reason": "Message payload did not begin with 
 UPDATE_REPORTED_EXCEPTION = '{"reason": "Caught exception while updating reported: %s. See mqtt_operator logs for details"}'
 
 DIR = '/www/zelenik/'
-
-def info(method, message):
-    print("  mqtt_operator/%s: %s" % (method, message))
-
-def error(method, message):
-    print("! mqtt_operator/%s: %s" % (method, message))
 
 def add_time(d):
     d['t'] = int(time.time()) # seconds since EPOCH, Posix time
@@ -38,8 +35,9 @@ def parse_username_password():
 
 def parse_thing_action(topic):
     match = re.match(r'things\/([a-zA-Z0-9-]+)\/(\w+)', topic)
+    log = logger.of("parse_thing_action")
     if not match:
-        info("parse_thing_action", "Could not parse thing and action from topic %s" % topic)
+        log.info("Could not parse thing and action from topic %s" % topic)
         return "", ""
     thing = match.group(1)
     action = match.group(2)
@@ -61,18 +59,20 @@ class MqttOperator:
         self.client.loop_forever()
 
     def on_connect(self, client, userdata, flags, rc):
-        info("on_connect", "Connected with result code %d" % rc)
+        log = logger.of("on_connect")
+        log.info("Connected with result code %d" % rc)
         client.subscribe("things/+/update")
         client.subscribe("things/+/get")
 
     def get_answer(self, topic, payload_string):
 
         db = self.db
+        log = logger.of("get_answer")
 
         try:
             payload = json.loads(payload_string)
         except ValueError:
-            error("get_answer", "Payload is not a valid json. %s - %s" % (topic, payload_string))
+            log.error("Payload is not a valid json. %s - %s" % (topic, payload_string), traceback=True)
             answer_topic = ERROR_TOPIC
             answer_payload = MESSAGE_NOT_JSON
             return answer_topic, answer_payload
@@ -81,7 +81,7 @@ class MqttOperator:
 
         if action == "update":
             if not payload.get("state"):
-                error("get_answer", "Update payload does not begin with a state object. %s - %s" % (topic, payload))
+                log.error("Update payload does not begin with a state object. %s - %s" % (topic, payload))
                 answer_topic = ERROR_TOPIC
                 answer_payload = WRONG_FORMAT_STATE
                 return answer_topic, answer_payload
@@ -90,13 +90,14 @@ class MqttOperator:
                 try:
                     db.update_reported(thing, payload["state"]["reported"])
                 except Exception:
+                    log.error("Updating reported failed with an exception.", traceback=True)
                     e = sys.exc_info()[0]
                     answer_topic = ERROR_TOPIC
                     answer_payload = UPDATE_REPORTED_EXCEPTION % e
 
                     return answer_topic, answer_payload
             else:
-                error("get_answer", "Update does not contain reported. %s - %s" % (topic, payload))
+                log.error("Update does not contain reported. %s - %s" % (topic, payload))
                 answer_topic = ERROR_TOPIC
                 answer_payload = WRONG_FORMAT_REPORTED_DESIRED 
                 return answer_topic, answer_payload
@@ -111,19 +112,20 @@ class MqttOperator:
             answer_topic = "things/%s/delta" % thing
             answer_payload = to_compact_json(delta)
         else:
-            error("get_answer", "We got a message on a topic we should not be listening to: %s - %s" % (topic, payload))
+            log.error("We got a message on a topic we should not be listening to: %s - %s" % (topic, payload))
             answer_topic = ERROR_TOPIC
             answer_payload = MESSAGE_NOT_HANDLED
 
         return answer_topic, answer_payload
 
     def on_message(self, client, userdata, msg):
+        log = logger.of("on_message")
         topic = msg.topic
         payload = msg.payload.decode('utf-8')
-        info("on_message", "[%s] %s" % (topic, payload))
+        log.info("[%s] %s" % (topic, payload))
         answer_topic, answer_payload = self.get_answer(topic, payload)
         if answer_topic:
-            info("on_message", "Answering [%s] %s" % (answer_topic, answer_payload))
+            log.info("Answering [%s] %s" % (answer_topic, answer_payload))
             self.client.publish(answer_topic, answer_payload)
         
 if __name__ == '__main__':

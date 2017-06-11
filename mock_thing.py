@@ -15,6 +15,9 @@ import random
 
 import argparse
 
+from logger import Logger
+logger = Logger("mock_thing")
+
 MAX_ACTIONS_SIZE = 5
 NAME = "mock-thing"
 DEFAULT_STATE = {
@@ -46,9 +49,6 @@ config_changed = False
 first_awake = True
 start_seconds = 0
 
-def info(method, message):
-    print("  mock_thing/%s: %s" % (method, message))
-
 def load_actions(actions):
     state['config']['actions'] = actions
 
@@ -76,7 +76,7 @@ def load_mode(mode):
     return mode_config
 
 def on_connect(client, userdata, flags, rc):
-    info("on_connect", "Connected with result code %d" % rc)
+    logger.of('on_connect').info("Connected with result code %d" % rc)
     client.subscribe("things/%s/delta" % NAME)
 
     threading.Timer(2, wake_up).start()
@@ -89,7 +89,7 @@ def on_message(client, userdata, msg):
     topic = msg.topic
     payload = msg.payload.decode('utf-8')
     config_changed = False
-    info("on_message", "%s" % payload)
+    logger.of("on_message").info(payload)
 
     config = state['config']
     delta = json.loads(payload)
@@ -120,6 +120,7 @@ def update_senses():
 write_to_int = {'low': 0, 'high': 1}
 def do_actions():
     global config_changed
+    log = logger.of('do_actions')
     config = state['config']
     mode = config['mode']
     previous_write = state['write']
@@ -132,7 +133,7 @@ def do_actions():
         if m == 'a':
             auto_actions.append(action) 
         else:
-            info('do_actions', 'Not doing action %s:%s due to gpio mode %s' % (target_sense, action, m))
+            log.info('Not doing action %s:%s due to gpio mode %s' % (target_sense, action, m))
 
     for sense, value in state['senses'].items():
         for action in auto_actions:
@@ -164,25 +165,26 @@ def do_actions():
         if value != 'a':
             write[key] = value
 
-    info('do_actions', write)
+    log.info(write)
     state['write'] = write 
 
 def publish_state():
     global state
     reported = {"state": {"reported": state}}
     client.publish("things/%s/update" % NAME, json.dumps(reported))
-    info('publish_state', 'published state')
+    logger.of('publish_state').info('published state')
 
 def wake_up():
     global config_changed, state, first_awake, start_seconds
-    info('wake_up', 'woke up')
+    log = logger.of('wake_up')
+    log.info('woke up')
     config_changed = False
     if first_awake:
         start_seconds = int(time.time())
         first_awake = False
 
     client.publish("things/%s/get" % NAME, "{}")
-    info('wake_up', 'waiting for delta from server')
+    log.info('waiting for delta from server')
     time.sleep(2)
     update_senses()
     do_actions()
