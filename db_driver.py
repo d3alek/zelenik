@@ -20,6 +20,8 @@ NEW_DISPLAYABLE = {"alias":"", "color": "green", "position":"0,0","type":"number
 
 FIRST_COLORS = ['green', 'red', 'blue', 'purple', 'brown', 'orange']
 
+SHOULD_ENCHANT_FLAG = '.should_enchant.flag'
+
 def set_subtract(subtract_from, to_subtract):
     return [item for item in subtract_from if item not in to_subtract]
 
@@ -149,6 +151,9 @@ class DatabaseDriver:
     def _get_state_path(self, thing, state):
         p = self.directory / thing / state
         return p.with_suffix(".json")
+
+    def _get_should_enchant_flag_path(self, thing):
+        return self.directory / thing / SHOULD_ENCHANT_FLAG 
 
     def _apply_aliases(self, thing, d, aliases=None):
         log = logger.of('_apply_aliases')
@@ -335,6 +340,10 @@ class DatabaseDriver:
             f.write(pretty_json(encapsulated_value))
             log_updated.append('state')
 
+        should_enchant_flag = self._get_should_enchant_flag_path(thing)
+
+        should_enchant_flag.touch()
+
         graphs = [x for x in thing_directory.iterdir() if x.match('graph*.png')]
         if len(graphs) > 0:
             for graph in graphs:
@@ -417,6 +426,7 @@ class DatabaseDriver:
         else:
             raise Exception("%s is neither a thing or a thing alias." % a_thing)
 
+
     def update_thing_alias(self, thing, alias):
         if type(alias) is not str or '/' in alias:
             raise Exception("Invalid alias received for thing %s: %s" % (thing, alias))
@@ -431,6 +441,37 @@ class DatabaseDriver:
         symlinked.symlink_to(actual.resolve())
         log = logger.of('update_thing_alias')
         log.info("%s aliased to %s" % (thing, alias))
+
+    def update_enchanter(self, a_thing, value):
+        log = logger.of('update_enchanter')
+
+        validate_input(a_thing, "enchanter", value)
+        log_updated = []
+        thing = self.resolve_thing(a_thing)
+
+        thing_directory = self.directory / thing
+        if not thing_directory.exists():
+            raise Exception("update_enchanter", "Not allowed to create new directory for enchanter %s %s" % (thing, value))
+
+        state = "enchanter"
+
+        state_file = self._get_state_path(thing, state)
+
+        if state_file.exists():
+            with state_file.open() as f:
+                previous_value = json.loads(f.read())
+
+            encapsulated_previous_value = encapsulate_and_timestamp(previous_value, 'state')
+            result = self._append_history(thing, state, encapsulated_previous_value)
+            log_updated.extend(result)
+            
+        with state_file.open('w') as f:
+            f.write(pretty_json(value))
+            log_updated.append('state')
+
+        log.info("[%s] updated %s" % (thing, pretty_list(log_updated)))
+
+
 
     def update_desired(self, a_thing, value):
         validate_input(a_thing, "desired", value)

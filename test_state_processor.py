@@ -87,23 +87,7 @@ class TestStateProcessor(unittest.TestCase):
 
     def test_explode_resistive_humidity(self):
         compact = SENSES % '{"I2C-8": 800}'
-        exploded = SENSES % '{"I2C-8": {"value": 800, "normalized": 100}}'
-
-        self.when_exploding(compact)
-
-        self.then_exploded(exploded)
-
-    def test_compact_resistive_humidity_action(self):
-        exploded = ACTIONS % '[{"sense":"I2C-8", "threshold": 100, "gpio": 0}]'
-        compact = ACTIONS % '["I2C-8|0|H|800|0"]'
-
-        self.when_compacting(exploded)
-
-        self.then_compact(compact)
-
-    def test_explode_resistive_humidity_action(self):
-        compact = ACTIONS % '["I2C-8|0|H|800|0"]'
-        exploded = ACTIONS % '[{"sense":"I2C-8", "threshold": 100, "gpio": 0, "delta": 0, "write": "high"}]'
+        exploded = SENSES % '{"I2C-8": {"value": 800}}'
 
         self.when_exploding(compact)
 
@@ -111,7 +95,7 @@ class TestStateProcessor(unittest.TestCase):
 
     def test_explode_capacitive_humidity_no_alias(self):
         compact = SENSES % '{"I2C-32c": 300}'
-        exploded = SENSES % '{"I2C-32c": {"value": 300, "normalized": 0}}'
+        exploded = SENSES % '{"I2C-32c": {"value": 300}}'
 
         self.when_exploding(compact)
 
@@ -135,23 +119,7 @@ class TestStateProcessor(unittest.TestCase):
 
     def test_explode_resistive_humidity_with_alias(self):
         compact = SENSES % '{"I2C-8": {"alias": "a", "value": 800}}'
-        exploded = SENSES % '{"I2C-8": {"alias": "a", "value": 800, "normalized": 100}}'
-
-        self.when_exploding(compact)
-
-        self.then_exploded(exploded)
-
-    def test_explode_capacitive_humidity_with_alias(self):
-        compact = SENSES % '{"I2C-32c": {"alias": "a", "value": 300}}'
-        exploded = SENSES % '{"I2C-32c": {"alias": "a", "value": 300, "normalized": 0}}'
-
-        self.when_exploding(compact)
-
-        self.then_exploded(exploded)
-
-    def test_explode_capacitive_max(self):
-        compact = SENSES % '{"I2C-32c": {"alias": "a", "value": 800}}'
-        exploded = SENSES % '{"I2C-32c": {"alias": "a", "value": 800, "normalized": 100}}'
+        exploded = SENSES % '{"I2C-8": {"alias": "a", "value": 800}}'
 
         self.when_exploding(compact)
 
@@ -166,7 +134,7 @@ class TestStateProcessor(unittest.TestCase):
 
     def test_explode_wrong_sense_removes_value(self):
         compact = SENSES % '{"I2C-8": "100|800|10|w"}'
-        exploded = SENSES % '{"I2C-8": {"wrong": 100, "expected": 800, "ssd": 10, "expected-normalized": 100}}'
+        exploded = SENSES % '{"I2C-8": {"wrong": 100, "expected": 800, "ssd": 10}}'
         self.when_exploding(compact)
 
         self.then_exploded(exploded)
@@ -203,24 +171,24 @@ class TestStateProcessor(unittest.TestCase):
 
     def test_explode_wrong_value_picks_expected(self):
         compact = SENSES % '{"I2C-8": "1000|800|100|w"}'
-        previous_exploded = SENSES % '{"I2C-8": {"value": 800, "normalized": 100}}'
-        exploded = SENSES % '{"I2C-8": {"wrong": 1000, "expected-normalized": 100, "ssd":100, "expected": 800}}'
+        previous_exploded = SENSES % '{"I2C-8": {"value": 800}}'
+        exploded = SENSES % '{"I2C-8": {"wrong": 1000, "ssd":100, "expected": 800}}'
 
         self.when_exploding(compact, previous_exploded, "yesterday")
         self.then_exploded(exploded)
 
     def test_explode_wrong_no_expected_picks_previous_good(self):
         compact = SENSES % '{"I2C-8": "1000|%s|100|w"}' % WRONG_VALUE_INT
-        previous_exploded = SENSES % '{"I2C-8": {"value": 800, "normalized": 100}}'
-        exploded = SENSES % '{"I2C-8": {"wrong": 1000, "value":800, "normalized": 100, "ssd": 100, "from": "yesterday"}}'
+        previous_exploded = SENSES % '{"I2C-8": {"value": 800}}'
+        exploded = SENSES % '{"I2C-8": {"wrong": 1000, "value":800, "ssd": 100, "from": "yesterday"}}'
 
         self.when_exploding(compact, previous_exploded, "yesterday")
         self.then_exploded(exploded)
 
     def test_explode_wrong_value_picks_previous_good_and_timestamp(self):
         compact = SENSES % '{"I2C-8": "700|%s|100|w"}' % WRONG_VALUE_INT
-        previous_exploded = SENSES % '{"I2C-8": {"wrong": 1000, "value": 800, "normalized": 100, "from": "two-days-ago"}, "timestamp_utc": "yesterday"}'
-        exploded = SENSES % '{"I2C-8": {"wrong": 700, "value": 800, "normalized": 100, "ssd": 100, "from": "two-days-ago"}}'
+        previous_exploded = SENSES % '{"I2C-8": {"wrong": 1000, "value": 800, "from": "two-days-ago"}, "timestamp_utc": "yesterday"}'
+        exploded = SENSES % '{"I2C-8": {"wrong": 700, "value": 800,"ssd": 100, "from": "two-days-ago"}}'
 
         self.when_exploding(compact, previous_exploded)
 
