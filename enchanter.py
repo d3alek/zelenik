@@ -1,8 +1,10 @@
 #!/www/zelenik/venv/bin/python
 
+from matplotlib import colors
+
 from logger import Logger
 import db_driver
-from db_driver import pretty_json, SHOULD_ENCHANT_FLAG
+from db_driver import pretty_json, SHOULD_ENCHANT_FLAG, flat_map, is_displayable
 
 from numbers import Number
 
@@ -19,11 +21,25 @@ logger = Logger("enchanter")
 DIR = '/www/zelenik/'
 ANALOG_SENSES = {'I2C-8', 'I2C-9', 'I2C-10'}
 
+NEW_DISPLAYABLE = {"alias":"", "color": "green", "position":"0,0","type":"number","plot":"yes","graph":"yes"}
+
+
+def set_subtract(subtract_from, to_subtract):
+    return [item for item in subtract_from if item not in to_subtract]
+
+
+FIRST_COLORS = ['green', 'red', 'blue', 'purple', 'brown', 'orange']
+COLORS = list(reversed(FIRST_COLORS + set_subtract(colors.cnames.keys(), FIRST_COLORS))) # revsersing because the intended use is to instantiate a new list and pop out
+
 def get_value(sense):
     if isinstance(sense, Number):
         return sense
-    else:
+    elif 'value' in sense:
         return sense['value']
+    elif 'expected' in sense:
+        return sense['expected']
+
+    return None
 
 def scale(value, from_low, from_high, to_low, to_high):
     return ((value - from_low) / (from_high - from_low)) * (to_high - to_low) + to_low
@@ -79,6 +95,43 @@ class Enchanter:
 
         self.db.update_enchanter(thing, config)
 
+
+    def _get_new_displayables(self, state, previous_displayables):
+        new_displayables = {}
+        senses = state['state'].get('senses', {})
+        write = state['state'].get('write', {})
+        keys = set().union(senses).union(write)
+        keys = sorted(filter(is_displayable, keys))
+        previous_keys = previous_displayables.keys()
+        log = logger.of('_get_new_displayables')
+        used_colors = flat_map(previous_displayables, "color").values()
+        unused_colors = set_subtract(COLORS, used_colors)
+        for key in keys:
+            if key not in previous_keys:
+                if not unused_colors:
+                    log = logger.of('_get_new_displayables')
+                    log.error("No more unused colors. Starting to repeat")
+                    unused_colors = list(COLORS)
+
+                new_displayables[key] = dict(NEW_DISPLAYABLE)
+                if key == 'A0':
+                    new_displayables[key]['color'] = 'yellow'
+                    new_displayables[key]['type'] = 'percent'
+                    new_displayables[key]['alias'] = 'светлина'
+                else:
+                    new_displayables[key]['color'] = unused_colors.pop()
+
+                if key.startswith('OW-'):
+                    new_displayables[key]['type'] = 'temp'
+                elif key.startswith('I2C-'):
+                    new_displayables[key]['type'] = 'percent'
+                    new_displayables[key]['alias'] = key.split('-')[1]
+                elif key in ['4', '5', '13']:
+                    new_displayables[key]['type'] = 'switch'
+
+
+        return new_displayables
+
     def enchant_thing(self, thing):
         log = logger.of('enchant_thing')
         thing_path = Path(self.working_directory) / 'db' / thing
@@ -92,25 +145,37 @@ class Enchanter:
 
         reported = self.db.load_state(thing, 'reported')
         config = self.db.load_state(thing, 'enchanter')
+        enchanted = self.enchant(thing, reported, config)
+
+        displayables = self.db.load_state(thing, "displayables")
+
+        new_displayables = self._get_new_displayables(enchanted, displayables)
+        if len(new_displayables) > 0:
+            displayables.update(new_displayables) 
+            self.db.update_displayables(thing, displayables)
+
+        aliases = flat_map(displayables, 'alias')
+        enchanted_aliased = self.db._apply_aliases(thing, enchanted, aliases = aliases)
+
+        enchanted_path = thing_path / 'enchanted.json'
+        with enchanted_path.open('w') as f:
+            f.write(pretty_json(enchanted_aliased))
+
+    def enchant(self, thing, reported, config):
+        log = logger.of('enchant')
         if not config:
             log.info('Config is empty, making a default one')
             self.create_default_config(thing, reported)
             config = self.db.load_state(thing, 'enchanter')
 
-        enchanted = self.enchant(reported, config)
-
-        enchanted_path = thing_path / 'enchanted.json'
-        with enchanted_path.open('w') as f:
-            f.write(pretty_json(enchanted))
-
-    def enchant(self, reported, config):
-        log = logger.of('enchant')
         enchanted = dict(reported)
         senses = enchanted['state']['senses']
         for name, value in config.items():
             result = self.apply_formula(value, senses)
             if result:
                 senses[name] = result
+
+
 
         return enchanted 
 
@@ -129,6 +194,9 @@ class Enchanter:
             return None
         formula = formula_config['formula']
         value = get_value(sense)
+        if value == None:
+            log.error('Not enchanting because value could not be extracted from %s' % sense)
+            return None
 
         if formula == 'scale':
             from_low = formula_config['from_low']

@@ -3,8 +3,8 @@ var MOVE_DISPLAYABLES = "move-displayables";
 
 window.state = INITIAL;
 
-var reported = JSON.parse(document.getElementById("reported").innerText);
-var senses = reported.state.senses;
+var enchanted = JSON.parse(document.getElementById("enchanted").innerText);
+var senses = enchanted.state.senses;
 
 var desired = JSON.parse(document.getElementById("desired-input").textContent);
 
@@ -31,7 +31,7 @@ else {
 
 function initialize_or_hide_plot() {
     if (imageOk(plot_image)) {
-        initialize_plot(plot, plot_image, senses, desired.mode, reported.state.write, displayables_config, set_active, move_to_click_position);
+        initialize_plot(plot, plot_image, senses, desired.mode, enchanted.state.write, displayables_config, set_active, move_to_click_position);
     }
     else {
         plot.style.display = "none";

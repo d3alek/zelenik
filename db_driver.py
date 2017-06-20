@@ -7,7 +7,6 @@ from datetime import datetime, timedelta, date
 import state_processor
 from state_processor import parse_isoformat
 import re
-from matplotlib import colors
 
 from logger import Logger
 logger = Logger("db_driver")
@@ -16,16 +15,7 @@ NON_ALIASABLE = ['lawake', 'sleep', 'state', 'version', 'voltage', 'wifi', 'dele
 
 history_day_pattern = re.compile('[a-z]*.([0-9-]*).txt')
 
-NEW_DISPLAYABLE = {"alias":"", "color": "green", "position":"0,0","type":"number","plot":"yes","graph":"yes"}
-
-FIRST_COLORS = ['green', 'red', 'blue', 'purple', 'brown', 'orange']
-
-SHOULD_ENCHANT_FLAG = '.should_enchant.flag'
-
-def set_subtract(subtract_from, to_subtract):
-    return [item for item in subtract_from if item not in to_subtract]
-
-COLORS = list(reversed(FIRST_COLORS + set_subtract(colors.cnames.keys(), FIRST_COLORS))) # revsersing because the intended use is to instantiate a new list and pop out
+SHOULD_ENCHANT_FLAG = '.should-enchant.flag'
 
 def change_action_diff_format(path_parts, value, compact_to):
     # Go from ['actions', 0], 'I2C-8|4|H|10|2'
@@ -84,16 +74,6 @@ def timestamp(time):
 
 def encapsulate_and_timestamp(value, parent_name):
     return {parent_name: value, "timestamp_utc": timestamp(datetime.utcnow())}
-
-def collect_non_dict_value_keys(d):
-    collected = []
-    for key, value in d.items():
-        if type(value) is dict:
-            collected.extend(collect_non_dict_value_keys(value))
-        else:
-            collected.append(key) 
-
-    return collected
 
 def flat_map(d, field):
     filtered = {}
@@ -172,7 +152,7 @@ class DatabaseDriver:
         for key, value in d.items():
             alias = aliases.get(key, "")
             if type(value) is dict:
-                if value.get('value', None) is not None and alias != "":
+                if 'value' in value and alias != "":
                     # something already exploded it, probably state_processor, so just append alias
                     aliased[key] = value
                     aliased[key]['alias'] = alias
@@ -201,39 +181,6 @@ class DatabaseDriver:
                 dealiased[key] = value
 
         return dealiased 
-
-    def _get_new_displayables(self, value, previous_displayables):
-        new_displayables = {}
-        keys = collect_non_dict_value_keys(value)
-        keys = sorted(filter(is_displayable, keys))
-        previous_keys = previous_displayables.keys()
-        used_colors = flat_map(previous_displayables, "color").values()
-        unused_colors = set_subtract(COLORS, used_colors)
-        for key in keys:
-            if key not in previous_keys:
-                if not unused_colors:
-                    log = logger.of('_get_new_displayables')
-                    log.error("No more unused colors. Starting to repeat")
-                    unused_colors = list(COLORS)
-
-                new_displayables[key] = dict(NEW_DISPLAYABLE)
-                if key == 'A0':
-                    new_displayables[key]['color'] = 'yellow'
-                    new_displayables[key]['type'] = 'percent'
-                    new_displayables[key]['alias'] = 'светлина'
-                else:
-                    new_displayables[key]['color'] = unused_colors.pop()
-
-                if key.startswith('OW-'):
-                    new_displayables[key]['type'] = 'temp'
-                elif key.startswith('I2C-'):
-                    new_displayables[key]['type'] = 'percent'
-                    new_displayables[key]['alias'] = key.split('-')[1]
-                elif key in ['4', '5', '13']:
-                    new_displayables[key]['type'] = 'switch'
-
-
-        return new_displayables
 
     def _archive_history(self, thing, state):
         log = logger.of('_archive_history')
@@ -324,18 +271,7 @@ class DatabaseDriver:
             self.update_desired(thing, value.get('config', {}))
             log_updated.append('created_desired')
         
-        displayables = self.load_state(thing, "displayables")
-
-        new_displayables = self._get_new_displayables(value, displayables)
-        if len(new_displayables) > 0:
-            displayables.update(new_displayables) 
-            self.update_displayables(thing, displayables)
-            log_updated.append('updated_displayables')
-
-        aliases = flat_map(displayables, 'alias')
-        aliased_value = self._apply_aliases(thing, value, aliases = aliases)
-
-        encapsulated_value = encapsulate_and_timestamp(aliased_value, "state")
+        encapsulated_value = encapsulate_and_timestamp(value, "state")
         with state_file.open('w') as f:
             f.write(pretty_json(encapsulated_value))
             log_updated.append('state')
