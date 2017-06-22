@@ -205,7 +205,7 @@ class TestEnchanter(unittest.TestCase):
 
     def test_decorrelate_temperature_from_another_thing(self):
         self.given_config(updated(SCALE_CONFIG, DECORRELATE_CONFIG_FROM_THING2))
-        self.given_state('reported', state(senses({'OW-1': 35})), thing=THING2)
+        self.given_state('enchanted', state(senses({'OW-1': 35})), thing=THING2)
 
         reported_sense = {"I2C-8": {"value": 512}}
         reported = senses(reported_sense)
@@ -230,7 +230,7 @@ class TestEnchanter(unittest.TestCase):
     def test_enchanter_average(self):
         self.given_config(AVERAGE_CONFIG)
         self.given_state('reported', state(senses({'OW-1': 15})), thing=THING)
-        self.given_state('reported', state(senses({'OW-2': 25})), thing=THING2)
+        self.given_state('enchanted', state(senses({'OW-2': 25})), thing=THING2)
 
         self.when_enchanting(alias=False)
 

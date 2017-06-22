@@ -134,7 +134,6 @@ class Enchanter:
 
         self.db.update_enchanter(thing, config)
 
-
     def _get_new_displayables(self, state, previous_displayables):
         new_displayables = {}
         senses = state['state'].get('senses', {})
@@ -245,24 +244,24 @@ class Enchanter:
         log = logger.of('retrieve_sense_value')
         
         if key not in senses:
-            if ':' in key:
-                split = key.split(':')
-                thing = split[0]
-                sense_key = split[1]
-            else:
+            if ':' not in key:
                 log.error('Could not retrieve sense value because key %s missing in senses %s' % (key, senses))
                 return None
 
+            split = key.split(':')
+            a_thing = split[0]
+            thing = self.db.resolve_thing(a_thing)
+            sense_key = split[1]
+
             log.info('Loading senses for %s' % thing)
-            state = self.db.load_state(thing, 'reported')
+            state = self.db.load_state(thing, 'enchanted')
             thing_senses = state.get('state', {}).get('senses')
             if thing_senses is None:
                 log.info('No senses found for %s, making an empty record to prevent loading again this turn' % thing)
                 thing_senses = {}
-            senses.update(prefix_keys('%s:' % thing, thing_senses))
+            senses.update(prefix_keys('%s:' % a_thing, thing_senses))
 
-
-        return get_value(senses[key])
+        return get_value(senses.get(key))
 
     """
     * known formula - config *
