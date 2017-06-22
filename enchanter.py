@@ -152,6 +152,9 @@ class Enchanter:
                     unused_colors = list(COLORS)
 
                 new_displayables[key] = dict(NEW_DISPLAYABLE)
+                if ':' in key:
+                    # ignoring another thing's sense
+                    continue
                 if key == 'A0':
                     new_displayables[key]['color'] = 'yellow'
                     new_displayables[key]['type'] = 'percent'
