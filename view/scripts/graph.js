@@ -27,7 +27,7 @@ function fill_graphable_checkboxes(senses, container) {
         }
         else {
             keys = Object.keys(sense);
-            if ("alias" in senses[key]) {
+            if (keys.indexOf("alias") !== -1) {
                 alias = senses[key].alias;
                 keys.splice( keys.indexOf("alias"), 1 );
             } 
