@@ -51,7 +51,7 @@ def read_lines_single_zipped_file(file_path):
 
 def is_displayable(s):
     b = s not in NON_ALIASABLE
-    return b and not s.startswith('A|')
+    return b and not s.startswith('A|') and (not ':' in s)
 
 def pretty_json(d):
     return json.dumps(d, sort_keys=True, indent=4, separators=(',', ': '), ensure_ascii=False)

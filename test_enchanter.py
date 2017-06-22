@@ -112,6 +112,16 @@ class TestEnchanter(unittest.TestCase):
 
         self.then_state_exists("displayables", {"a": colored(DISP, 'purple'),"c": colored(DISP, 'green')}) 
 
+    def test_enchant_updates_displayables_without_other_thing_senses(self):
+        self.given_state("displayables", {"a": DISP})
+
+        self.given_state("reported", state(senses({"a":1, "c": 2, 'other-thing:d': 3})))
+        self.when_enchanting()
+
+        self.then_state_exists("displayables", {"a": colored(DISP, 'purple'),"c": colored(DISP, 'green')}) 
+
+
+
     def test_enchant_includes_alias(self):
         self.given_alias("a", "temperature")
 
