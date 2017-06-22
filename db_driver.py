@@ -63,8 +63,11 @@ def pretty_list(l):
     return ', '.join(map(str, l))
 
 def validate_input(thing, state, value):
-    if not type(value) is dict:
-        log = logger.of('validate_input')
+    log = logger.of('validate_input')
+    if state == 'enchanter':
+        if not type(value) is list:
+            raise Exception("Expected value to be list, got %s instead" % type(value))
+    elif not type(value) is dict:
         log.error("Called with a non-dict value - %s %s %s. Raising exception" % (thing, state, value))
         raise Exception("Expected value to be dict, got %s instead" % type(value))
 

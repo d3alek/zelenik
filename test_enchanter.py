@@ -11,17 +11,16 @@ import time
 
 THING="thing"
 THING2="another-thing"
-SCALE_CONFIG = {"I2C-8-scaled":{"formula": "scale", "from": "I2C-8", "from_low": 0, "from_high": 1024, "to_low": 0, "to_high": 100}}
-DECORRELATE_CONFIG = {"I2C-8-decorrelated":{"formula": "decorrelate", "from": "I2C-8-scaled", "correlated": "OW-1", "adjustment": -30, "scale": 6}}
+SCALE_CONFIG = [{"name":"I2C-8-scaled", "formula": "scale", "from": "I2C-8", "from_low": 0, "from_high": 1024, "to_low": 0, "to_high": 100}]
+DECORRELATE_CONFIG = [{"name":"I2C-8-decorrelated","formula": "decorrelate", "from": "I2C-8-scaled", "correlated": "OW-1", "adjustment": -30, "scale": 6}]
 
-DECORRELATE_CONFIG_FROM_THING2 = {"I2C-8-decorrelated":{"formula": "decorrelate", "from": "I2C-8-scaled", "correlated": "another-thing:OW-1", "adjustment": -30, "scale": 6}}
+DECORRELATE_CONFIG_FROM_THING2 = [{"name":"I2C-8-decorrelated", "formula": "decorrelate", "from": "I2C-8-scaled", "correlated": "another-thing:OW-1", "adjustment": -30, "scale": 6}]
 
-AVERAGE_CONFIG = {"OW-average": {"formula": "average", "from": ["OW-1", "another-thing:OW-2"]}}
+AVERAGE_CONFIG = [{"name":"OW-average", "formula": "average", "from": ["OW-1", "another-thing:OW-2"]}]
 
-CUM_AVERAGE_CONFIG = {"cum-average": {"formula": "cum_average", "from": "OW-1"}}
+CUM_AVERAGE_CONFIG = [{"name":"cum-average", "formula": "cum_average", "from": "OW-1"}]
 
-CUM_AVERAGE_RESET_CONFIG = {"cum-average": {"formula": "cum_average", "from": "OW-1", "reset_at": "01:00"}}
-
+CUM_AVERAGE_RESET_CONFIG = [{"name":"cum-average", "formula": "cum_average", "from": "OW-1", "reset_at": "01:00"}]
 
 DISP = {"alias":"","color":"purple","position":"0,0","type":"number","plot":"yes","graph":"yes"}
 
@@ -190,7 +189,7 @@ class TestEnchanter(unittest.TestCase):
         self.then_enchanted(state(enchanted))
 
     def test_enchant_decorrelate_temperature(self):
-        self.given_config(updated(SCALE_CONFIG, DECORRELATE_CONFIG))
+        self.given_config(SCALE_CONFIG + DECORRELATE_CONFIG)
 
         reported_senses = {"I2C-8": {"value": 512}, "OW-1": {"value": 35}}
         reported = senses(reported_senses)
@@ -202,7 +201,7 @@ class TestEnchanter(unittest.TestCase):
         self.then_enchanted(state(enchanted))
 
     def test_decorrelate_temperature_no_temperature(self):
-        self.given_config(updated(SCALE_CONFIG, DECORRELATE_CONFIG))
+        self.given_config(SCALE_CONFIG + DECORRELATE_CONFIG)
 
         reported_sense = {"I2C-8": {"value": 512}}
         reported = senses(reported_sense)
@@ -214,7 +213,7 @@ class TestEnchanter(unittest.TestCase):
         self.then_enchanted(state(enchanted))
 
     def test_decorrelate_temperature_from_another_thing(self):
-        self.given_config(updated(SCALE_CONFIG, DECORRELATE_CONFIG_FROM_THING2))
+        self.given_config(SCALE_CONFIG + DECORRELATE_CONFIG_FROM_THING2)
         self.given_state('enchanted', state(senses({'OW-1': 35})), thing=THING2)
 
         reported_sense = {"I2C-8": {"value": 512}}

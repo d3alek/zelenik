@@ -123,13 +123,13 @@ class Enchanter:
         self.running = False
 
     def create_default_config(self, thing, reported):
-        config = {}
+        config = []
         senses = reported['state']['senses']
 
         analog_senses = ANALOG_SENSES.intersection(senses.keys())
         for analog_sense in analog_senses:
-            key = '%s-percent' % analog_sense
-            config[key] = {'formula': 'scale', 'from': analog_sense, 'from_low': 0, 'from_high': 1024, 'to_low': 0, 'to_high': 100}
+            name = '%s-percent' % analog_sense
+            config.append({'name': name, 'formula': 'scale', 'from': analog_sense, 'from_low': 0, 'from_high': 1024, 'to_low': 0, 'to_high': 100})
 
 
         self.db.update_enchanter(thing, config)
@@ -221,8 +221,8 @@ class Enchanter:
         else:
             old_time = parse_isoformat(old_time_string)
 
-        for name, value in config.items():
-            self.apply_formula(name, value, senses, old_enchanted_senses, old_time, now)
+        for formula in config:
+            self.apply_formula(formula, senses, old_enchanted_senses, old_time, now)
 
         if alias:
             if displayables is None:
@@ -270,9 +270,10 @@ class Enchanter:
         average - from (a list)
         cum_average - from, start_time, end_time
     """
-    def apply_formula(self, key, formula_config, senses, old_enchanted_senses, old_time, now):
+    def apply_formula(self, formula_config, senses, old_enchanted_senses, old_time, now):
         log = logger.of('apply_formula')
-
+        log.info(formula_config)
+        key = formula_config['name']
         from_keys = formula_config['from']
         if not isinstance(from_keys, list):
             from_keys = [from_keys]
