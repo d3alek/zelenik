@@ -1,5 +1,5 @@
 from logger import Logger
-logger = Logger("enchanter")
+logger = Logger("graph")
 
 import matplotlib
 matplotlib.use('svg')
@@ -89,7 +89,16 @@ def parse_formdata(formdata):
 
     return since_days, median_kernel, wrongs, graphable
 
+def fast_enchant(reported):
+    global thing, displayables, enchanter, enchanter_config, old_enchanted
+
+    old_enchanted = enchanter.enchant(thing, reported = reported, config = enchanter_config, displayables = displayables, alias=False, old_enchanted = old_enchanted)
+
+    return old_enchanted
+
 def handle_graph(db, a_thing, since_days=DEFAULT_SINCE_DAYS, median_kernel=DEFAULT_MEDIAN_KERNEL, wrongs=DEFAULT_WRONGS, graphable=None, formdata=None):
+    global thing, displayables, enchanter, enchanter_config, old_enchanted
+
     log = logger.of('handle_graph')
     if formdata:
         since_days, median_kernel, wrongs, graphable = parse_formdata(formdata)
@@ -103,7 +112,9 @@ def handle_graph(db, a_thing, since_days=DEFAULT_SINCE_DAYS, median_kernel=DEFAU
 
     enchanter = Enchanter()
     enchanter_config = db.load_state(thing, 'enchanter')
-    enchanted_history = list(map(lambda r: enchanter.enchant(thing, reported = r, config = enchanter_config, displayables = displayables, alias=False), history))
+    old_enchanted = {}
+
+    enchanted_history = list(map(fast_enchant, history))
 
     should_graph = flat_map(displayables, "graph")
     displayable_color = flat_map(displayables, "color")

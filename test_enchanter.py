@@ -4,11 +4,10 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import json
 
-from db_driver import DatabaseDriver
+from db_driver import DatabaseDriver, timestamp
 from test_db_driver import timeless
 
 import time
-
 
 THING="thing"
 THING2="another-thing"
@@ -16,6 +15,13 @@ SCALE_CONFIG = {"I2C-8-scaled":{"formula": "scale", "from": "I2C-8", "from_low":
 DECORRELATE_CONFIG = {"I2C-8-decorrelated":{"formula": "decorrelate", "from": "I2C-8-scaled", "correlated": "OW-1", "adjustment": -30, "scale": 6}}
 
 DECORRELATE_CONFIG_FROM_THING2 = {"I2C-8-decorrelated":{"formula": "decorrelate", "from": "I2C-8-scaled", "correlated": "another-thing:OW-1", "adjustment": -30, "scale": 6}}
+
+AVERAGE_CONFIG = {"OW-average": {"formula": "average", "from": ["OW-1", "another-thing:OW-2"]}}
+
+CUM_AVERAGE_CONFIG = {"cum-average": {"formula": "cum_average", "from": "OW-1"}}
+
+CUM_AVERAGE_RESET_CONFIG = {"cum-average": {"formula": "cum_average", "from": "OW-1", "reset_at": "01:00"}}
+
 
 DISP = {"alias":"","color":"purple","position":"0,0","type":"number","plot":"yes","graph":"yes"}
 
@@ -29,10 +35,16 @@ def aliased(d, alias):
     a['alias'] = alias
     return a
 
+from datetime import datetime, timedelta
 
+def yesterday():
+    return datetime.utcnow() - timedelta(days=1)
 
-def state(d):
-    return {"state": d, "timestamp_utc": "none"}
+def today():
+    return datetime.utcnow()
+
+def state(d, time=today()):
+    return {"state": d, "timestamp_utc": timestamp(time)}
 
 def senses(d):
     return {"senses": d}
@@ -197,12 +209,50 @@ class TestEnchanter(unittest.TestCase):
 
         reported_sense = {"I2C-8": {"value": 512}}
         reported = senses(reported_sense)
-        enchanted = senses(updated(reported_sense, {"I2C-8-scaled": 50, "I2C-8-decorrelated": 20}))
+        enchanted = senses(updated(reported_sense, {"I2C-8-scaled": 50, "I2C-8-decorrelated": 20, "%s:OW-1" % THING2: 35}))
 
         self.given_state("reported", state(reported))
         self.when_enchanting(alias=False)
 
         self.then_enchanted(state(enchanted))
+
+
+    def test_average(self):
+        self.when_calculating_average([15, 15, 30])
+
+        self.then_average(20)
+
+    def test_cum_average(self):
+        self.when_calculating_cum_average(new=25, old=24, old_count=1)
+
+        self.then_cum_average((24.5, 2))
+
+    def test_enchanter_average(self):
+        self.given_config(AVERAGE_CONFIG)
+        self.given_state('reported', state(senses({'OW-1': 15})), thing=THING)
+        self.given_state('reported', state(senses({'OW-2': 25})), thing=THING2)
+
+        self.when_enchanting(alias=False)
+
+        self.then_enchanted(state(senses({'OW-1': 15, '%s:OW-2' % THING2: 25, 'OW-average': 20})))
+
+    def test_enchanter_cum_average(self):
+        self.given_config(CUM_AVERAGE_CONFIG)
+        self.given_state('enchanted', state(senses({'cum-average': {"value":24, "count": 1}})))
+        self.given_state('reported', state(senses({'OW-1': 25})))
+
+        self.when_enchanting(alias=False)
+
+        self.then_enchanted(state(senses({'OW-1': 25, 'cum-average': {"value":24.5, "count": 2}})))
+
+    def test_enchanter_cum_average_resets(self):
+        self.given_config(CUM_AVERAGE_RESET_CONFIG)
+        self.given_state('enchanted', state(senses({'cum-average': {"value":24, "count": 1}}), yesterday()))
+        self.given_state('reported', state(senses({'OW-1': 25}), today()))
+
+        self.when_enchanting(alias=False)
+
+        self.then_enchanted(state(senses({'OW-1': 25, 'cum-average': {"value":25, "count": 1}})))
 
     def given_state(self, state, value, thing=THING):
         thing_directory = self.db_directory / thing
@@ -225,6 +275,12 @@ class TestEnchanter(unittest.TestCase):
         with p.open('w') as f:
             f.write(json.dumps({key : aliased(DISP, value)}))
 
+    def when_calculating_average(self, values):
+        self.average = enchanter.average(values)
+
+    def when_calculating_cum_average(self, new, old, old_count):
+        self.cum_average = enchanter.cum_average(new, old, old_count)
+
     def when_updating_reported(self, reported):
         self.db.update_reported(THING, reported)
 
@@ -236,6 +292,12 @@ class TestEnchanter(unittest.TestCase):
 
     def when_decorrelating(self, value, correlated, adjustment, scale):
         self.decorrelated = enchanter.decorrelate(value, correlated, adjustment, scale)
+
+    def then_average(self, expected):
+        self.assertEqual(expected, self.average)
+
+    def then_cum_average(self, expected):
+        self.assertEqual(expected, self.cum_average)
 
     def then_scaled(self, expected):
         self.assertEqual(expected, self.scaled)
