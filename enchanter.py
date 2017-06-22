@@ -28,7 +28,7 @@ def set_subtract(subtract_from, to_subtract):
 
 
 # source: https://blog.xkcd.com/2010/05/03/color-survey-results/, not using xkcd variant because we also need them in CSS
-COLORS = list(reversed(['purple', 'green', 'blue', 'pink', 'brown', 'red', 'light blue', 'teal', 'orange', 'light green', 'magenta', 'yellow', 'sky blue', 'grey', 'lime green', 'light purple', 'dark green', 'violet', 'turquoise', 'lavender', 'dark blue', 'tan', 'cyan', 'forest green', 'aqua', 'mauve', 'dark purple', 'bright green', 'maroon', 'olive', 'salmon', 'beige', 'royal blue', 'navy blue', 'lilac', 'black', 'hot pink', 'light brown', 'pale green', 'peach', 'olive green', 'dark pink', 'periwinkle', 'sea green', 'lime', 'indigo', 'mustard', 'light pink']))
+COLORS = list(reversed(['purple', 'green', 'blue', 'pink', 'brown', 'red', 'teal', 'orange', 'magenta', 'yellow', 'grey', 'violet', 'turquoise', 'lavender', 'tan', 'cyan', 'aqua', 'maroon', 'olive', 'salmon', 'beige', 'black', 'lime', 'indigo']))
 
 def get_value(sense):
     if isinstance(sense, Number):
