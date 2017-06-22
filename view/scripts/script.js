@@ -1,3 +1,15 @@
+function configure() {
+    configuration_shown = document.getElementById('configuration').style.display === 'block';
+    if (configuration_shown) {
+        document.getElementById('configuration').style.display = 'none';
+    }
+    else {
+        document.getElementById('configuration').style.display = 'block';
+    }
+}
+
+AttachEvent(document.getElementById("show-configuration"), "click", configure);
+
 var INITIAL = "initial";
 var MOVE_DISPLAYABLES = "move-displayables";
 

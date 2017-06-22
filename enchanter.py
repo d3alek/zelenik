@@ -1,6 +1,6 @@
 #!/www/zelenik/venv/bin/python
 
-from matplotlib import colors
+import matplotlib._color_data as mcd
 
 from logger import Logger
 import db_driver
@@ -23,13 +23,12 @@ ANALOG_SENSES = {'I2C-8', 'I2C-9', 'I2C-10'}
 
 NEW_DISPLAYABLE = {"alias":"", "color": "green", "position":"0,0","type":"number","plot":"yes","graph":"yes"}
 
-
 def set_subtract(subtract_from, to_subtract):
     return [item for item in subtract_from if item not in to_subtract]
 
 
-FIRST_COLORS = ['green', 'red', 'blue', 'purple', 'brown', 'orange']
-COLORS = list(reversed(FIRST_COLORS + set_subtract(colors.cnames.keys(), FIRST_COLORS))) # revsersing because the intended use is to instantiate a new list and pop out
+# source: https://blog.xkcd.com/2010/05/03/color-survey-results/, not using xkcd variant because we also need them in CSS
+COLORS = list(reversed(['purple', 'green', 'blue', 'pink', 'brown', 'red', 'light blue', 'teal', 'orange', 'light green', 'magenta', 'yellow', 'sky blue', 'grey', 'lime green', 'light purple', 'dark green', 'violet', 'turquoise', 'lavender', 'dark blue', 'tan', 'cyan', 'forest green', 'aqua', 'mauve', 'dark purple', 'bright green', 'maroon', 'olive', 'salmon', 'beige', 'royal blue', 'navy blue', 'lilac', 'black', 'hot pink', 'light brown', 'pale green', 'peach', 'olive green', 'dark pink', 'periwinkle', 'sea green', 'lime', 'indigo', 'mustard', 'light pink']))
 
 def get_value(sense):
     if isinstance(sense, Number):
@@ -118,17 +117,23 @@ class Enchanter:
                     new_displayables[key]['color'] = 'yellow'
                     new_displayables[key]['type'] = 'percent'
                     new_displayables[key]['alias'] = 'светлина'
-                else:
-                    new_displayables[key]['color'] = unused_colors.pop()
-
-                if key.startswith('OW-'):
-                    new_displayables[key]['type'] = 'temp'
-                elif key.startswith('I2C-'):
-                    new_displayables[key]['type'] = 'percent'
-                    new_displayables[key]['alias'] = key.split('-')[1]
-                elif key in ['4', '5', '13']:
-                    new_displayables[key]['type'] = 'switch'
-
+                else: 
+                    if key.startswith('OW-'):
+                        new_displayables[key]['type'] = 'temp'
+                    # Do not display raw I2C data in graph or plot
+                    if key.startswith('I2C-'): 
+                        new_displayables[key]['alias'] = key.split('-')[1]
+                        new_displayables[key]['graph'] = 'no'
+                        new_displayables[key]['plot'] = 'no'
+                    if key.endswith('-percent'):
+                        new_displayables[key]['type'] = 'percent'
+                        new_displayables[key]['graph'] = 'yes'
+                        new_displayables[key]['plot'] = 'yes'
+                    if key in ['4', '5', '13']:
+                        new_displayables[key]['type'] = 'switch'
+                    if new_displayables[key]['graph'] == 'yes' or new_displayables[key]['plot'] == 'yes':
+                        new_displayables[key]['color'] = unused_colors.pop()
+                
 
         return new_displayables
 
@@ -139,34 +144,29 @@ class Enchanter:
         if not should_enchant.exists():
             return
 
-        should_enchant.unlink()
-
         log.info('Enchanting %s' % thing)
 
-        reported = self.db.load_state(thing, 'reported')
-        config = self.db.load_state(thing, 'enchanter')
-        enchanted = self.enchant(thing, reported, config)
-
-        displayables = self.db.load_state(thing, "displayables")
-
-        new_displayables = self._get_new_displayables(enchanted, displayables)
-        if len(new_displayables) > 0:
-            displayables.update(new_displayables) 
-            self.db.update_displayables(thing, displayables)
-
-        aliases = flat_map(displayables, 'alias')
-        enchanted_aliased = self.db._apply_aliases(thing, enchanted, aliases = aliases)
+        enchanted = self.enchant(thing)
 
         enchanted_path = thing_path / 'enchanted.json'
         with enchanted_path.open('w') as f:
-            f.write(pretty_json(enchanted_aliased))
+            f.write(pretty_json(enchanted))
 
-    def enchant(self, thing, reported, config):
+        should_enchant.unlink()
+
+    # Keep this fast as graph runs it on every reported state
+    def enchant(self, thing, reported=None, config=None, displayables=None, alias=True):
         log = logger.of('enchant')
-        if not config:
-            log.info('Config is empty, making a default one')
-            self.create_default_config(thing, reported)
+
+        if reported is None:
+            reported = self.db.load_state(thing, 'reported')
+
+        if config is None:
             config = self.db.load_state(thing, 'enchanter')
+            if not config:
+                log.info('Config is empty, making a default one')
+                self.create_default_config(thing, reported)
+                config = self.db.load_state(thing, 'enchanter')
 
         enchanted = dict(reported)
         senses = enchanted['state']['senses']
@@ -175,9 +175,20 @@ class Enchanter:
             if result:
                 senses[name] = result
 
+        if alias:
+            if displayables is None:
+                displayables = self.db.load_state(thing, "displayables")
 
+                new_displayables = self._get_new_displayables(enchanted, displayables)
+                if len(new_displayables) > 0:
+                    displayables.update(new_displayables) 
+                    self.db.update_displayables(thing, displayables)
 
-        return enchanted 
+            aliases = flat_map(displayables, 'alias')
+            enchanted_aliased = self.db._apply_aliases(thing, enchanted, aliases = aliases)
+            return enchanted_aliased
+
+        return enchanted
 
     """
     * known formula - config *

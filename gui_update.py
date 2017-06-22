@@ -43,6 +43,8 @@ def update_db(db, a_thing, state, value, ret):
 
         if state == 'desired': 
             db.update_desired(thing, value_dict)
+        elif state == 'enchanter':
+            db.update_enchanter(thing, value_dict)
         elif state == 'displayables':
             db.update_displayables(thing, value_dict)
         else:

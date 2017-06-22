@@ -1,3 +1,6 @@
+from logger import Logger
+logger = Logger("enchanter")
+
 import matplotlib
 matplotlib.use('svg')
 
@@ -11,6 +14,8 @@ from dateutil import tz
 import matplotlib.gridspec as gridspec
 
 from scipy import signal
+
+from enchanter import Enchanter
 
 timezone = tz.gettz('Europe/Sofia')
 
@@ -85,6 +90,7 @@ def parse_formdata(formdata):
     return since_days, median_kernel, wrongs, graphable
 
 def handle_graph(db, a_thing, since_days=DEFAULT_SINCE_DAYS, median_kernel=DEFAULT_MEDIAN_KERNEL, wrongs=DEFAULT_WRONGS, graphable=None, formdata=None):
+    log = logger.of('handle_graph')
     if formdata:
         since_days, median_kernel, wrongs, graphable = parse_formdata(formdata)
     else:
@@ -92,15 +98,23 @@ def handle_graph(db, a_thing, since_days=DEFAULT_SINCE_DAYS, median_kernel=DEFAU
 
     thing = db.resolve_thing(a_thing)
     history = db.load_history(thing, 'reported', since_days=since_days)
+    
     displayables = db.load_state(thing, 'displayables')
+
+    enchanter = Enchanter()
+    enchanter_config = db.load_state(thing, 'enchanter')
+    enchanted_history = list(map(lambda r: enchanter.enchant(thing, reported = r, config = enchanter_config, displayables = displayables, alias=False), history))
+
     should_graph = flat_map(displayables, "graph")
     displayable_color = flat_map(displayables, "color")
     displayable_type = flat_map(displayables, "type")
+    displayable_alias = flat_map(displayables, "alias")
 
-    times = list(map(lambda s: parse_isoformat(s['timestamp_utc']), history))
+    times = list(map(lambda s: parse_isoformat(s['timestamp_utc']), enchanted_history))
     plot_times = list(map(lambda t: date2num(t), times))
-    senses = list(map(lambda s: get_senses(s['state']), history))
-    writes = list(map(lambda s: get_write(s['state']), history))
+    senses = list(map(lambda s: get_senses(s['state']), enchanted_history))
+    writes = list(map(lambda s: get_write(s['state']), enchanted_history))
+
 
     f = plt.figure(figsize=(12, 6), dpi=100)
 
@@ -158,7 +172,6 @@ def handle_graph(db, a_thing, since_days=DEFAULT_SINCE_DAYS, median_kernel=DEFAU
         return content_type, bytes
 
     for sense_type in sense_types:
-        alias = ""
         values = []
         times = []
         wrong_times = []
@@ -188,9 +201,7 @@ def handle_graph(db, a_thing, since_days=DEFAULT_SINCE_DAYS, median_kernel=DEFAU
                         else:
                             wrong_times.append(time)
                             wrong_values.append(previous_value)
-                        if value.get('alias'):
-                            alias = value['alias']
-                    elif subtype == "value":
+                    elif subtype in ["value", "valueOrNormalized"]:
                         wrong, float_value = parse_sense(value)
                         if not wrong:
                             values.append(float_value)
@@ -199,10 +210,9 @@ def handle_graph(db, a_thing, since_days=DEFAULT_SINCE_DAYS, median_kernel=DEFAU
                             wrong_times.append(time)
                             wrong_values.append(previous_value)
 
-        if not alias or alias == "":
+        label = displayable_alias.get(sense_type)
+        if not label:
             label = sense_type
-        else: 
-            label = alias
 
         color = displayable_color.get(sense_type, 'black')
 
@@ -226,7 +236,6 @@ def handle_graph(db, a_thing, since_days=DEFAULT_SINCE_DAYS, median_kernel=DEFAU
     labels = []
     yticks = []
     for writes_index, writes_type in enumerate(writes_types):
-        alias = ""
         values = []
         intervals = []
         interval = None
@@ -237,7 +246,6 @@ def handle_graph(db, a_thing, since_days=DEFAULT_SINCE_DAYS, median_kernel=DEFAU
                 value = writes_state[writes_type]
                 if type(value) is dict:
                     converted = float(value['value'])
-                    alias = value['alias']
                 else:
                     converted = int(value)
 
@@ -255,10 +263,9 @@ def handle_graph(db, a_thing, since_days=DEFAULT_SINCE_DAYS, median_kernel=DEFAU
         if interval:
             intervals.append(interval)
 
-        if alias == "":
+        label = displayable_alias.get(writes_type)
+        if not label:
             label = writes_type
-        else: 
-            label = alias
 
         y = writes_start + writes_index*writes_offset
 

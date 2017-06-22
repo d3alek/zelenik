@@ -1,0 +1,12 @@
+[Unit]
+Description=Enchanter (zelenik)
+After=mqtt_operator.service
+
+[Service]
+Restart=always
+ExecStart=/www/zelenik/enchanter.py
+StandardError=syslog
+User=otselo
+
+[Install]
+WantedBy=multi-user.target

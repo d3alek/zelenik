@@ -1,10 +1,22 @@
+function configure() {
+    configuration_shown = document.getElementById('configuration').style.display === 'block';
+    if (configuration_shown) {
+        document.getElementById('configuration').style.display = 'none';
+    }
+    else {
+        document.getElementById('configuration').style.display = 'block';
+    }
+}
+
+AttachEvent(document.getElementById("show-configuration"), "click", configure);
+
 var plots = document.getElementById("plots").children;
 var i;
 var plot_image;
 var plot;
 var thing_names;
 var j;
-var reported;
+var enchanted;
 var senses;
 var desired;
 var thing_name;
@@ -17,11 +29,11 @@ for (i = 0; i < plots.length; i += 1) {
     for (j = 0; j < thing_names.length; j += 1) {
         thing_name = thing_names[j];
         
-        reported = JSON.parse(document.querySelectorAll("."+thing_name+".reported")[0].innerText);
-        senses = reported.state.senses;
+        enchanted = JSON.parse(document.querySelectorAll("."+thing_name+".enchanted")[0].innerText);
+        senses = enchanted.state.senses;
         desired = JSON.parse(document.querySelectorAll("."+thing_name+".desired")[0].textContent);
         displayables = JSON.parse(document.querySelectorAll("."+thing_name+".displayables")[0].innerText);
-        initialize_plot(plot, plot_image, senses, desired.mode, reported.state.write, displayables, set_active, null, thing_name);
+        initialize_plot(plot, plot_image, senses, desired.mode, enchanted.state.write, displayables, set_active, null, thing_name);
     }
 }
 

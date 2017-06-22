@@ -12,7 +12,7 @@ from logger import Logger
 logger = Logger("uwsgi")
 
 db = db_driver.DatabaseDriver()
-UPDATEABLE = set(['reported', 'desired', 'displayables', 'thing-alias'])
+UPDATEABLE = set(['reported', 'desired', 'displayables', 'thing-alias', 'enchanter'])
 
 def parse_thing(url_path):
     match = re.match(r'/(db|na)/([a-zA-Z0-9-]+)\/', url_path)

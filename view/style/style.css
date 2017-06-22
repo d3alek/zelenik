@@ -145,6 +145,7 @@ ul li {
     border-radius: 2px;
     -webkit-transition-duration: 0.1s; /* Safari */
     transition-duration: 0.1s;
+    margin: 8px;
 }
 
 .button:hover {
@@ -172,4 +173,8 @@ ul li {
 
 .graphable-list-header {
     font-weight: bold;
+}
+
+#configuration {
+    display: none;
 }
