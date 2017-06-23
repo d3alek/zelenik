@@ -75,7 +75,7 @@ for file in db.iterdir():
 
             print("Unpacked %s" % old_archive)
 
-        old_archives.append(until_archives)
+        old_archives.extend(until_archives)
 
 print("Does db look okay? I will delete old until archives if yes or new daily archives if no. (yes/No)")
 yes_no = input()
