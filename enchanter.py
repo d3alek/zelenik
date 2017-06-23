@@ -272,7 +272,6 @@ class Enchanter:
     """
     def apply_formula(self, formula_config, senses, old_enchanted_senses, old_time, now):
         log = logger.of('apply_formula')
-        log.info(formula_config)
         key = formula_config['name']
         from_keys = formula_config['from']
         if not isinstance(from_keys, list):

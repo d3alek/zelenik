@@ -31,6 +31,14 @@ def timeless(d):
 
 
 class TestDatabaseDriver(unittest.TestCase):
+    def list_directory(self, directory):
+        d = self.db_directory / THING / directory
+        print("%s:" % d)
+        for x in d.iterdir():
+            print(x)
+        print("---")
+
+
     def setUp(self):
         self.temp_directory = TemporaryDirectory()
         self.temp_directory_path = Path(self.temp_directory.name)
@@ -343,7 +351,7 @@ class TestDatabaseDriverHistory(TestDatabaseDriver):
         self.then_two_histories("reported")
         self.then_history_exists("reported", JSN % "older", day=yesterday)
         self.then_history_exists("reported", JSN % "old")
-        self.then_archive_exists("reported", JSN % "oldest", until=two_days_ago)
+        self.then_archive_exists("reported", JSN % "oldest", day=two_days_ago)
         self.then_state_exists("reported", FORMAT % JSN % "new")
 
     # necessary for states do not change every day 
@@ -362,10 +370,10 @@ class TestDatabaseDriverHistory(TestDatabaseDriver):
         self.then_two_histories("reported")
         self.then_history_exists("reported", JSN % "older", day=yesterday)
         self.then_history_exists("reported", JSN % "old")
-        self.then_archive_exists("reported", JSN % "oldest", until=last_week)
+        self.then_archive_exists("reported", JSN % "oldest", day=last_week)
         self.then_state_exists("reported", FORMAT % JSN % "new")
 
-    def test_update_appends_to_archive(self):
+    def test_update_creates_new_archive(self):
         today = date.today()
         yesterday = today - timedelta(days=1)
         two_days_ago = today - timedelta(days=2)
@@ -375,36 +383,12 @@ class TestDatabaseDriverHistory(TestDatabaseDriver):
         self.given_state("reported", JSN % "old")
         self.given_history("reported", JSN % "oldest", day=two_days_ago)
         self.given_history("reported", JSN % "older", day=yesterday)
-        self.given_archive("reported", JSN % "archive", until=three_days_ago)
+        self.given_archive("reported", JSN % "archive", day=three_days_ago)
 
         self.when_updating_reported(JSN % "new")
 
-        self.then_archive_exists("reported", "%s\n%s" % (JSN % "archive", JSN % "oldest"), until=two_days_ago)
-
-    def test_first_archive_for_new_year_marks_last_year_complete(self):
-        today = date.today()
-        yesterday = today - timedelta(days=1)
-        two_days_ago = today - timedelta(days=2)
-        a_day_last_year = years_ago(1, today)
-
-        self.given_thing()
-        self.given_state("reported", JSN % "old")
-        self.given_history("reported", JSN % "new year", day=two_days_ago)
-        self.given_history("reported", JSN % "older", day=yesterday)
-        self.given_archive("reported", JSN % "archived", until=a_day_last_year)
-
-        self.when_updating_reported(JSN % "new")
-
-        self.then_archive_exists("reported", JSN % "archived", until=a_day_last_year, complete=True)
-        self.then_archive_exists("reported", JSN % "new year", until=two_days_ago)
-        self.then_state_exists("reported", FORMAT % JSN % "new")
-
-    def list_directory(self, directory):
-        d = self.db_directory / THING / directory
-        print("%s:" % d)
-        for x in d.iterdir():
-            print(x)
-        print("---")
+        self.then_archive_exists("reported", JSN % "archive", day=three_days_ago)
+        self.then_archive_exists("reported", JSN % "oldest", day=two_days_ago)
 
     def test_load_history(self):
         today = date.today()
@@ -437,21 +421,23 @@ class TestDatabaseDriverHistory(TestDatabaseDriver):
 
     def test_load_history_reads_from_archive(self):
         today = date.today()
+        two_days_ago = today - timedelta(days=2)
         last_week = today - timedelta(days=7)
 
+
         today_timestamp = datetime.utcnow().isoformat(sep=' ')
+        two_days_ago_timestamp = (datetime.utcnow() - timedelta(days=2)).isoformat(sep=' ')
         last_week_timestamp = (datetime.utcnow() - timedelta(days=7)).isoformat(sep=' ')
 
         self.given_thing()
 
-        self.given_state("reported", FORMAT_TS % (JSN % 2, today_timestamp))
-        self.given_archive("reported", FORMAT_TS % (JSN % 1, last_week_timestamp), until = last_week)
-
-        self.list_directory("history/archive")
+        self.given_state("reported", FORMAT_TS % (JSN % 3, today_timestamp))
+        self.given_archive("reported", FORMAT_TS % (JSN % 2, two_days_ago_timestamp), day = two_days_ago)
+        self.given_archive("reported", FORMAT_TS % (JSN % 1, last_week_timestamp), day = last_week)
 
         self.when_loading_reported_history()
 
-        self.then_history_values_are([1, 2])
+        self.then_history_values_are([1, 2, 3])
 
 
     def test_update_desired_adds_history_timestamp(self):
@@ -472,16 +458,14 @@ class TestDatabaseDriverHistory(TestDatabaseDriver):
             f.write(value)
             f.write('\n')
 
-    def given_archive(self, state, value, until, complete=False):
-        p = self.db_directory / THING / "history" / "archive"
+    def given_archive(self, state, value, day):
+        year = day.year
+        p = self.db_directory / THING / "history" / "archive" / str(year)
         if not p.is_dir():
             p.mkdir(parents=True)
         p = p / state
-        if complete:
-            suffix = '%d' % until.year
-        else:
-            suffix = 'until-%s' % until.isoformat()
 
+        suffix = day.isoformat()
         p = p.with_suffix('.%s.zip' % suffix)
 
         with ZipFile(str(p), 'w', ZIP_DEFLATED) as zf:
@@ -514,14 +498,11 @@ class TestDatabaseDriverHistory(TestDatabaseDriver):
         expected = [timeless(json.loads(value)) for value in values]
         self.assertEqual(actual, expected)
 
-    def then_archive_exists(self, state, value, until, complete=False):
-        p = self.db_directory / THING / "history" / "archive" / state 
-        if complete:
-            suffix = '%d' % until.year
-        else:
-            suffix = 'until-%s' % until.isoformat()
+    def then_archive_exists(self, state, value, day):
+        year = day.year
+        p = self.db_directory / THING / "history" / "archive" / str(year) / state 
 
-        p = p.with_suffix(".%s.zip" % suffix)
+        p = p.with_suffix(".%s.zip" % day.isoformat())
         with ZipFile(str(p)) as zf:
             file_name = zf.namelist()[0]
             byte_text = zf.read(file_name)

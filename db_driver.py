@@ -187,6 +187,7 @@ class DatabaseDriver:
 
     def _archive_history(self, thing, state):
         log = logger.of('_archive_history')
+        year = date.today().year
         two_days_ago = date.today() - timedelta(days=2)
         thing_directory = self.directory / thing
         history_path = thing_directory / "history" 
@@ -207,32 +208,21 @@ class DatabaseDriver:
                 archive_directory.chmod(0o774)
                 log.info("Created new archive directory for %s" % thing)
 
-            yearly_archive = [x for x in archive_directory.iterdir() if x.match('%s.until-%d*.zip' % (state, day.year))]
-            if yearly_archive:
-                yearly_archive = yearly_archive[0]
-                with ZipFile(str(yearly_archive)) as zf:
-                    file_name = zf.namelist()[0]
-                    old_archive_contents = zf.read(file_name).decode('utf-8')
-            else:
-                incomplete_last_year_archive = [x for x in archive_directory.iterdir() if x.match('%s.until-%d*.zip' % (state, day.year-1))]
-                if incomplete_last_year_archive:
-                    incomplete_last_year_archive = incomplete_last_year_archive[0]
-                    complete_last_year_archive = archive_directory / ('%s.%d.zip' % (state, day.year - 1))
-                    incomplete_last_year_archive.replace(complete_last_year_archive)
-                old_archive_contents = ""
+            year_directory = archive_directory / str(year)
 
-            archive_path = archive_directory / state
-            archive_file = archive_path.with_suffix(".until-%s.zip" % day.isoformat())
+            if not year_directory.is_dir():
+                year_directory.mkdir()
+                year_directory.chmod(0o774)
+                log.info("Created new archive directory for %s year %s" % (thing, year))
 
-            contents = "%s%s" % (old_archive_contents, new_archive_contents)
+            archive_path = year_directory / state
+            archive_file = archive_path.with_suffix(".%s.zip" % day.isoformat())
 
             with ZipFile(str(archive_file), 'w', ZIP_DEFLATED) as zf:
-                arcname = '%s.until-%s.txt' % (state, day.isoformat())
-                zf.writestr(arcname, contents)
+                arcname = '%s.%s.txt' % (state, day.isoformat())
+                zf.writestr(arcname, new_archive_contents)
 
             old_history_file.unlink() 
-            if yearly_archive:
-                yearly_archive.unlink()
 
             log.info("Archived history from %s for %s" % (day, thing))
         else:
@@ -481,30 +471,19 @@ class DatabaseDriver:
 
         log.info("[%s] updated %s" % (thing, pretty_list(log_updated)))
 
-    def _load_history_for_year(self, thing, state_name, year):
-        archive_path = self.directory / thing / "history"/ "archive" 
-        log = logger.of('load_history_for_year')
-        if not archive_path.is_dir():
+    def _load_archive_for_day(self, thing, state_name, day):
+        log = logger.of('load_archive_for_day')
+        year = day.year
+        archive_path = self.directory / thing / "history"/ "archive" / str(year) / state_name
+        archive_file = archive_path.with_suffix(".%s.zip" % day.isoformat())
 
-            log.info("No history exists for %s %s for %s" % (thing, state_name, year))
-            return []
-
-        complete = archive_path / state_name
-        complete = complete.with_suffix('.%s.zip')
-        history = []
-        if complete.exists():
-            text = read_lines_single_zipped_file(complete)
-            history = list(map(json.loads, text))
+        if archive_file.exists():
+            text = read_lines_single_zipped_file(archive_file)
+            states = list(map(json.loads, text))
         else:
-            incomplete = [x for x in archive_path.iterdir() if x.match('%s.until-%d*.zip' % (state_name, year))]
-            if len(incomplete) > 0:
-                incomplete = incomplete[0]
-                text = read_lines_single_zipped_file(incomplete)
-                history = list(map(json.loads, text))
-            else:
-                log.info("No history exists for %s %s for %s" % (thing, state_name, year))
+            states = []
 
-        return history 
+        return states
 
     def _load_history_for_day(self, thing, state_name, day):
         history_path = self.directory / thing / "history"/ state_name
@@ -530,20 +509,19 @@ class DatabaseDriver:
         yesterday = today - timedelta(days=1)
         history = []
 
-        if since_days > 1:
-            history.extend(self._load_history_for_year(thing, state_name, today.year))
-            days_since_start_of_year = today.month * 29 + today.day # approximate, understatement
-            if since_days > days_since_start_of_year:
-                history.extend(self._load_history_for_year(thing, state_name, today.year - 1))
+        for since_day in reversed(range(2, since_days+1)):
+            day = today - timedelta(days=since_day)
+            history.extend(self._load_archive_for_day(thing, state_name, day))
 
         history.extend(self._load_history_for_day(thing, state_name, yesterday))
         history.extend(self._load_history_for_day(thing, state_name, today))
 
         state = self.load_state(thing, state_name)
         history.append(state)
-        since_day = datetime.utcnow() - timedelta(days=since_days)
-        filtered_history = list(filter(lambda s: parse_isoformat(s['timestamp_utc']) > since_day, history))
-        return filtered_history
+
+        since_datetime = datetime.utcnow() - timedelta(days=since_days)
+        filtered_history = list(filter(lambda s: parse_isoformat(s['timestamp_utc']) > since_datetime, history))
+        return filtered_history 
 
     def update_plot_background(self, a_thing, svg_bytes):
         thing = self.resolve_thing(a_thing)
