@@ -17,6 +17,10 @@ from scipy import signal
 
 from enchanter import Enchanter
 
+from operator import itemgetter
+
+from datetime import datetime, timedelta
+
 timezone = tz.gettz('Europe/Sofia')
 
 DEFAULT_SINCE_DAYS = 1
@@ -96,6 +100,26 @@ def fast_enchant(reported):
 
     return old_enchanted
 
+# assumes history is sorted in ascending order
+def subsample_history(history, conditions):
+    log = logger.of('subsample_history')
+    sorted_conditions = sorted(conditions, key=itemgetter(0))
+    subsampled = []
+    index = 0
+    for earlier_than, subsample_rate in sorted_conditions:
+        next_index = len(history[index:])
+        for increment_index, state in enumerate(history[index:]):
+            if parse_isoformat(state['timestamp_utc']) > earlier_than:
+                next_index = index + increment_index
+                break
+
+        subsampled.extend(history[index:next_index:subsample_rate])
+        index = next_index
+
+    log.info('Subsampling reduced data from %d to %d' % (len(history), len(subsampled)))
+
+    return subsampled
+
 def handle_graph(db, a_thing, since_days=DEFAULT_SINCE_DAYS, median_kernel=DEFAULT_MEDIAN_KERNEL, wrongs=DEFAULT_WRONGS, graphable=None, formdata=None):
     global thing, displayables, enchanter, enchanter_config, old_enchanted
 
@@ -107,6 +131,9 @@ def handle_graph(db, a_thing, since_days=DEFAULT_SINCE_DAYS, median_kernel=DEFAU
 
     thing = db.resolve_thing(a_thing)
     history = db.load_history(thing, 'reported', since_days=since_days)
+
+    ten_minutes_ago = datetime.utcnow() - timedelta(minutes=10) # so every 5 minutes
+    sparse_history = subsample_history(history, [(ten_minutes_ago, 10)])
     
     displayables = db.load_state(thing, 'displayables')
 
@@ -114,7 +141,7 @@ def handle_graph(db, a_thing, since_days=DEFAULT_SINCE_DAYS, median_kernel=DEFAU
     enchanter_config = db.load_state(thing, 'enchanter')
     old_enchanted = {}
 
-    enchanted_history = list(map(fast_enchant, history))
+    enchanted_history = list(map(fast_enchant, sparse_history))
 
     should_graph = flat_map(displayables, "graph")
     displayable_color = flat_map(displayables, "color")
