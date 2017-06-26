@@ -10,6 +10,8 @@ logger = Logger("error_reporter")
 import select
 from systemd import journal
 
+import time
+
 DIR = '/www/zelenik/'
 HUMAN_OPERATOR = "akodzhabashev@gmail.com"
 
@@ -29,7 +31,7 @@ class ErrorReporter:
         reported = set()
 
         while True:
-            p.poll()
+            p.poll(250)
             for entry in j:
                 message = entry['MESSAGE']
                 logger_name = entry['LOGGER']
@@ -51,17 +53,22 @@ class ErrorReporter:
 
                         notify_human_operator(subject, message + "\n%s" % unit) 
                         reported.add(message)
+            time.sleep(1)
 
 def notify_human_operator(subject, body):
     msg = MIMEText(body)
     msg['Subject'] = subject
     msg['From'] = "reporter@otselo.eu"
     msg['To'] = HUMAN_OPERATOR
+    log = logger.of('notify_human_operator')
 
-    with smtplib.SMTP('localhost') as s:
-        s.send_message(msg)
+    try:
+        with smtplib.SMTP('localhost') as s:
+            s.send_message(msg)
+        log.info('Sent error report to %s' % HUMAN_OPERATOR)
+    except ConnectionRefusedError:
+        log.info('Could not send email %s' % msg)
 
-    logger.of('notify_human_operator').info('Sent error report to %s' % HUMAN_OPERATOR)
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
