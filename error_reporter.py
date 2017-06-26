@@ -58,7 +58,7 @@ def notify_human_operator(subject, body):
 if __name__ == '__main__':
     if len(sys.argv) > 1:
         logger.of('__main__').info("Sending direct email to human operator and quitting")
-        notify_human_operator(sys.argv[1])
+        notify_human_operator("Testing...", sys.argv[1])
 
     else:
         reporter = ErrorReporter()

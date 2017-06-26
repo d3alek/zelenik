@@ -9,6 +9,11 @@ virtualenv -p python3 venv
 source venv/bin/activate
 pip install -r requirements.txt # May take a really long time (half an hour) on slow platforms where numpy/matplotlib need to be compiled from source, uwsgi needs python3-dev on ubuntu
 
+# Python Systemd Bindings
+
+On Ubuntu:
+sudo apt-get install libsystemd-dev gcc python3-dev pkg-config
+
 # mosquitto
 # Install mosquitto with your package manager
 # Copy password file in /www/zelenik/secret
