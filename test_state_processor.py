@@ -25,11 +25,27 @@ class TestStateProcessor(unittest.TestCase):
 
         self.then_exploded(simple)
 
+    def test_explode_boot_time(self):
+        compact = '{"b":1498465149}'
+        exploded = '{"boot_utc": "2017-06-26 08:19:09"}'
+
+        self.when_exploding(compact)
+
+        self.then_exploded(exploded)
+
     def test_explode_action(self):
         compact = ACTIONS % '["sense|1|H|10|2"]'
         exploded = ACTIONS % '[%s]' % action('sense', 1, 'high', 10, 2)
 
         self.when_exploding(compact)
+
+        self.then_exploded(exploded)
+
+    def test_explode_already_exploded_action(self):
+        exploded = ACTIONS % '[%s]' % action('sense', 1, 'high', 10, 2)
+        exploded = ACTIONS % '[%s]' % action('sense', 1, 'high', 10, 2)
+
+        self.when_exploding(exploded)
 
         self.then_exploded(exploded)
 

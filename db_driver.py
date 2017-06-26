@@ -343,6 +343,18 @@ class DatabaseDriver:
 
             return {}
 
+    def alias_thing(self, thing):
+        log = logger.of('alias_thing')
+        alias = thing
+        alias_directory = self.directory / 'na'
+        for existing_alias in alias_directory.iterdir():
+            if existing_alias.resolve().name == thing:
+                alias = existing_alias.name
+                log.info("Aliased thing %s to %s" % (thing, alias))
+                break
+
+        return alias
+
     def resolve_thing(self, a_thing):
         if (self.directory / a_thing).is_dir():
             return a_thing

@@ -12,7 +12,6 @@ from state_processor import parse_isoformat
 
 import re
 import json
-import time
 
 import threading 
 
@@ -104,7 +103,7 @@ class Enchanter:
 
         for thing_path in self.db_path.iterdir():
             thing = thing_path.name
-            if thing in ('na', 'stado'):
+            if thing in ('na', 'stado', '.gitignore'):
                 continue
             self.enchant_thing(thing)
 

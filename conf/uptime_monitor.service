@@ -1,10 +1,10 @@
 [Unit]
-Description=Error reporter (zelenik)
+Description=Uptime Monitor (zelenik)
 After=syslog.target
 
 [Service]
 Restart=always
-ExecStart=/www/zelenik/error_reporter.py
+ExecStart=/www/zelenik/uptime_monitor.py
 StandardError=syslog
 User=otselo
 

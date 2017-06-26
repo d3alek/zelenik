@@ -31,15 +31,26 @@ class ErrorReporter:
         while True:
             p.poll()
             for entry in j:
-                error_message = entry['MESSAGE']
+                message = entry['MESSAGE']
                 logger_name = entry['LOGGER']
                 unit = entry['_SYSTEMD_UNIT']
+                if entry['PRIORITY'] == journal.LOG_WARNING and "is up" in message and message not in reported:
+                    thing = message.split("is up")[0].strip()
+                    notify_human_operator('%s is up' % thing, message) 
+                    reported.add(message)
+
                 if entry['PRIORITY'] == journal.LOG_ERR:
-                    if error_message in reported:
+                    if message in reported:
                         log.info('Already reported this error')
                     else:
-                        notify_human_operator('Error from %s' % logger_name, error_message + "\n%s" % unit) 
-                        reported.add(error_message)
+                        if "is down" in message:
+                            thing = message.split("is down")[0].strip()
+                            subject = '%s is down' % thing
+                        else:
+                            subject = 'Error from %s' % logger_name
+
+                        notify_human_operator(subject, message + "\n%s" % unit) 
+                        reported.add(message)
 
 def notify_human_operator(subject, body):
     msg = MIMEText(body)

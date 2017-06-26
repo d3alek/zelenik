@@ -133,7 +133,7 @@ def do_actions():
         if m == 'a':
             auto_actions.append(action) 
         else:
-            log.info('Not doing action %s:%s due to gpio mode %s' % (target_sense, action, m))
+            log.info('Not doing action %s due to gpio mode %s' % (action, m))
 
     for sense, value in state['senses'].items():
         for action in auto_actions:

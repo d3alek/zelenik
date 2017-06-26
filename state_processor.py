@@ -63,9 +63,12 @@ def action(sense, gpio, write, threshold, delta):
     return {"sense": sense, "gpio": gpio, "write": write, "threshold": threshold, "delta": delta}
 
 def explode_action(compact_action):
+    log = logger.of('explode_action')
+    if isinstance(compact_action, dict):
+        log.info('Action looks already exploded: %s' % compact_action)
+        return compact_action
     m = ACTION_PATTERN.match(compact_action)
     if m is None:
-        log = logger.of('explode_action')
         log.error("Could not explode action %s" % compact_action)
         return compact_action
     sense = m.group(1)
@@ -199,11 +202,17 @@ def explode_senses(senses, previous_senses, previous_timestamp):
 
     return exploded
 
+def timestamp_from_epoch(seconds):
+    return datetime.utcfromtimestamp(seconds).isoformat(sep=' ')
+
 def explode(json, previous_json={}, previous_timestamp=None):
     exploded = {}
     for key, value in json.items():
         previous_value = previous_json.get(key, {})
-        if key == 'actions':
+        if key == 'b':
+            key = 'boot_utc'
+            exploded_value = timestamp_from_epoch(int(value))
+        elif key == 'actions':
             exploded_value = explode_actions(value)
         elif key == 'senses':
             exploded_value = explode_senses(value, previous_value, previous_timestamp)
