@@ -8,8 +8,8 @@ class Logger:
         self.level = level
         self.logger = logging.getLogger(name)
         self.logger.propagate = False
-        self.logger.addHandler(JournalHandler())
-
+        if len(self.logger.handlers) == 0:
+            self.logger.addHandler(JournalHandler())
 
     def of(self, method_name):
         return Logger(".".join([self.name, method_name]), level=self.level)

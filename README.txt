@@ -45,4 +45,7 @@ And add your user to otselo...
 
 sudo usermod -a -G otselo <your user>
 
+And add otselo to systemd-journal
+
+sudo usermod -a -G systemd-journal otselo
 
