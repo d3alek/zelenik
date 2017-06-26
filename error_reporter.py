@@ -1,6 +1,4 @@
 #!/www/zelenik/venv/bin/python
-
-import paho.mqtt.client as mqtt
 import sys
 
 import smtplib
@@ -9,52 +7,53 @@ from email.mime.text import MIMEText
 from logger import Logger
 logger = Logger("error_reporter")
 
-ERROR_TOPIC = "error"
+import select
+from systemd import journal
+
 DIR = '/www/zelenik/'
 HUMAN_OPERATOR = "akodzhabashev@gmail.com"
 
-def parse_username_password():
-    with open(DIR + 'secret/mqtt_password_file') as f:
-        contents = f.read()
-    username, _ = contents.split(':')
-
-    with open(DIR + 'secret/mqtt_password') as f:
-        password = f.read()
-
-    return username.strip(), password.strip()
-
 class ErrorReporter:
-    def __init__(self): 
-        self.client = mqtt.Client()
-        username, password = parse_username_password()
-        self.client.username_pw_set(username, password)
+    def report(self):
+        log = logger.of('report')
+        j = journal.Reader()
+        j.log_level(journal.LOG_WARNING)
+        j.this_boot()
+        j.this_machine()
+        j.seek_tail()
+        j.get_previous()
+        p = select.poll()
 
-        self.client.on_connect = self.on_connect
-        self.client.on_message = self.on_message
+        p.register(j, j.get_events())
 
-    def operate(self):
-        self.client.connect("localhost")
-        self.client.loop_forever()
+        reported = set()
 
-    def on_connect(self, client, userdata, flags, rc):
-        logger.of("on_connect").info("Connected with result code %d" % rc)
-        client.subscribe(ERROR_TOPIC)
+        while True:
+            p.poll()
+            for entry in j:
+                error_message = entry['MESSAGE']
+                logger_name = entry['LOGGER']
+                unit = entry['_SYSTEMD_UNIT']
+                print('Message: %s' % error_message)
+                print('Logger: %s' % logger_name)
+                print('Unit: %s' % unit)
+                if entry['PRIORITY'] == journal.LOG_ERR:
+                    if error_message in reported:
+                        log.info('Already reported this error')
+                    else:
+                        notify_human_operator('Error from %s' % logger_name, error_message)
+                        reported.add(error_message)
 
-    def on_message(self, client, userdata, msg):
-        topic = msg.topic
-        payload_string = msg.payload.decode('utf-8')
-        logger.of("on_message").info("[%s] %s | user: %s" % (topic, payload_string, userdata))
-        notify_human_operator(payload_string)
-
-
-def notify_human_operator(body):
+def notify_human_operator(subject, body):
     msg = MIMEText(body)
-    msg['Subject'] = 'Zelenik Error Report'
+    msg['Subject'] = subject
     msg['From'] = "reporter@otselo.eu"
-    msg['To'] = "akodzhabashev@gmail.com"
+    msg['To'] = HUMAN_OPERATOR
 
     with smtplib.SMTP('localhost') as s:
         s.send_message(msg)
+
+    logger.of('notify_human_operator').info('Sent error report to %s' % HUMAN_OPERATOR)
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
@@ -62,5 +61,5 @@ if __name__ == '__main__':
         notify_human_operator(sys.argv[1])
 
     else:
-        mqtt_operator = ErrorReporter()
-        mqtt_operator.operate()
+        reporter = ErrorReporter()
+        reporter.report()
