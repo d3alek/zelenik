@@ -69,7 +69,11 @@ class UptimeMonitor:
         if timestamp < five_minutes_ago:
             log.error('%s is down. Last seen: %s' % (aliased_thing, local_day_hour_minute(timestamp)))
         else:
-            up_since = parse_isoformat(enchanted['state']['boot_utc'])
+            boot_utc_string = enchanted['state'].get('boot_utc')
+            if boot_utc_string is None:
+                log.error('Enchanted for %s does not contain boot_utc: %s' % (aliased_thing, enchanted))
+                return
+            up_since = parse_isoformat(boot_utc_string)
             log.warning('%s is up since: %s' % (aliased_thing, local_day_hour_minute(up_since)))
 
     def start(self):
