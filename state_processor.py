@@ -112,6 +112,12 @@ def explode_deprecated_sense(value):
         log.info("Deprecated sense value number: %s" % value)
         return {"value": value}
 
+    else:
+        try:
+            return {"value": float(value)}
+        except ValueError:
+            pass
+
     if len(value) > 0 and value[0] == 'w':
         log.info("Deprecated sense value number marked as wrong with a 'w' character: %s" % value)
         return {"wrong": int(value[1:])}
