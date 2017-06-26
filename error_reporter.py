@@ -34,14 +34,11 @@ class ErrorReporter:
                 error_message = entry['MESSAGE']
                 logger_name = entry['LOGGER']
                 unit = entry['_SYSTEMD_UNIT']
-                print('Message: %s' % error_message)
-                print('Logger: %s' % logger_name)
-                print('Unit: %s' % unit)
                 if entry['PRIORITY'] == journal.LOG_ERR:
                     if error_message in reported:
                         log.info('Already reported this error')
                     else:
-                        notify_human_operator('Error from %s' % logger_name, error_message)
+                        notify_human_operator('Error from %s' % logger_name, error_message + "\n%s", unit) 
                         reported.add(error_message)
 
 def notify_human_operator(subject, body):
