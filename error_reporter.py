@@ -38,7 +38,7 @@ class ErrorReporter:
                     if error_message in reported:
                         log.info('Already reported this error')
                     else:
-                        notify_human_operator('Error from %s' % logger_name, error_message + "\n%s", unit) 
+                        notify_human_operator('Error from %s' % logger_name, error_message + "\n%s" % unit) 
                         reported.add(error_message)
 
 def notify_human_operator(subject, body):
