@@ -101,10 +101,8 @@ class Enchanter:
             self.stop()
             return
 
-        for thing_path in self.db_path.iterdir():
-            thing = thing_path.name
-            if thing in ('na', 'stado', '.gitignore'):
-                continue
+        things = self.db.get_thing_list()
+        for thing in things:
             self.enchant_thing(thing)
 
         if self.running:

@@ -178,3 +178,52 @@ ul li {
 #configuration {
     display: none;
 }
+
+@keyframes glowing-green {
+    0% { color: #4CAF50; }
+    50% { color: #78C650;
+        box-shadow: 0 0 20px #78C650; }
+    100% { color: #4CAF50; }
+}
+
+.up:before {
+    content: 'ж';
+    -webkit-border-radius: 10px;
+    border-radius: 20px;
+    border: none;
+    color: #4CAF50;
+    font-size: 20px;
+    text-align: center;
+    animation: glowing-green 1500ms infinite;
+    width: 25px;
+    height: 25px;
+    display: inline-block;
+}
+
+.down:before {
+    content: 'н';
+    -webkit-border-radius: 10px;
+    border-radius: 20px;
+    border: none;
+    color: #AD1717;
+    font-size: 20px;
+    text-align: center;
+    width: 15px;
+    height: 25px;
+    display: inline-block;
+
+}
+
+.error:before {
+    content: 'г';
+    -webkit-border-radius: 10px;
+    border-radius: 30px;
+    border: none;
+    color: #9e9e9e;
+    font-size: 20px;
+    text-align: center;
+    width: 15px;
+    height: 25px;
+    display: inline-block;
+
+}

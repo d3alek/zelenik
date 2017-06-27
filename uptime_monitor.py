@@ -5,6 +5,7 @@ from logger import Logger
 from datetime import datetime, timedelta, timezone
 
 import db_driver
+from db_driver import pretty_json
 
 from state_processor import parse_isoformat
 
@@ -45,11 +46,19 @@ class UptimeMonitor:
             self.stop()
             return
 
-        for thing_path in self.db_path.iterdir():
-            thing = thing_path.name
-            if thing in ('na', 'stado', '.gitignore'):
-                continue
-            self.check_uptime(thing)
+        things = self.db.get_thing_list()
+
+        summary = {'up': [], 'down': [], 'error': []}
+
+        for thing in things:
+            key, alias = self.check_uptime(thing)
+            thing_alias = {'thing': thing, 'alias': alias}
+            summary[key].append(thing_alias)
+        
+        thing_summary = self.db_path / 'thing-summary.json'
+
+        with thing_summary.open('w') as f:
+            f.write(pretty_json(summary))
 
         if self.running:
             t = threading.Timer(RUN_EVERY, self.monitor)
@@ -62,19 +71,21 @@ class UptimeMonitor:
         aliased_thing = self.db.alias_thing(thing)
         if timestamp_string is None:
             log.error('Enchanted for %s does not contain timestamp: %s' % (aliased_thing, enchanted))
-            return
+            return 'error', aliased_thing
 
         five_minutes_ago = datetime.utcnow() - timedelta(minutes=5)
         timestamp = parse_isoformat(timestamp_string)
         if timestamp < five_minutes_ago:
             log.error('%s is down. Last seen: %s' % (aliased_thing, local_day_hour_minute(timestamp)))
+            return 'down', aliased_thing
         else:
             boot_utc_string = enchanted['state'].get('boot_utc')
             if boot_utc_string is None:
                 log.error('Enchanted for %s does not contain boot_utc: %s' % (aliased_thing, enchanted))
-                return
+                return 'error', aliased_thing
             up_since = parse_isoformat(boot_utc_string)
             log.warning('%s is up since: %s' % (aliased_thing, local_day_hour_minute(up_since)))
+            return 'up', aliased_thing
 
     def start(self):
         logger.of('start').info('Starting')
