@@ -13,6 +13,8 @@ import threading
 
 from pathlib import Path
 
+import json
+
 from dateutil import tz
 local_timezone = tz.gettz('Europe/Sofia')
 
@@ -21,6 +23,9 @@ logger = Logger("uptime_monitor")
 DIR = '/www/zelenik/'
 
 RUN_EVERY = 30 # seconds
+THING_SUMMARY = 'thing-summary.json'
+UP_SINCE = '%s is up since: %s'
+DOWN_LAST_SEEN = '%s is down. Last seen: %s'
 
 def local_day_hour_minute(dt):
     log = logger.of('local_day_hour_minute')
@@ -51,11 +56,11 @@ class UptimeMonitor:
         summary = {'up': [], 'down': [], 'error': []}
 
         for thing in things:
-            key, alias = self.check_uptime(thing)
-            thing_alias = {'thing': thing, 'alias': alias}
-            summary[key].append(thing_alias)
+            key, alias, since = self.check_uptime(thing)
+            value = {'thing': thing, 'alias': alias, 'since': since }
+            summary[key].append(value)
         
-        thing_summary = self.db_path / 'thing-summary.json'
+        thing_summary = self.db_path / THING_SUMMARY
 
         with thing_summary.open('w') as f:
             f.write(pretty_json(summary))
@@ -71,21 +76,24 @@ class UptimeMonitor:
         aliased_thing = self.db.alias_thing(thing)
         if timestamp_string is None:
             log.error('Enchanted for %s does not contain timestamp: %s' % (aliased_thing, enchanted))
-            return 'error', aliased_thing
+            return 'error', aliased_thing, None
 
         five_minutes_ago = datetime.utcnow() - timedelta(minutes=5)
         timestamp = parse_isoformat(timestamp_string)
         if timestamp < five_minutes_ago:
-            log.error('%s is down. Last seen: %s' % (aliased_thing, local_day_hour_minute(timestamp)))
-            return 'down', aliased_thing
+            since = local_day_hour_minute(timestamp)
+            log.error(DOWN_LAST_SEEN % (aliased_thing, since))
+            return 'down', aliased_thing, since
         else:
             boot_utc_string = enchanted['state'].get('boot_utc')
             if boot_utc_string is None:
                 log.error('Enchanted for %s does not contain boot_utc: %s' % (aliased_thing, enchanted))
-                return 'error', aliased_thing
+                since = local_day_hour_minute(timestamp)
+                return 'error', aliased_thing, None
             up_since = parse_isoformat(boot_utc_string)
-            log.warning('%s is up since: %s' % (aliased_thing, local_day_hour_minute(up_since)))
-            return 'up', aliased_thing
+            since = local_day_hour_minute(up_since)
+            log.warning(UP_SINCE  % (aliased_thing, since))
+            return 'up', aliased_thing, since
 
     def start(self):
         logger.of('start').info('Starting')
@@ -96,6 +104,29 @@ class UptimeMonitor:
     def stop(self):
         logger.of('stop').info('Stopping')
         self.running = False
+
+    def messages_from_thing_summary(self):
+        thing_summary = self.db_path / THING_SUMMARY
+
+        with thing_summary.open() as f:
+            summary = json.loads(f.read())
+
+        messages = []
+        for value in summary['up']:
+            thing = value['thing']
+            alias = value['alias']
+            since = value['since']
+
+            messages.append(UP_SINCE % (alias, since))
+
+        for value in summary['down']:
+            thing = value['thing']
+            alias = value['alias']
+            since = value['since']
+
+            messages.append(DOWN_LAST_SEEN % (alias, since))
+        
+        return messages
 
 if __name__ == '__main__':
     monitor = UptimeMonitor()

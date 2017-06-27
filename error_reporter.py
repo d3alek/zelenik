@@ -11,6 +11,8 @@ from systemd import journal
 
 import time
 
+from uptime_monitor import UptimeMonitor
+
 DIR = '/www/zelenik/'
 HUMAN_OPERATOR = "akodzhabashev@gmail.com"
 
@@ -24,7 +26,7 @@ class ErrorReporter:
         j.seek_tail()
         j.get_previous()
 
-        reported = set()
+        reported = set(UptimeMonitor().messages_from_thing_summary())
 
         while True:
             result = j.wait()
