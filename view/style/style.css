@@ -227,3 +227,7 @@ ul li {
     display: inline-block;
 
 }
+
+.status-since:before {
+    content:" от ";
+}

@@ -10,7 +10,6 @@ function configure() {
 
 AttachEvent(document.getElementById("show-configuration"), "click", configure);
 
-var plots = document.getElementById("plots").children;
 var i;
 var plot_image;
 var plot;
@@ -22,6 +21,7 @@ var desired;
 var thing_name;
 var displayables;
 
+var plots = document.getElementById("plots").children;
 for (i = 0; i < plots.length; i += 1) {
     plot = plots[i];
     plot_image = plot.children[0];
@@ -35,6 +35,20 @@ for (i = 0; i < plots.length; i += 1) {
         displayables = JSON.parse(document.querySelectorAll("."+thing_name+".displayables")[0].innerText);
         initialize_plot(plot, plot_image, senses, desired.mode, enchanted.state.write, displayables, set_active, null, thing_name);
     }
+}
+
+var statuses = document.getElementById("statuses").children;
+for (i = 0; i < statuses.length; i += 1) {
+    s = statuses[i];
+    thing_name = s.children[0].textContent;
+
+    enchanted = JSON.parse(document.querySelectorAll("."+thing_name+".enchanted")[0].innerText);
+
+    status_span = s.children[1];
+    status_since_span = s.children[2];
+
+    fillStatus(enchanted, status_span, status_since_span);
+
 }
 
 function set_active(e) {
