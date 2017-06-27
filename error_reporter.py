@@ -30,15 +30,16 @@ class ErrorReporter:
             result = j.wait()
             if result == journal.APPEND:
                 for entry in j:
-                    message = entry['MESSAGE']
-                    logger_name = entry['LOGGER']
-                    unit = entry['_SYSTEMD_UNIT']
-                    if entry['PRIORITY'] == journal.LOG_WARNING and "is up" in message and message not in reported:
+                    message = entry.get('MESSAGE')
+                    logger_name = entry.get('LOGGER')
+                    unit = entry.get('_SYSTEMD_UNIT')
+                    priority = entry.get('PRIORITY')
+                    if priority == journal.LOG_WARNING and "is up" in message and message not in reported:
                         thing = message.split("is up")[0].strip()
                         notify_human_operator('%s is up' % thing, message) 
                         reported.add(message)
 
-                    if entry['PRIORITY'] == journal.LOG_ERR:
+                    if priority == journal.LOG_ERR:
                         if message in reported:
                             log.info('Already reported this error')
                         else:
