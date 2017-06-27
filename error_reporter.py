@@ -54,6 +54,8 @@ class ErrorReporter:
                         notify_human_operator(subject, message + "\n%s" % unit) 
                         reported.add(message)
             time.sleep(1)
+            log.info('Polling for new log entries...')
+
 
 def notify_human_operator(subject, body):
     msg = MIMEText(body)
