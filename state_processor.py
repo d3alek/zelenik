@@ -86,10 +86,10 @@ def explode_action(compact_action):
 def compact_action(exploded):
     log = logger.of('compact_action')
     if type(exploded) is not dict:
-        log.error('compact_action', 'Could not compact action because it is not a dict: %s' % exploded)
+        log.error('Could not compact action because it is not a dict: %s' % exploded)
         return exploded
     if not set(exploded.keys()).issuperset(REQUIRED_ACTION_ATTRIBUTES):
-        log.error('compact_actions', 'Could not compact action because it does not have all the required attributes: %s' % exploded)
+        log.error('Could not compact action because it does not have all the required attributes: %s' % exploded)
         return exploded
 
     threshold = exploded['threshold']

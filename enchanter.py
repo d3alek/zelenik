@@ -242,7 +242,7 @@ class Enchanter:
         
         if key not in senses:
             if ':' not in key:
-                log.error('Could not retrieve sense value because key %s missing in senses %s' % (key, senses))
+                log.warning('Could not retrieve sense value because key %s missing in senses %s' % (key, senses))
                 return None
 
             split = key.split(':')
@@ -276,7 +276,7 @@ class Enchanter:
         from_sense_values = list(map(lambda k: self.retrieve_sense_value(k, senses = senses), from_keys))
 
         if None in from_sense_values:
-            log.error('Not applying formula %s because at least one from value missing: %s' % (formula_config, from_sense_values))
+            log.warning('Not applying formula %s because at least one from value missing: %s' % (formula_config, from_sense_values))
             return 
 
         formula = formula_config['formula']
