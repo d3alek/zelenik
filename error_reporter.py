@@ -7,7 +7,6 @@ from email.mime.text import MIMEText
 from logger import Logger
 logger = Logger("error_reporter")
 
-import select
 from systemd import journal
 
 import time
@@ -24,38 +23,33 @@ class ErrorReporter:
         j.this_machine()
         j.seek_tail()
         j.get_previous()
-        p = select.poll()
-
-        p.register(j, j.get_events())
 
         reported = set()
 
         while True:
-            p.poll(250)
-            for entry in j:
-                message = entry['MESSAGE']
-                logger_name = entry['LOGGER']
-                unit = entry['_SYSTEMD_UNIT']
-                if entry['PRIORITY'] == journal.LOG_WARNING and "is up" in message and message not in reported:
-                    thing = message.split("is up")[0].strip()
-                    notify_human_operator('%s is up' % thing, message) 
-                    reported.add(message)
-
-                if entry['PRIORITY'] == journal.LOG_ERR:
-                    if message in reported:
-                        log.info('Already reported this error')
-                    else:
-                        if "is down" in message:
-                            thing = message.split("is down")[0].strip()
-                            subject = '%s is down' % thing
-                        else:
-                            subject = 'Error from %s' % logger_name
-
-                        notify_human_operator(subject, message + "\n%s" % unit) 
+            result = j.wait()
+            if result == journal.APPEND:
+                for entry in j:
+                    message = entry['MESSAGE']
+                    logger_name = entry['LOGGER']
+                    unit = entry['_SYSTEMD_UNIT']
+                    if entry['PRIORITY'] == journal.LOG_WARNING and "is up" in message and message not in reported:
+                        thing = message.split("is up")[0].strip()
+                        notify_human_operator('%s is up' % thing, message) 
                         reported.add(message)
-            time.sleep(1)
-            log.info('Polling for new log entries...')
 
+                    if entry['PRIORITY'] == journal.LOG_ERR:
+                        if message in reported:
+                            log.info('Already reported this error')
+                        else:
+                            if "is down" in message:
+                                thing = message.split("is down")[0].strip()
+                                subject = '%s is down' % thing
+                            else:
+                                subject = 'Error from %s' % logger_name
+
+                            notify_human_operator(subject, message + "\n%s" % unit) 
+                            reported.add(message)
 
 def notify_human_operator(subject, body):
     msg = MIMEText(body)
