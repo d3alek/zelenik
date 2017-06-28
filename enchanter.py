@@ -79,8 +79,13 @@ def average(values):
 
 
 # source: https://en.wikipedia.org/wiki/Moving_average#Cumulative_moving_average
-def cum_average(new, old, old_count):
-    count = old_count + 1
+def cum_average(new, old, old_count, window=None):
+    if window is not None and old_count >= window:
+        count = window
+    else:
+        count = old_count + 1
+
+    old_count =  count - 1
     
     return (new + old_count * old) / count, count
 
@@ -309,6 +314,7 @@ class Enchanter:
 
         elif formula == 'cum_average':
             reset_at_string = formula_config.get('reset_at')
+            window = formula_config.get('window')
 
             if reset_at_string is None:
                 reset_at = None
@@ -325,7 +331,7 @@ class Enchanter:
                 old_count = old.get('count', 0)
              
             from_value = get_only_element(from_sense_values)
-            value, count = (cum_average(from_value, old_value, old_count))
+            value, count = (cum_average(from_value, old_value, old_count, window))
             senses[key] = {'value': value, 'count': count}
 
         else:

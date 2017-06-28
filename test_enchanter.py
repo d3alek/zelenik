@@ -22,6 +22,8 @@ CUM_AVERAGE_CONFIG = [{"name":"cum-average", "formula": "cum_average", "from": "
 
 CUM_AVERAGE_RESET_CONFIG = [{"name":"cum-average", "formula": "cum_average", "from": "OW-1", "reset_at": "01:00"}]
 
+CUM_AVERAGE_WINDOW_CONFIG = [{"name":"cum-average", "formula": "cum_average", "from": "OW-1", "window": 2}]
+
 DISP = {"alias":"","color":"purple","position":"0,0","type":"number","plot":"yes","graph":"yes"}
 
 def colored(d, color):
@@ -262,6 +264,16 @@ class TestEnchanter(unittest.TestCase):
         self.when_enchanting(alias=False)
 
         self.then_enchanted(state(senses({'OW-1': 25, 'cum-average': {"value":25, "count": 1}})))
+
+    def test_enchanter_cum_average_window(self):
+        self.given_config(CUM_AVERAGE_WINDOW_CONFIG)
+        self.given_state('enchanted', state(senses({'cum-average': {"value":25, "count": 2}})))
+        self.given_state('reported', state(senses({'OW-1': 27})))
+
+        self.when_enchanting(alias=False)
+
+        self.then_enchanted(state(senses({'OW-1': 27, 'cum-average': {"value":26, "count": 2}})))
+
 
     def given_state(self, state, value, thing=THING):
         thing_directory = self.db_directory / thing
