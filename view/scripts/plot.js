@@ -36,7 +36,7 @@ function initialize_plot(plot, plot_image, senses, desired_modes, reported_write
                 spl = p.split(",");
                 t = spl[0];
                 l = spl[1];
-                span.style = "top:" + t + "px;left:" + l + "px;";
+                span.style.cssText = "top:" + t + "px;left:" + l + "px;";
             }
             alias = displayable.alias;
 
@@ -82,7 +82,7 @@ function initialize_plot(plot, plot_image, senses, desired_modes, reported_write
                 spl = p.split(",");
                 t = spl[0];
                 l = spl[1];
-                div.style = "top:" + t + "px;left:" + l +  "px;";
+                div.style.cssText = "top:" + t + "px;left:" + l +  "px;";
             }
             alias = displayable.alias;
 

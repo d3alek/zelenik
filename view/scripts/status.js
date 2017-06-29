@@ -1,12 +1,21 @@
+function safariDateText(date_text) {
+    return date_text.replace(/-/g,"/");
+}
+
+function dateFromUTCText(utc_text) {
+    var wrong_date = new Date(safariDateText(utc_text));
+    return new Date(wrong_date.getTime() - wrong_date.getTimezoneOffset() * 60000);
+}
+
 function fillStatus(enchanted, status_span, status_since_span) {
     status_class = 'error';
     status_text = 'грешка';
     status_since = 'неизвестно';
 
     if (enchanted['timestamp_utc']) {
-        enchanted_utc = new Date(enchanted['timestamp_utc'] + "Z") // Adding Z so that parse assumes UTC 
-        enchanted_millis = enchanted_utc.getTime() // enchanted utc time in millis
-        now_millis = new Date().getTime() // current utc time in millis 
+        enchanted_utc = dateFromUTCText(enchanted['timestamp_utc']);
+        enchanted_millis = enchanted_utc.getTime(); // enchanted utc time in millis
+        now_millis = new Date().getTime(); // current utc time in millis 
 
         if (now_millis - enchanted_millis > 5000*60) {
             status_class = 'down';
@@ -17,7 +26,7 @@ function fillStatus(enchanted, status_span, status_since_span) {
             if (enchanted['state'] && enchanted['state']['boot_utc']) {
                 status_class = 'up';
                 status_text = 'живо';
-                boot_utc = new Date(enchanted['state']['boot_utc'] + "Z") // Adding Z so that parse assumes UTC 
+                boot_utc = dateFromUTCText(enchanted['state']['boot_utc']); // Adding Z so that parse assumes UTC 
                 status_since = boot_utc.toLocaleString();
             }
         }
