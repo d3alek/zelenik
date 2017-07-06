@@ -36,7 +36,7 @@ git submodule update --init
 
 uwsgi should run as a separate user (zelenik). On arch:
 
-sudo useradd -s /usr/bin/nologin otselo
+sudo useradd -m -s /bin/bash otselo
 sudo chgrp -R otselo db
 sudo chown -R otselo db
 sudo chmod -R 774 db

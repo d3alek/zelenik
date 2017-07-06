@@ -126,7 +126,10 @@ class Enchanter:
 
     def create_default_config(self, thing, reported):
         config = []
-        senses = reported['state']['senses']
+        senses = reported['state'].get('senses')
+        if senses is None:
+            logger.of('create_default_config').warning('No senses avaiable to create default config with')
+            return
 
         analog_senses = ANALOG_SENSES.intersection(senses.keys())
         for analog_sense in analog_senses:
@@ -213,7 +216,8 @@ class Enchanter:
             old_enchanted = self.db.load_state(thing, 'enchanted')
 
         enchanted = dict(reported)
-        senses = enchanted['state']['senses']
+        senses = enchanted['state'].get('senses', {})
+
         now = parse_isoformat(enchanted['timestamp_utc'])
 
         old_enchanted_senses = old_enchanted.get('state', {}).get('senses', {})
