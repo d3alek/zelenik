@@ -17,6 +17,13 @@ history_day_pattern = re.compile('[a-z]*.([0-9-]*).txt')
 
 SHOULD_ENCHANT_FLAG = '.should-enchant.flag'
 
+def safe_json_loads(s):
+    try:
+        return json.loads(s)
+    except json.decoder.JSONDecodeError:
+        logger.of('safe_json_loads').error("Could not parse %s" % s, traceback = True) 
+        return None
+
 def change_action_diff_format(path_parts, value, compact_to):
     # Go from ['actions', 0], 'I2C-8|4|H|10|2'
     # and to_compact {"actions": {'I2C-8|4|H|10|2', 'I2C-8|4|H|10|3'}}
@@ -200,7 +207,9 @@ class DatabaseDriver:
 
             old_history_file = history
             with old_history_file.open() as f:
-                new_archive_contents = f.read()
+                lines = f.readlines()
+
+            error_free_contents = "\n".join(map(to_compact_json, [x for x in map(safe_json_loads, lines) if x is not None]))
 
             archive_directory = thing_directory / "history" / "archive"
             if not archive_directory.is_dir():
@@ -220,7 +229,7 @@ class DatabaseDriver:
 
             with ZipFile(str(archive_file), 'w', ZIP_DEFLATED) as zf:
                 arcname = '%s.%s.txt' % (state, day.isoformat())
-                zf.writestr(arcname, new_archive_contents)
+                zf.writestr(arcname, error_free_contents)
 
             old_history_file.unlink() 
 
@@ -503,7 +512,7 @@ class DatabaseDriver:
 
         if history_file.exists():
             with history_file.open() as f:
-                states = list(map(json.loads, f.readlines()))
+                states = [x for x in map(safe_json_loads, f.readlines()) if x is not None]
         else:
             log = logger.of("load_history_for_day")
             log.info("No history exists for %s %s for %s" % (thing, state_name, day))

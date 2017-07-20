@@ -10,7 +10,8 @@ import state_processor
 THING="thing"
 BASE_STATE = '{"config": %s}'
 FORMAT = '{"state": %s, "timestamp_utc": "2017-01-25 15:34:12.989202"}'
-JSN = '{"value": "%s"}' # separate case from BASE_STATE for convenience - notice the " surrounding %s
+JSN = '{"value":"%s"}' # separate case from BASE_STATE for convenience - notice the " surrounding %s
+BROKEN_JSN = '{"value", "%s"}'
 FORMAT_TS = '{"state": %s, "timestamp_utc": "%s"}'
 
 # source http://stackoverflow.com/a/765990
@@ -373,6 +374,23 @@ class TestDatabaseDriverHistory(TestDatabaseDriver):
         self.then_archive_exists("reported", JSN % "oldest", day=last_week)
         self.then_state_exists("reported", FORMAT % JSN % "new")
 
+    def test_update_creates_error_free_archive(self):
+        today = date.today()
+        yesterday = today - timedelta(days=1)
+        last_week = today - timedelta(days=7)
+
+        self.given_thing()
+        self.given_state("reported", JSN % "old")
+        self.given_history("reported", "%s\n%s" % (BROKEN_JSN % "oldest-broken", JSN % "oldest"), day=last_week)
+        self.given_history("reported", JSN % "older", day=yesterday)
+        self.when_updating_reported(JSN % "new")
+
+        self.then_two_histories("reported")
+        self.then_history_exists("reported", JSN % "older", day=yesterday)
+        self.then_history_exists("reported", JSN % "old")
+        self.then_archive_exists("reported", JSN % "oldest", day=last_week)
+        self.then_state_exists("reported", FORMAT % JSN % "new")
+
     def test_update_creates_new_archive(self):
         today = date.today()
         yesterday = today - timedelta(days=1)
@@ -407,6 +425,25 @@ class TestDatabaseDriverHistory(TestDatabaseDriver):
 
         self.then_history_values_are([1, 2, 3])
 
+    def test_load_history_ignores_errors(self):
+        today = date.today()
+        yesterday = today - timedelta(days=1)
+
+        today_timestamp = datetime.utcnow().isoformat(sep=' ')
+        yesterday_timestamp = (datetime.utcnow() - timedelta(days=1)).isoformat(sep=' ')
+
+        self.given_thing()
+
+        self.given_state("reported", FORMAT_TS % (JSN % 3, today_timestamp))
+        self.given_history("reported", FORMAT_TS % (JSN % 2, today_timestamp), day=today)
+        self.given_history("reported", FORMAT_TS % (BROKEN_JSN % 1, yesterday_timestamp), day=yesterday)
+
+        self.when_loading_reported_history()
+
+        self.then_history_values_are([2, 3])
+
+
+
     def test_load_history_since_days(self):
         today = datetime.utcnow().isoformat(sep=' ')
         yesterday = (datetime.utcnow() - timedelta(days=1)).isoformat(sep=' ')
@@ -438,7 +475,6 @@ class TestDatabaseDriverHistory(TestDatabaseDriver):
         self.when_loading_reported_history()
 
         self.then_history_values_are([1, 2, 3])
-
 
     def test_update_desired_adds_history_timestamp(self):
         self.given_thing()

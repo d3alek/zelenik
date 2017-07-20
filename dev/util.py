@@ -57,7 +57,7 @@ def gradientDescent(x, y, theta, alpha, m, numIterations):
         # avg cost per example (the 2 in 2*m doesn't really matter here.
         # But to be consistent with the gradient, I include it)
         cost = np.sum(loss ** 2) / (2 * m)
-        print("Iteration %d | Cost: %f" % (i, cost))
+        # print("Iteration %d | Cost: %f" % (i, cost))
         # avg gradient per example
         gradient = np.dot(xTrans, loss) / m
         # update
