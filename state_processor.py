@@ -149,7 +149,7 @@ def explode_sense(value):
         if split[3] == 'w':
             enriched_sense['wrong'] = int(split[0])
         else:
-            enriched_sense['value'] = int(split[0])
+            enriched_sense['value'] = float(split[0])
 
     if alias:
         enriched_sense['alias'] = alias

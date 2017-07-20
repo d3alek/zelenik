@@ -148,6 +148,15 @@ class TestStateProcessor(unittest.TestCase):
 
         self.then_exploded(exploded)
 
+    def test_explode_float_enriched_sense(self):
+        compact = SENSES % '{"OW-x": "10.5|98|10|c"}'
+        exploded = SENSES % '{"OW-x": {"value": 10.5, "expected": 98, "ssd": 10}}'
+        self.when_exploding(compact)
+
+        self.then_exploded(exploded)
+
+
+
     def test_explode_wrong_sense_removes_value(self):
         compact = SENSES % '{"I2C-8": "100|800|10|w"}'
         exploded = SENSES % '{"I2C-8": {"wrong": 100, "expected": 800, "ssd": 10}}'
