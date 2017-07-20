@@ -147,7 +147,7 @@ def explode_sense(value):
         if int(split[2]) != WRONG_VALUE_INT:
             enriched_sense['ssd'] = int(split[2])
         if split[3] == 'w':
-            enriched_sense['wrong'] = int(split[0])
+            enriched_sense['wrong'] = float(split[0])
         else:
             enriched_sense['value'] = float(split[0])
 
