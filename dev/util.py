@@ -22,7 +22,7 @@ def extract_value(value_json):
             return value
         elif isinstance(value, str) and value.startswith('w'):
             return value # wrong but let pandas handle it
-    error('extract_value', 'Expected value to be either a number or a dict with value number or marked as wrong, got %s instead.' % value_json)
+    #error('extract_value', 'Expected value to be either a number or a dict with value number or marked as wrong, got %s instead.' % value_json)
     return float("nan")
 
 def flat_map(senses):
@@ -44,4 +44,28 @@ def load_write(a_thing, write, since_days=1):
     values = list(map(lambda s: extract_value(s.get(write)), history_writes))
 
     return pd.Series(values, map(pd.Timestamp, history_times), name=write)
+
+# source: https://stackoverflow.com/a/17796231
+# m denotes the number of examples here, not the number of features
+def gradientDescent(x, y, theta, alpha, m, numIterations):
+    x = x.fillna(0)
+    y = y.fillna(0)
+    xTrans = x.transpose()
+    for i in range(0, numIterations):
+        hypothesis = np.dot(x, theta)
+        loss = hypothesis - y
+        # avg cost per example (the 2 in 2*m doesn't really matter here.
+        # But to be consistent with the gradient, I include it)
+        cost = np.sum(loss ** 2) / (2 * m)
+        print("Iteration %d | Cost: %f" % (i, cost))
+        # avg gradient per example
+        gradient = np.dot(xTrans, loss) / m
+        # update
+        theta = theta - alpha * gradient
+    return theta
+
+def at_five(s):
+    day = s.index[0].day
+    month = s.index[0].month
+    return s[('2017-%02d-%02d 14:00' % (month, day)):('2017-%02d-%02d 14:30' % (month, day))]
 

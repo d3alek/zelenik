@@ -45,7 +45,7 @@ And add your user to otselo...
 
 sudo usermod -a -G otselo <your user>
 
-And add otselo to systemd-journal
+And add otselo to systemd-journal and dialout
 
-sudo usermod -a -G systemd-journal otselo
+sudo usermod -a -G systemd-journal otselo dialout
 
