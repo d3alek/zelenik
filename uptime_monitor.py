@@ -59,15 +59,14 @@ class UptimeMonitor:
         slave = True
         try:
             r = requests.get('http://otselo.eu/hostname.html', timeout=1)
+            if r.status_code == 200:
+                master = r.text.strip()
+            else:
+                log.error("Connected to master but could not get hostname")
+                master = "otselo.eu"
+                log.error(DOWN_LAST_SEEN % (master, local_day_hour_minute(self.db.get_timestamp())))
         except:
-            log.error('Could not connect to master to get hostname', traceback=True) 
-            master = "otselo.eu"
-            log.error(DOWN_LAST_SEEN % (master, local_day_hour_minute(self.db.get_timestamp())))
-
-        if r.status_code == 200:
-            master = r.text.strip()
-        else:
-            log.error("Connected to master but could not get hostname")
+            log.error('Could not connect to master to get hostname') 
             master = "otselo.eu"
             log.error(DOWN_LAST_SEEN % (master, local_day_hour_minute(self.db.get_timestamp())))
 
