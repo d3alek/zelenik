@@ -341,7 +341,7 @@ class DatabaseDriver:
         state_file = state_path.with_suffix(".json")
 
         if state_file.exists():
-            with state_file.open() as f:
+            with state_file.open(encoding='utf-8') as f:
                 contents = f.read()
 
             deserialized = json.loads(contents)
