@@ -553,4 +553,7 @@ class DatabaseDriver:
     def get_thing_list(self):
         return [thing_path.name for thing_path in self.directory.iterdir() if thing_path.is_dir() and thing_path.name not in ('na', 'stado')]
 
+    # TODO Should return the time when the last completed backup began
+    def get_timestamp(self):
+        return None 
 

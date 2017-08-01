@@ -68,48 +68,49 @@
 
             <div id="configuration">
                 <div>
-                <pre id="enchanted"><!--#include file="enchanted.json" --></pre>
-                <form id="enchanter-form" action="update" method="POST">
-                <textarea id="enchanter-input" name="enchanter" wrap="off" rows="15" cols="40"><!--#include file="enchanter.json" stub="none"--></textarea>
-                <br>
-                <input class="button" type="submit" value="Запази">
-                </form>
+                    <pre id="enchanted"><!--#include file="enchanted.json" --></pre>
+                    <form id="enchanter-form" action="update" method="POST">
+                        <textarea id="enchanter-input" name="enchanter" wrap="off" rows="15" cols="40"><!--#include file="enchanter.json" stub="none"--></textarea>
+                        <br>
+                        <input class="button" type="submit" value="Запази">
+                    </form>
 
                 </div>
 
                 <div id="reported">
-                <pre><!--#include file="reported.json" --></pre>
+                    <pre><!--#include file="reported.json" --></pre>
                 </div>
 
                 <div id="desired">
-                <form id="desired-form" action="update" method="POST">
-                <textarea id="desired-input" name="desired" wrap="off" rows="15" cols="40"><!--#include file="desired.json" stub="none"--></textarea>
-                <br>
-                <input class="button" type="submit" value="Запази">
-                </form>
+                    <form id="desired-form" action="update" method="POST">
+                        <textarea id="desired-input" name="desired" wrap="off" rows="15" cols="40"><!--#include file="desired.json" stub="none"--></textarea>
+                        <br>
+                        <input class="button" type="submit" value="Запази">
+                    </form>
                 </div>
 
                 <div class="clear"></div>
-                
+
                 <div id="displayables">
-                <form id="displayables-form" action="update" method="POST">
-                <textarea id="displayables-input" name="displayables" wrap="off" rows="10" cols="40"><!--#include file="displayables.json" stub="none"--></textarea>
-                <br>
-                <input type="submit" value="Запази" class="button">
-                </form>
+                    <form id="displayables-form" action="update" method="POST">
+                        <textarea id="displayables-input" name="displayables" wrap="off" rows="10" cols="40"><!--#include file="displayables.json" stub="none"--></textarea>
+                        <br>
+                        <input type="submit" value="Запази" class="button">
+                    </form>
+                </div>
 
                 <form action="update" method="POST">
-                <h1>Зеленик 
-                <input type="text" name="thing-alias" value="<!--# echo var='thing' -->">
-                <input class="button" type="submit" value="Запази">
-                </h1>
+                    <h1>Зеленик 
+                        <input type="text" name="thing-alias" value="<!--# echo var='thing' -->">
+                        <input class="button" type="submit" value="Запази">
+                    </h1>
                 </form>
             </div>
 
             <hr />
             <footer>
                 <ul class="horizontal-list">
-                    <li>Зеленик 2017</li>
+                    <li>Зеленик 2017 (<!--# echo var="hostname" default="unknown_host" -->)</li>
                     <li><a href="/">Начало</a></li>
                     <li><a href="/db">Всички устройства</a></li>
                     <li><a href="mailto:akodzhabashev@gmail.com">Свържете се с нас</a></li>

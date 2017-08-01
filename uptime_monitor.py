@@ -18,6 +18,9 @@ import json
 from dateutil import tz
 local_timezone = tz.gettz('Europe/Sofia')
 
+from socket import gethostname
+import requests
+
 logger = Logger("uptime_monitor")
 
 DIR = '/www/zelenik/'
@@ -28,7 +31,8 @@ UP_SINCE = '%s is up since: %s'
 DOWN_LAST_SEEN = '%s is down. Last seen: %s'
 
 def local_day_hour_minute(dt):
-    log = logger.of('local_day_hour_minute')
+    if dt == None:
+        return "none"
     utc_dt = dt.replace(tzinfo=timezone.utc)
     local_dt = utc_dt.astimezone(local_timezone)
     return local_dt.strftime("%Y-%m-%d %H:%M")
@@ -39,6 +43,7 @@ class UptimeMonitor:
         self.db = db_driver.DatabaseDriver(working_directory)
 
         self.db_path = Path(self.working_directory) / 'db'
+        self.hostname = gethostname()
 
     def monitor(self):
         log = logger.of('monitor')
@@ -51,19 +56,30 @@ class UptimeMonitor:
             self.stop()
             return
 
-        things = self.db.get_thing_list()
+        slave = True
+        r = requests.get('http://otselo.eu/hostname.html')
+        if r.status_code == 200:
+            master = r.text.strip()
+        else:
+            master = "otselo.eu"
+            log.error(DOWN_LAST_SEEN % (master, local_day_hour_minute(self.db.get_timestamp())))
 
-        summary = {'up': [], 'down': [], 'error': []}
+        if master == self.hostname:
+            log.info('Master host - checking things uptime')
 
-        for thing in things:
-            key, alias, since = self.check_uptime(thing)
-            value = {'thing': thing, 'alias': alias, 'since': since }
-            summary[key].append(value)
-        
-        thing_summary = self.db_path / THING_SUMMARY
+            things = self.db.get_thing_list()
 
-        with thing_summary.open('w') as f:
-            f.write(pretty_json(summary))
+            summary = {'up': [], 'down': [], 'error': []}
+
+            for thing in things:
+                key, alias, since = self.check_uptime(thing)
+                value = {'thing': thing, 'alias': alias, 'since': since }
+                summary[key].append(value)
+            
+            thing_summary = self.db_path / THING_SUMMARY
+
+            with thing_summary.open('w') as f:
+                f.write(pretty_json(summary))
 
         if self.running:
             t = threading.Timer(RUN_EVERY, self.monitor)
