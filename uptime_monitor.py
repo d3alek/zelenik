@@ -65,7 +65,7 @@ class UptimeMonitor:
             log.error(DOWN_LAST_SEEN % (master, local_day_hour_minute(self.db.get_timestamp())))
 
         if master == self.hostname:
-            log.info('Master host - checking things uptime')
+            log.info('Master host - monitoring things uptime')
 
             things = self.db.get_thing_list()
 
@@ -80,7 +80,8 @@ class UptimeMonitor:
 
             with thing_summary.open('w') as f:
                 f.write(pretty_json(summary))
-
+        else:
+            log.info('Slave host - only monitoring master uptime')
         if self.running:
             t = threading.Timer(RUN_EVERY, self.monitor)
             t.start()
