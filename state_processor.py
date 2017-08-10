@@ -202,16 +202,34 @@ def explode_senses(senses, previous_senses, previous_timestamp):
 
     return exploded
 
-def timestamp_from_epoch(seconds):
-    return datetime.utcfromtimestamp(seconds).isoformat(sep=' ')
+def datetime_from_epoch(seconds):
+    return datetime.utcfromtimestamp(seconds)
+
+def almost_equal(a, b, max_delta):
+    return a > b - max_delta and a < b + max_delta
 
 def explode(json, previous_json={}, previous_timestamp=None):
     exploded = {}
+    log = logger.of('explode')
     for key, value in json.items():
         previous_value = previous_json.get(key, {})
         if key == 'b':
             key = 'boot_utc'
-            exploded_value = timestamp_from_epoch(int(value))
+            boot_utc = datetime_from_epoch(int(value))
+
+            previous_boot_utc_string = previous_json.get('boot_utc')
+
+            if previous_boot_utc_string:
+                previous_boot_utc = parse_isoformat(previous_boot_utc_string)
+                sleep_seconds = json.get('config', {}).get('sleep', 0)
+                delta_seconds = (boot_utc - previous_boot_utc).total_seconds()
+
+                if almost_equal(delta_seconds, sleep_seconds, 10):
+                    log.info('Looks like device has slept for %d seconds' % delta_seconds)
+                    boot_utc = previous_boot_utc
+
+            exploded_value = boot_utc.isoformat(sep=' ')
+
         elif key == 'actions':
             exploded_value = explode_actions(value)
         elif key == 'senses':
