@@ -1,0 +1,12 @@
+[Unit]
+Description=Server Operator (zelenik)
+After=syslog.target
+
+[Service]
+Restart=always
+ExecStart=/www/zelenik/server_operator.py
+StandardError=syslog
+User=otselo
+
+[Install]
+WantedBy=multi-user.target

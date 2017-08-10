@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 
 import db_driver
 from db_driver import pretty_json
+from server_operator import get_server_hostname
 
 from state_processor import parse_isoformat
 
@@ -56,22 +57,8 @@ class UptimeMonitor:
             self.stop()
             return
 
-        slave = True
-        try:
-            r = requests.get('http://otselo.eu/hostname.html', timeout=1)
-            if r.status_code == 200:
-                master = r.text.strip()
-                log.warning(UP_SINCE  % (master, local_day_hour_minute(self.db.get_timestamp())))
-            else:
-                log.warning("Connected to master but could not get hostname")
-                master = "otselo.eu"
-                log.error(DOWN_LAST_SEEN % (master, local_day_hour_minute(self.db.get_timestamp())))
-        except:
-            log.warning('Could not connect to master to get hostname') 
-            master = "otselo.eu"
-            log.error(DOWN_LAST_SEEN % (master, local_day_hour_minute(self.db.get_timestamp())))
-
-        if master == self.hostname:
+        server_hostname = get_server_hostname() 
+        if server_hostname == self.hostname:
             log.info('Master host - monitoring things uptime')
 
             things = self.db.get_thing_list()
@@ -88,7 +75,7 @@ class UptimeMonitor:
             with thing_summary.open('w') as f:
                 f.write(pretty_json(summary))
         else:
-            log.info('Slave host - only monitoring master uptime')
+            log.info('Slave host - doing nothing')
         if self.running:
             t = threading.Timer(RUN_EVERY, self.monitor)
             t.start()
