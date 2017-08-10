@@ -53,11 +53,11 @@ class ServerOperator:
         server_hostname = get_server_hostname()
 
         if server_hostname:
-            log.warning(UP_SINCE % (server_hostname, local_day_hour_minute(self.db.get_timestamp())))
             if server_hostname == gethostname():
                 log.info('Master mode, skipping backup')
             else:
                 log.info('Slave mode, backing up')
+                log.warning(UP_SINCE % (server_hostname, local_day_hour_minute(self.db.get_timestamp())))
                 log.info(" ".join(["rsync", "-az", "--delete", "--rsh=ssh -p8902 -i " + DIR + "secret/otselo_id_rsa", "otselo@otselo.eu:/www/zelenik/db", DIR]))
                 try:
                     subprocess.call(["rsync", "-az", "--delete", "--rsh=ssh -p8902 -i " + DIR + "secret/otselo_id_rsa", "otselo@otselo.eu:/www/zelenik/db", DIR])
