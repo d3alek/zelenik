@@ -9,6 +9,7 @@ DEFAULT_WRITE = "high"
 DEFAULT_DELTA = 0
 DEFAULT_DELETE = "no"
 REQUIRED_ACTION_ATTRIBUTES = ['sense', 'gpio', 'threshold']
+TYPICAL_AWAKE_SECONDS = 30
 
 # action has the form sense|<pin#>|<H,L>|<thresh>|<delta>
 ACTION_PATTERN = re.compile(r'^([a-zA-Z0-9-]+)\|(\d+)\|([HL])\|(\d+)\|(\d+)$')
@@ -224,8 +225,10 @@ def explode(json, previous_json={}, previous_timestamp=None):
                 sleep_seconds = json.get('config', {}).get('sleep', 0)
                 delta_seconds = (boot_utc - previous_boot_utc).total_seconds()
 
-                if almost_equal(delta_seconds, sleep_seconds, 10):
-                    log.info('Looks like device has slept for %d seconds' % delta_seconds)
+                if delta_seconds < 10:
+                    boot_utc = previous_boot_utc
+                elif almost_equal(delta_seconds, sleep_seconds, TYPICAL_AWAKE_SECONDS):
+                    log.info('Looks like device has slept, adjusting boot for %d seconds ago' % delta_seconds)
                     boot_utc = previous_boot_utc
 
             exploded_value = boot_utc.isoformat(sep=' ')
