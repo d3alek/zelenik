@@ -60,7 +60,7 @@ class ServerOperator:
                 log.warning(UP_SINCE % (server_hostname, local_day_hour_minute(self.db.get_timestamp())))
                 log.info(" ".join(["rsync", "-az", "--delete", "--rsh=ssh -p8902 -i " + DIR + "secret/otselo_id_rsa", "otselo@otselo.eu:/www/zelenik/db", DIR]))
                 try:
-                    subprocess.call(["rsync", "-az", "--delete", "--rsh=ssh -p8902 -i " + DIR + "secret/otselo_id_rsa", "otselo@otselo.eu:/www/zelenik/db", DIR])
+                    subprocess.check_call(["rsync", "-az", "--delete", "--rsh=ssh -p8902 -i " + DIR + "secret/otselo_id_rsa", "otselo@otselo.eu:/www/zelenik/db", DIR])
                     log.info('Backup successful')
                 except:
                     log.error('Failed to backup', traceback=True)
