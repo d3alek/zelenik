@@ -49,3 +49,14 @@ And add otselo to systemd-journal and dialout
 
 sudo usermod -a -G systemd-journal otselo dialout
 
+
+For backups to work, you need to disable strict host key checking:
+
+sudo -u otselo vim /home/otselo/.ssh/config
+
+Host *
+    StrictHostKeyChecking no
+
+sudo chmod -R 700 secret
+sudo chown -R otselo secret
+sudo chgrp -R otselo secret
