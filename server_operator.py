@@ -62,8 +62,11 @@ class ServerOperator:
                 try:
                     subprocess.check_call(["rsync", "-az", "--delete", "--rsh=ssh -p8902 -i " + DIR + "secret/otselo_id_rsa", "otselo@otselo.eu:/www/zelenik/db", DIR])
                     log.info('Backup successful')
-                except:
-                    log.error('Failed to backup', traceback=True)
+                except CalledProcessError as e:
+                    if e.returncode == 24:
+                        pass # this happens when some files were indexed but were deleted before rsync finished - this tends to happen with our database
+                    else:
+                        log.error('Failed to backup', traceback=True)
         else:
             log.error(DOWN_LAST_SEEN % ("otselo.eu", local_day_hour_minute(self.db.get_timestamp())))
             # TODO maybe retry, if failing for a while assume domain
