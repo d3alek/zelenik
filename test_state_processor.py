@@ -34,18 +34,18 @@ class TestStateProcessor(unittest.TestCase):
         self.then_exploded(exploded)
 
     def test_preserve_boot_time_if_sleeping(self):
-        compact = '{"b":1498465149, "config":{"sleep":60}}'
-        exploded = '{"boot_utc": "2017-06-26 08:19:09", "config":{"sleep":60}}'
-        previous_exploded = '{"boot_utc": "2017-06-26 08:18:00", "config":{"sleep":60}}'
+        compact = '{"b":1498465149}'
+        exploded = '{"boot_utc": "2017-06-26 08:19:09"}'
+        previous_exploded = '{"boot_utc": "2017-06-26 08:17:00", "config":{"sleep":60}, "timestamp_utc": "2017-06-26 08:18:00"}'
 
         self.when_exploding(compact, previous_exploded)
 
-        self.then_exploded(previous_exploded)
+        self.then_exploded(exploded)
 
     def test_adjust_boot_time_if_overslept(self):
         compact = '{"b":1498465149}'
         exploded = '{"boot_utc": "2017-06-26 08:19:09"}'
-        previous_exploded = '{"boot_utc": "2017-06-26 08:17:00", "config":{"sleep":60}}'
+        previous_exploded = '{"boot_utc": "2017-06-26 08:17:00", "config":{"sleep":60}, "timestamp_utc": "2017-06-26 08:17:00"}'
 
         self.when_exploding(compact, previous_exploded)
 

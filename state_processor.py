@@ -222,14 +222,17 @@ def explode(json, previous_json={}, previous_timestamp=None):
 
             if previous_boot_utc_string:
                 previous_boot_utc = parse_isoformat(previous_boot_utc_string)
+
                 sleep_seconds = json.get('config', {}).get('sleep', 0)
                 delta_seconds = (boot_utc - previous_boot_utc).total_seconds()
 
                 if delta_seconds < 3: # expected fluctuations due to clock inaccuracies
                     boot_utc = previous_boot_utc
-                elif almost_equal(delta_seconds, sleep_seconds, TYPICAL_AWAKE_SECONDS):
-                    log.info('Looks like device has slept, adjusting boot for %d seconds ago' % delta_seconds)
-                    boot_utc = previous_boot_utc
+                elif previous_timestamp:
+                    update_delta_seconds = (datetime.utcnow() - previous_timestamp).total_seconds()
+                    if almost_equal(update_delta_seconds, sleep_seconds, TYPICAL_AWAKE_SECONDS):
+                        log.info('Looks like device has slept, adjusting boot for %d seconds ago' % delta_seconds)
+                        boot_utc = previous_boot_utc
 
             exploded_value = boot_utc.isoformat(sep=' ')
 
