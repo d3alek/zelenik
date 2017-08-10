@@ -209,7 +209,7 @@ def datetime_from_epoch(seconds):
 def almost_equal(a, b, max_delta):
     return a > b - max_delta and a < b + max_delta
 
-def explode(json, previous_json={}, previous_timestamp=None):
+def explode(json, previous_json={}, previous_timestamp_string=None):
     exploded = {}
     log = logger.of('explode')
     for key, value in json.items():
@@ -228,8 +228,8 @@ def explode(json, previous_json={}, previous_timestamp=None):
 
                 if delta_seconds < 3: # expected fluctuations due to clock inaccuracies
                     boot_utc = previous_boot_utc
-                elif previous_timestamp:
-                    update_delta_seconds = (datetime.utcnow() - previous_timestamp).total_seconds()
+                elif previous_timestamp_string:
+                    update_delta_seconds = (datetime.utcnow() - parse_isoformat(previous_timestamp_string)).total_seconds()
                     if almost_equal(update_delta_seconds, sleep_seconds, TYPICAL_AWAKE_SECONDS):
                         log.info('Looks like device has slept, adjusting boot for %d seconds ago' % delta_seconds)
                         boot_utc = previous_boot_utc
@@ -239,9 +239,9 @@ def explode(json, previous_json={}, previous_timestamp=None):
         elif key == 'actions':
             exploded_value = explode_actions(value)
         elif key == 'senses':
-            exploded_value = explode_senses(value, previous_value, previous_timestamp)
+            exploded_value = explode_senses(value, previous_value, previous_timestamp_string)
         elif type(value) is dict:
-            exploded_value = explode(value, previous_value, previous_timestamp)
+            exploded_value = explode(value, previous_value, previous_timestamp_string)
         else:
             exploded_value = value
         exploded[key] = exploded_value 
