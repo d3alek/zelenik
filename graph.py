@@ -116,6 +116,9 @@ def subsample_history(history, conditions):
         subsampled.extend(history[index:next_index:subsample_rate])
         index = next_index
 
+    if index < len(history):
+        subsampled.extend(history[index:])
+
     log.info('Subsampling reduced data from %d to %d' % (len(history), len(subsampled)))
 
     return subsampled
