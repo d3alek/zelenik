@@ -225,7 +225,7 @@ def explode(json, previous_json={}, previous_timestamp=None):
                 sleep_seconds = json.get('config', {}).get('sleep', 0)
                 delta_seconds = (boot_utc - previous_boot_utc).total_seconds()
 
-                if delta_seconds < 10:
+                if delta_seconds < 3: # expected fluctuations due to clock inaccuracies
                     boot_utc = previous_boot_utc
                 elif almost_equal(delta_seconds, sleep_seconds, TYPICAL_AWAKE_SECONDS):
                     log.info('Looks like device has slept, adjusting boot for %d seconds ago' % delta_seconds)
