@@ -128,7 +128,7 @@ class Enchanter:
         config = []
         senses = reported['state'].get('senses')
         if senses is None:
-            logger.of('create_default_config').warning('No senses avaiable to create default config with')
+            logger.of('create_default_config').info('No senses avaiable to create default config with')
             return
 
         analog_senses = ANALOG_SENSES.intersection(senses.keys())
@@ -251,7 +251,7 @@ class Enchanter:
         
         if key not in senses:
             if ':' not in key:
-                log.warning('Could not retrieve sense value because key %s missing in senses %s' % (key, senses))
+                log.info('Could not retrieve sense value because key %s missing in senses %s' % (key, senses))
                 return None
 
             split = key.split(':')
@@ -285,7 +285,7 @@ class Enchanter:
         from_sense_values = list(map(lambda k: self.retrieve_sense_value(k, senses = senses), from_keys))
 
         if None in from_sense_values:
-            log.warning('Not applying formula %s because at least one from value missing: %s' % (formula_config, from_sense_values))
+            log.info('Not applying formula %s because at least one from value missing: %s' % (formula_config, from_sense_values))
             return 
 
         formula = formula_config['formula']
