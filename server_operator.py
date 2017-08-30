@@ -26,7 +26,7 @@ def local_day_hour_minute(dt):
 def get_server_hostname():
     log = logger.of('get_server_hostname')
     try:
-        r = requests.get('http://otselo.eu/hostname.html', timeout=1, retry=3)
+        r = requests.get('http://otselo.eu/hostname.html', timeout=1)
         r.raise_for_status()
         master = r.text.strip()
         log.info('Master hostname is %s' % master)
