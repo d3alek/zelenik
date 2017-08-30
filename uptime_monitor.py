@@ -58,7 +58,7 @@ class UptimeMonitor:
             return
 
         server_hostname = get_server_hostname() 
-        if True:#server_hostname == self.hostname:
+        if server_hostname == self.hostname:
             log.info('Master host - monitoring things uptime')
 
             things = self.db.get_thing_list()
