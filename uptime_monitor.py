@@ -28,8 +28,8 @@ DIR = '/www/zelenik/'
 
 RUN_EVERY = 30 # seconds
 THING_SUMMARY = 'thing-summary.json'
-UP_SINCE = '%s is up since: %s'
-DOWN_LAST_SEEN = '%s is down. Last seen: %s'
+UP_SINCE = '%s is up\nSince: %s\nhttp://otselo.eu/na/%s'
+DOWN_LAST_SEEN = '%s is down.\nLast seen: %s\nhttp://otselo.eu/na/%s'
 
 def local_day_hour_minute(dt):
     if dt == None:
@@ -58,16 +58,26 @@ class UptimeMonitor:
             return
 
         server_hostname = get_server_hostname() 
-        if server_hostname == self.hostname:
+        if True:#server_hostname == self.hostname:
             log.info('Master host - monitoring things uptime')
 
             things = self.db.get_thing_list()
 
+            previous_summary = self.read_thing_summary()
             summary = {'up': [], 'down': [], 'error': []}
 
             for thing in things:
                 key, alias, since = self.check_uptime(thing)
                 value = {'thing': thing, 'alias': alias, 'since': since }
+                # if a thing state has changed, report it
+                if value not in previous_summary[key]:
+                    if key == 'up':
+                        log.warning(up_message(alias, since))
+                    elif key == 'down':
+                        log.error(down_message(alias, since))
+                    else:
+                        log.error(error_message(alias))
+
                 summary[key].append(value)
             
             thing_summary = self.db_path / THING_SUMMARY
@@ -86,14 +96,13 @@ class UptimeMonitor:
         timestamp_string = enchanted.get('timestamp_utc')
         aliased_thing = self.db.alias_thing(thing)
         if timestamp_string is None:
-            log.error('Enchanted for %s does not contain timestamp: %s' % (aliased_thing, enchanted))
+            log.info('Enchanted for %s does not contain timestamp: %s' % (aliased_thing, enchanted))
             return 'error', aliased_thing, None
 
         five_minutes_ago = datetime.utcnow() - timedelta(minutes=5)
         timestamp = parse_isoformat(timestamp_string)
         if timestamp < five_minutes_ago:
             since = local_day_hour_minute(timestamp)
-            log.error(DOWN_LAST_SEEN % (aliased_thing, since))
             return 'down', aliased_thing, since
         else:
             boot_utc_string = enchanted['state'].get('boot_utc')
@@ -103,7 +112,6 @@ class UptimeMonitor:
                 return 'error', aliased_thing, None
             up_since = parse_isoformat(boot_utc_string)
             since = local_day_hour_minute(up_since)
-            log.warning(UP_SINCE  % (aliased_thing, since))
             return 'up', aliased_thing, since
 
     def start(self):
@@ -115,29 +123,23 @@ class UptimeMonitor:
     def stop(self):
         logger.of('stop').info('Stopping')
         self.running = False
-
-    def messages_from_thing_summary(self):
+    
+    def read_thing_summary(self):
         thing_summary = self.db_path / THING_SUMMARY
 
         with thing_summary.open() as f:
             summary = json.loads(f.read())
 
-        messages = []
-        for value in summary['up']:
-            thing = value['thing']
-            alias = value['alias']
-            since = value['since']
+        return summary
 
-            messages.append(UP_SINCE % (alias, since))
+def up_message(thing, since):
+    return UP_SINCE % (thing, since, thing)
 
-        for value in summary['down']:
-            thing = value['thing']
-            alias = value['alias']
-            since = value['since']
+def down_message(thing, last_seen): 
+    return DOWN_LAST_SEEN % (thing, last_seen, thing)
 
-            messages.append(DOWN_LAST_SEEN % (alias, since))
-        
-        return messages
+def error_message(thing):
+    return "%s entered error state"
 
 if __name__ == '__main__':
     monitor = UptimeMonitor()

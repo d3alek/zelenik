@@ -1,5 +1,6 @@
 #!/www/zelenik/venv/bin/python
 import sys
+from socket import gethostname
 
 import smtplib
 from email.mime.text import MIMEText
@@ -11,12 +12,16 @@ from systemd import journal
 
 import time
 
-from uptime_monitor import UptimeMonitor
+from uptime_monitor import UptimeMonitor, down_message, up_message
 
 DIR = '/www/zelenik/'
 HUMAN_OPERATOR = "akodzhabashev@gmail.com"
+ALWAYS_REPORT_FROM = ['uptime_monitor']
 
 class ErrorReporter:
+    def __init__(self):
+        self.hostname = gethostname()
+
     def report(self):
         log = logger.of('report')
         j = journal.Reader()
@@ -26,7 +31,7 @@ class ErrorReporter:
         j.seek_tail()
         j.get_previous()
 
-        reported = set(UptimeMonitor().messages_from_thing_summary())
+        already_reported = set()
 
         while True:
             result = j.wait()
@@ -36,26 +41,18 @@ class ErrorReporter:
                     logger_name = entry.get('LOGGER')
                     unit = entry.get('_SYSTEMD_UNIT')
                     priority = entry.get('PRIORITY')
-                    if priority == journal.LOG_WARNING and "is up" in message and message not in reported:
-                        thing = message.split("is up")[0].strip()
-                        notify_human_operator('%s is up' % thing, message) 
-                        reported.add(message)
 
-                    if priority == journal.LOG_ERR:
-                        if message in reported:
-                            log.info('Already reported this error')
-                        else:
-                            if "is down" in message:
-                                thing = message.split("is down")[0].strip()
-                                subject = '%s is down' % thing
-                            else:
-                                subject = 'Error from %s' % logger_name
+                    if priority in [journal.LOG_ERR, journal.LOG_WARNING] and message not in already_reported:
+                        subject = message.split('\n')[0].strip()
+                        notify_human_operator(subject, self.sign(message, logger_name)) 
+                        if logger_name not in ALWAYS_REPORT_FROM:
+                            already_reported.add(message)
 
-                            notify_human_operator(subject, message + "\n%s" % unit) 
-                            reported.add(message)
+    def sign(self, message, source):
+        return message + "\n\n%s@%s" % (source, self.hostname)
 
 def notify_human_operator(subject, body):
-    msg = MIMEText(body)
+    msg = MIMEText(body, _subtype='plain', _charset='utf-8')
     msg['Subject'] = subject
     msg['From'] = "reporter@otselo.eu"
     msg['To'] = HUMAN_OPERATOR
@@ -66,7 +63,7 @@ def notify_human_operator(subject, body):
             s.send_message(msg)
         log.info('Sent error report to %s' % HUMAN_OPERATOR)
     except ConnectionRefusedError:
-        log.info('Could not send email %s' % msg)
+        log.info('Could not send email:\n%s\nDecoded message:\n%s' % (msg, body))
 
 
 if __name__ == '__main__':

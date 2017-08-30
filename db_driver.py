@@ -359,7 +359,6 @@ class DatabaseDriver:
         for existing_alias in alias_directory.iterdir():
             if existing_alias.resolve().name == thing:
                 alias = existing_alias.name
-                log.info("Aliased thing %s to %s" % (thing, alias))
                 break
 
         return alias

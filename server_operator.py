@@ -13,8 +13,8 @@ logger = Logger("server_operator")
 DIR = '/www/zelenik/'
 
 RUN_EVERY = 5*60 # seconds
-UP_SINCE = '%s is up since: %s'
-DOWN_LAST_SEEN = '%s is down. Last seen: %s'
+UP_SINCE = '%s is up\nSince: %s'
+DOWN_LAST_SEEN = '%s is down\nLast seen: %s'
 
 def local_day_hour_minute(dt):
     if dt == None:
@@ -23,20 +23,22 @@ def local_day_hour_minute(dt):
     local_dt = utc_dt.astimezone(local_timezone)
     return local_dt.strftime("%Y-%m-%d %H:%M")
 
-
 def get_server_hostname():
     log = logger.of('get_server_hostname')
     try:
-        r = requests.get('http://otselo.eu/hostname.html', timeout=1)
-        if r.status_code == 200:
-            master = r.text.strip()
-            log.info('Master hostname is %s' % master)
-            return master
-        else:
-            log.warning('Connected to server but could not get hostname')
-            return None
-    except:
-        log.error('Could not connect to server', traceback=True)
+        r = requests.get('http://otselo.eu/hostname.html', timeout=1, retry=3)
+        r.raise_for_status()
+        master = r.text.strip()
+        log.info('Master hostname is %s' % master)
+        return master
+    except requests.HTTPError:
+        log.error('Unsuccessful http request to server')
+        return None
+    except requests.Timeout:
+        log.error('Timeout when connecting to server', traceback=True)
+        return None
+    except requests.ConnectionError:
+        log.error('Network problems when connecting to server', traceback=True)
         return None
 
 class ServerOperator:
