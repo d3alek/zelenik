@@ -86,6 +86,7 @@ class UptimeMonitor:
                 f.write(pretty_json(summary))
         else:
             log.info('Slave host - doing nothing')
+
         if self.running:
             t = threading.Timer(RUN_EVERY, self.monitor)
             t.start()

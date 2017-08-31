@@ -364,16 +364,17 @@ class DatabaseDriver:
         return alias
 
     def resolve_thing(self, a_thing):
+        log = logger.of('resolve_thing')
         if (self.directory / a_thing).is_dir():
             return a_thing
         aliased_dir = self.directory / "na" / a_thing
         if aliased_dir.is_symlink():
             thing = aliased_dir.resolve().name
-            log = logger.of('resolve_thing')
             log.info("Resolved thing alias %s to %s" % (a_thing, thing))
             return thing
         else:
-            raise Exception("%s is neither a thing or a thing alias." % a_thing)
+            log.warning("%s is neither a thing or a thing alias." % a_thing)
+            return None
 
 
     def update_thing_alias(self, thing, alias):
@@ -552,7 +553,6 @@ class DatabaseDriver:
     def get_thing_list(self):
         return [thing_path.name for thing_path in self.directory.iterdir() if thing_path.is_dir() and thing_path.name not in ('na', 'stado')]
 
-    # TODO Should return the time when the last completed backup began
-    def get_timestamp(self):
-        return None 
+    def last_modified(self):
+        return datetime.utcnow()
 

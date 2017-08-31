@@ -28,8 +28,8 @@ def update_plot_background(db, a_thing, svg_bytes):
     return content_type, HTML % REDIRECT % (back_url, 'Успешно.', back_url)
 
 def update_db(db, a_thing, state, value, ret):
-    thing = db.resolve_thing(a_thing)
     log = logger.of('update_db')
+    thing = db.resolve_thing(a_thing)
 
     if state == "thing-alias":
         db.update_thing_alias(thing, value)
@@ -41,7 +41,12 @@ def update_db(db, a_thing, state, value, ret):
             log.error("Could not parse json value. %s %s %s" % (a_thing, state, value))
             return 'Could not parse json value %s %s %s' % (state, a_thing, value)
 
-        if state == 'desired': 
+        if state == 'reported':
+            if thing == None:
+                log.warning('First time heard of thing %s\nAssuming it is a new thing' % a_thing)
+                thing = a_thing
+            db.update_reported(thing, value_dict)
+        elif state == 'desired': 
             db.update_desired(thing, value_dict)
         elif state == 'enchanter':
             db.update_enchanter(thing, value_dict)
