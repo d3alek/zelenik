@@ -75,12 +75,15 @@ class ServerOperator:
             r = requests.post('http://otselo.eu/db/%s/update' % self.hostname, data={'reported': json.dumps(self.get_state())}, timeout=3, allow_redirects=False)
             r.raise_for_status()
             log.info('Successfully checked in')
+            return 'Success'
         except requests.HTTPError:
             log.error('Unsuccessful http request to server')
         except requests.Timeout:
             log.error('Timeout when connecting to server')
         except requests.ConnectionError:
             log.error('Network problems when connecting to server', traceback=True)
+
+        return None
 
     def operate(self):
         log = logger.of('operate')
