@@ -16,8 +16,11 @@ DIR = '/www/zelenik/'
 
 RUN_EVERY = 5*60 # seconds
 
-from datetime import timezone
+from datetime import timezone, datetime
 from dateutil import tz
+
+import psutil, os
+
 local_timezone = tz.gettz('Europe/Sofia')
 def local_day_hour_minute(dt):
     if dt == None:
@@ -51,7 +54,10 @@ def get_master_hostname():
         log.error('Network problems when connecting to master', traceback=True)
     return None
 
-
+# source: https://stackoverflow.com/a/4559733
+def get_process_start_time():
+    p = psutil.Process(os.getpid())
+    return datetime.utcfromtimestamp(p.create_time())
 
 class ServerOperator:
     def __init__(self, working_directory = DIR):
@@ -61,13 +67,14 @@ class ServerOperator:
 
     def get_state(self):
         db_last_modified = self.db.last_modified()
-        return {'hostname': self.hostname, 'role': self.role, 'type': 'server', 'db_last_modified': db_driver.timestamp(db_last_modified)}
+        return {'hostname': self.hostname, 'role': self.role, 'type': 'server', 'db_last_modified': db_driver.timestamp(db_last_modified), 'boot_utc': db_driver.timestamp(get_process_start_time())}
 
     def check_in(self):
         log = logger.of('check_in')
         try:
             r = requests.post('http://otselo.eu/db/%s/update' % self.hostname, data={'reported': json.dumps(self.get_state())}, timeout=3, allow_redirects=False)
             r.raise_for_status()
+            log.info('Successfully checked in')
         except requests.HTTPError:
             log.error('Unsuccessful http request to server')
         except requests.Timeout:

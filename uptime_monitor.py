@@ -140,7 +140,7 @@ def down_message(thing, last_seen):
     return DOWN_LAST_SEEN % (thing, last_seen, thing)
 
 def error_message(thing):
-    return "%s entered error state"
+    return "%s entered error state" % thing
 
 if __name__ == '__main__':
     monitor = UptimeMonitor()
