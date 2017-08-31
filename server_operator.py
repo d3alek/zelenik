@@ -36,7 +36,7 @@ def retry_on_none(func, times):
     return None
 
 def get_master_hostname():
-    log = logger.of('get_server_hostname')
+    log = logger.of('get_master_hostname')
     try:
         r = requests.get('http://otselo.eu/hostname.html', timeout=1)
         r.raise_for_status()
@@ -61,35 +61,31 @@ class ServerOperator:
 
     def get_state(self):
         db_last_modified = self.db.last_modified()
-        return {'db_last_modified': db_driver.timestamp(db_last_modified)}
+        return {'hostname': self.hostname, 'role': self.role, 'type': 'server', 'db_last_modified': db_driver.timestamp(db_last_modified)}
 
     def check_in(self):
         log = logger.of('check_in')
-        hostname = gethostname()
         try:
-            r = requests.post('http://otselo.eu/db/%s/update' % hostname, data={'reported': json.dumps(self.get_state())}, timeout=3, allow_redirects=False)
+            r = requests.post('http://otselo.eu/db/%s/update' % self.hostname, data={'reported': json.dumps(self.get_state())}, timeout=3, allow_redirects=False)
             r.raise_for_status()
-            master = r.text.strip()
-            log.info('Master hostname is %s' % master)
-            return master
         except requests.HTTPError:
             log.error('Unsuccessful http request to server')
         except requests.Timeout:
             log.error('Timeout when connecting to server')
         except requests.ConnectionError:
             log.error('Network problems when connecting to server', traceback=True)
-        return None
 
     def operate(self):
         log = logger.of('operate')
         if not self.running:
             return
 
-        hostname = gethostname()
-        master_hostname = retry_on_none(get_master_hostname, 3)
+        self.hostname = gethostname()
+        self.master_hostname = retry_on_none(get_master_hostname, 3)
 
-        if master_hostname:
-            if master_hostname == hostname:
+        if self.master_hostname:
+            self.role = 'master' if self.master_hostname == self.hostname else 'slave'
+            if self.role == 'master':
                 log.info('Master mode, skipping backup')
             else:
                 log.info('Slave mode, backing up')
@@ -101,7 +97,7 @@ class ServerOperator:
                     if e.returncode == 24:
                         pass # this happens when some files were indexed but were deleted before rsync finished - this tends to happen with our database
                     else:
-                        log.error('%s failed to backup server' % hostname, traceback=True)
+                        log.error('%s failed to backup server' % self.hostname, traceback=True)
 
             retry_on_none(self.check_in, 3)
 

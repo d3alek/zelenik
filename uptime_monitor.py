@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 
 import db_driver
 from db_driver import pretty_json
-from server_operator import get_server_hostname
+from server_operator import get_master_hostname
 
 from state_processor import parse_isoformat
 
@@ -57,8 +57,8 @@ class UptimeMonitor:
             self.stop()
             return
 
-        server_hostname = get_server_hostname() 
-        if server_hostname == self.hostname:
+        master_hostname = get_master_hostname() 
+        if master_hostname and master_hostname == self.hostname:
             log.info('Master host - monitoring things uptime')
 
             things = self.db.get_thing_list()
