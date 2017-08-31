@@ -35,18 +35,22 @@ class ErrorReporter:
 
         while True:
             result = j.wait()
-            if result == journal.APPEND:
-                for entry in j:
-                    message = entry.get('MESSAGE')
-                    logger_name = entry.get('LOGGER')
-                    unit = entry.get('_SYSTEMD_UNIT')
-                    priority = entry.get('PRIORITY')
+            if result != journal.APPEND:
+                continue
 
-                    if priority in [journal.LOG_ERR, journal.LOG_WARNING] and message not in already_reported:
-                        subject = message.split('\n')[0].strip()
-                        notify_human_operator(subject, self.sign(message, logger_name)) 
-                        if logger_name not in ALWAYS_REPORT_FROM:
-                            already_reported.add(message)
+            for entry in j:
+                message = entry.get('MESSAGE')
+                logger_name = entry.get('LOGGER')
+                unit = entry.get('_SYSTEMD_UNIT')
+                priority = entry.get('PRIORITY')
+
+                if logger_name is not None and priority in [journal.LOG_ERR, journal.LOG_WARNING] and message not in already_reported:
+                    split = message.split('\n')
+                    subject = split[0].strip()
+                    content = "\n".join(split[1:])
+                    notify_human_operator(subject, self.sign(content, logger_name))
+                    if logger_name not in ALWAYS_REPORT_FROM:
+                        already_reported.add(message)
 
     def sign(self, message, source):
         return message + "\n\n%s@%s" % (source, self.hostname)

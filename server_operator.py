@@ -33,13 +33,11 @@ def get_server_hostname():
         return master
     except requests.HTTPError:
         log.error('Unsuccessful http request to server')
-        return None
     except requests.Timeout:
         log.error('Timeout when connecting to server', traceback=True)
-        return None
     except requests.ConnectionError:
         log.error('Network problems when connecting to server', traceback=True)
-        return None
+    return None
 
 class ServerOperator:
     def __init__(self, working_directory = DIR):

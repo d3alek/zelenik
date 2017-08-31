@@ -29,7 +29,7 @@ DIR = '/www/zelenik/'
 RUN_EVERY = 30 # seconds
 THING_SUMMARY = 'thing-summary.json'
 UP_SINCE = '%s is up\nSince: %s\nhttp://otselo.eu/na/%s'
-DOWN_LAST_SEEN = '%s is down.\nLast seen: %s\nhttp://otselo.eu/na/%s'
+DOWN_LAST_SEEN = '%s is down\nLast seen: %s\nhttp://otselo.eu/na/%s'
 
 def local_day_hour_minute(dt):
     if dt == None:
