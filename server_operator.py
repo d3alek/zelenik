@@ -14,7 +14,7 @@ logger = Logger("server_operator")
 
 DIR = '/www/zelenik/'
 
-RUN_EVERY = 5*60 # seconds
+RUN_EVERY = 3*60 # seconds
 
 from datetime import timezone, datetime
 from dateutil import tz
