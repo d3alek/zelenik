@@ -103,7 +103,7 @@ class ServerOperator:
                 try:
                     subprocess.check_call(["rsync", "-az", "--delete", "--rsh=ssh -p8902 -i " + DIR + "secret/otselo_id_rsa", "otselo@otselo.eu:/www/zelenik/db", DIR])
                     log.info('Backup successful')
-                except CalledProcessError as e:
+                except subprocess.CalledProcessError as e:
                     if e.returncode == 24:
                         pass # this happens when some files were indexed but were deleted before rsync finished - this tends to happen with our database
                     else:
