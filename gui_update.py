@@ -18,7 +18,7 @@ def update_plot_background(db, a_thing, svg_bytes):
     content_type = 'text/html'
     thing = db.resolve_thing(a_thing)
 
-    db.update_plot_background(thing, svg_bytes)
+    db.update('plot-background', thing, svg_bytes)
 
     if thing == a_thing:
         back_url = ('/db/' + thing)
@@ -32,7 +32,7 @@ def update_db(db, a_thing, state, value, ret):
     thing = db.resolve_thing(a_thing)
 
     if state == "thing-alias":
-        db.update_thing_alias(thing, value)
+        db.update('thing-alias', thing, value)
         a_thing = value
     else:
         try:
@@ -41,20 +41,10 @@ def update_db(db, a_thing, state, value, ret):
             log.error("Could not parse json value. %s %s %s" % (a_thing, state, value))
             return 'Could not parse json value %s %s %s' % (state, a_thing, value)
 
-        if state == 'reported':
-            if thing == None:
-                log.warning('First time heard of thing %s\nAssuming it is a new thing' % a_thing)
-                thing = a_thing
-            db.update_reported(thing, value_dict)
-        elif state == 'desired': 
-            db.update_desired(thing, value_dict)
-        elif state == 'enchanter':
-            db.update_enchanter(thing, value_dict)
-        elif state == 'displayables':
-            db.update_displayables(thing, value_dict)
-        else:
-            log.error("Not allowed to change state. %s %s %s" % (thing, state, value_dict))
-            return 'Not allowed to change state. %s %s %s' % (thing, state, value_dict)
+        if thing == None:
+            log.warning('First time heard of thing %s\nAssuming it is a new thing' % a_thing)
+            thing = a_thing
+        db.update(state, thing, value_dict)
 
     if ret:
         back_url = ret

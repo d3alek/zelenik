@@ -237,9 +237,29 @@ class DatabaseDriver:
         else:
             log.info("No history for %s older than %s" % (thing, two_days_ago))
 
+    def update(self, state, thing, value):
+        if state == 'reported':
+            self._update_reported(thing, value)
+        elif state == 'desired':
+            self._update_desired(thing, value)
+        elif state == 'thing-alias':
+            self._update_thing_alias(thing, value)
+        elif state == 'enchanter':
+            self._update_enchanter(thing, value)
+        elif state == 'displayables':
+            self._update_displayables(thing, value)
+        elif state == 'plot-background':
+            self._update_plot_background(thing, value)
+        else:
+            logger.of('update').error('Unknown update state %s' % state)
+            raise Exception('Unknown update state %s' % state)
+
+        with (self.directory / 'last-modified.txt').open('w') as f:
+            f.write(timestamp(datetime.utcnow()))
+
     # Level 2: mqtt_operator callables
 
-    def update_reported(self, thing, value):
+    def _update_reported(self, thing, value):
         log = logger.of('update_reported')
         validate_input(thing, "reported", value)
         if value.get('state') and not isinstance(value.get('state'), str): # there is a string state attribute that can get confused with a top level state object
@@ -270,7 +290,7 @@ class DatabaseDriver:
         
         desired_file = self._get_state_path(thing, "desired")
         if not desired_file.exists():
-            self.update_desired(thing, value.get('config', {}))
+            self._update_desired(thing, value.get('config', {}))
             log_updated.append('created_desired')
         
         encapsulated_value = encapsulate_and_timestamp(value, "state")
@@ -377,7 +397,7 @@ class DatabaseDriver:
             return None
 
 
-    def update_thing_alias(self, thing, alias):
+    def _update_thing_alias(self, thing, alias):
         if type(alias) is not str or '/' in alias:
             raise Exception("Invalid alias received for thing %s: %s" % (thing, alias))
 
@@ -392,7 +412,7 @@ class DatabaseDriver:
         log = logger.of('update_thing_alias')
         log.info("%s aliased to %s" % (thing, alias))
 
-    def update_enchanter(self, a_thing, value):
+    def _update_enchanter(self, a_thing, value):
         log = logger.of('update_enchanter')
 
         validate_input(a_thing, "enchanter", value)
@@ -423,7 +443,7 @@ class DatabaseDriver:
 
 
 
-    def update_desired(self, a_thing, value):
+    def _update_desired(self, a_thing, value):
         validate_input(a_thing, "desired", value)
         if value.get('state') or value.get('config'):
             raise Exception('"state" or "config" object is not expected at top level. Got %s' % value)
@@ -460,7 +480,7 @@ class DatabaseDriver:
         log = logger.of('update_desired')
         log.info("[%s] updated %s" % (thing, pretty_list(log_updated)))
 
-    def update_displayables(self, a_thing, value):
+    def _update_displayables(self, a_thing, value):
         log = logger.of('update_displayables')
         validate_input(a_thing, "displayables", value)
         if len(list(filter(is_displayable, value.keys()))) != len(value.keys()): 
@@ -544,7 +564,7 @@ class DatabaseDriver:
         filtered_history = list(filter(lambda s: parse_isoformat(s['timestamp_utc']) > since_datetime, history))
         return filtered_history 
 
-    def update_plot_background(self, a_thing, svg_bytes):
+    def _update_plot_background(self, a_thing, svg_bytes):
         thing = self.resolve_thing(a_thing)
         plot_path = self.directory / thing / 'plot.png'
         with plot_path.open('wb') as f:
@@ -554,5 +574,7 @@ class DatabaseDriver:
         return [thing_path.name for thing_path in self.directory.iterdir() if thing_path.is_dir() and thing_path.name not in ('na', 'stado')]
 
     def last_modified(self):
-        return datetime.utcnow()
+        with (self.directory / 'last-modified.txt').open() as f:
+            modified = parse_isoformat(f.read())
+        return modified
 

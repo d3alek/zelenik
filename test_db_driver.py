@@ -39,7 +39,6 @@ class TestDatabaseDriver(unittest.TestCase):
             print(x)
         print("---")
 
-
     def setUp(self):
         self.temp_directory = TemporaryDirectory()
         self.temp_directory_path = Path(self.temp_directory.name)
@@ -78,10 +77,10 @@ class TestDatabaseDriver(unittest.TestCase):
             f.write(value)
 
     def when_updating_reported(self, value):
-        self.db.update_reported(THING, json.loads(value)) 
+        self.db.update('reported', THING, json.loads(value)) 
 
     def when_updating_desired(self, value, thing = THING):
-        self.db.update_desired(thing, json.loads(value)) 
+        self.db.update('desired', thing, json.loads(value)) 
 
     def when_getting_delta(self):
         self.delta = self.db.get_delta(THING)  
@@ -173,6 +172,18 @@ class TestDatabaseDriverUpdate(TestDatabaseDriver):
 
         self.then_state_exists("desired", JSN % 1)
 
+    def test_update_updates_modified(self):
+        self.given_thing()
+
+        yesterday = datetime.utcnow() - timedelta(days=1)
+        self.given_modified(yesterday)
+
+        self.when_updating_reported(JSN % 1)
+
+        now = datetime.utcnow()
+        now = now.replace(microsecond=0)
+        self.then_modified(now)
+
     def given_graph(self):
         p = self.db_directory / THING / "graph.png"
         p.touch()
@@ -180,6 +191,14 @@ class TestDatabaseDriverUpdate(TestDatabaseDriver):
     def given_weekly_graph(self):
         p = self.db_directory / THING / "graph-7.png"
         p.touch()
+
+    def given_modified(self, timestamp):
+        modified = self.db_directory / "last-modified.txt"
+        with modified.open('w') as f:
+            f.write(db_driver.timestamp(timestamp))
+
+    def then_modified(self, expected):
+        self.assertEqual(expected, self.db.last_modified())
 
     def then_no_graph(self):
         p = self.db_directory / THING / "graph.png"
@@ -196,7 +215,7 @@ class TestDatabaseDriverUpdate(TestDatabaseDriver):
 
     def then_one_thing(self):
         p = self.db_directory
-        things = [x for x in p.iterdir()]
+        things = [x for x in p.iterdir() if not x.name.endswith('.txt')]
         self.assertEqual(len(things), 1)
 
     def then_thing_exists(self):
@@ -591,7 +610,7 @@ class TestDatabaseDriverThingAlias(TestDatabaseDriver):
         self.then_thing_alias_does_not_exist(old_aliased_thing)
 
     def when_updating_thing_alias(self, alias):
-        self.db.update_thing_alias(THING, alias)
+        self.db.update('thing-alias', THING, alias)
 
     def then_thing_alias_exists(self, alias):
         p = self.db_directory / "na" / alias 

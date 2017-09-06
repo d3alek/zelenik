@@ -1,6 +1,7 @@
 import unittest
 from pathlib import Path
 import mqtt_operator
+import db_driver
 from tempfile import TemporaryDirectory
 from datetime import date
 from zipfile import ZipFile
@@ -14,7 +15,8 @@ class TestMqttOperator(unittest.TestCase):
         self.tmp_directory = TemporaryDirectory()
         self.db_directory = Path(self.tmp_directory.name) / 'db'
         self.db_directory.mkdir()
-        self.operator = mqtt_operator.MqttOperator(self.tmp_directory.name)
+
+        self.db = db_driver.DatabaseDriver(self.tmp_directory.name)
 
     def tearDown(self):
         self.tmp_directory.cleanup()
@@ -90,13 +92,13 @@ class TestMqttOperator(unittest.TestCase):
 
     def then_answer_is(self, expected_answer_topic, expected_answer_payload):
         topic, payload = self.message
-        answer_topic, answer_payload = self.operator.get_answer(topic, payload)
+        answer_topic, answer_payload = mqtt_operator.get_answer(self.db, topic, payload)
         self.assertEqual(answer_topic, expected_answer_topic)
         self.assertEqual(answer_payload, expected_answer_payload)
 
     def then_answer_delta_includes(self, key):
         topic, payload = self.message
-        answer_topic, answer_payload = self.operator.get_answer(topic, payload)
+        answer_topic, answer_payload = mqtt_operator.get_answer(self.db, topic, payload)
         self.assertEqual(answer_topic, "things/%s/delta" % THING)
         d = json.loads(answer_payload)
         self.assertTrue(d.get(key))

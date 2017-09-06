@@ -137,7 +137,7 @@ class Enchanter:
             config.append({'name': name, 'formula': 'scale', 'from': analog_sense, 'from_low': 0, 'from_high': 1024, 'to_low': 0, 'to_high': 100})
 
 
-        self.db.update_enchanter(thing, config)
+        self.db.update('enchanter', thing, config)
 
     def _get_new_displayables(self, state, previous_displayables):
         new_displayables = {}
@@ -237,7 +237,7 @@ class Enchanter:
                 new_displayables = self._get_new_displayables(enchanted, displayables)
                 if len(new_displayables) > 0:
                     displayables.update(new_displayables) 
-                    self.db.update_displayables(thing, displayables)
+                    self.db.update('displayables', thing, displayables)
 
             aliases = flat_map(displayables, 'alias')
             enchanted_aliased = self.db._apply_aliases(thing, enchanted, aliases = aliases)

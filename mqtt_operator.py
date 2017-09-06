@@ -43,6 +43,59 @@ def parse_thing_action(topic):
     action = match.group(2)
     return thing, action
 
+def get_answer(db, topic, payload_string):
+
+    log = logger.of("get_answer")
+
+    try:
+        payload = json.loads(payload_string)
+    except ValueError:
+        log.error("Payload is not a valid json. %s - %s" % (topic, payload_string), traceback=True)
+        answer_topic = ERROR_TOPIC
+        answer_payload = MESSAGE_NOT_JSON
+        return answer_topic, answer_payload
+
+    thing, action = parse_thing_action(topic)
+
+    if action == "update":
+        if not payload.get("state"):
+            log.error("Update payload does not begin with a state object. %s - %s" % (topic, payload))
+            answer_topic = ERROR_TOPIC
+            answer_payload = WRONG_FORMAT_STATE
+            return answer_topic, answer_payload
+
+        if payload["state"].get("reported"): # these come from things
+            try:
+                db.update('reported', thing, payload["state"]["reported"])
+            except Exception:
+                log.error("Updating reported failed with an exception.", traceback=True)
+                e = sys.exc_info()[0]
+                answer_topic = ERROR_TOPIC
+                answer_payload = UPDATE_REPORTED_EXCEPTION % e
+
+                return answer_topic, answer_payload
+        else:
+            log.error("Update does not contain reported. %s - %s" % (topic, payload))
+            answer_topic = ERROR_TOPIC
+            answer_payload = WRONG_FORMAT_REPORTED_DESIRED 
+            return answer_topic, answer_payload
+
+        answer_topic = ""
+        answer_payload = ""
+
+    elif action == "get": # these come from things
+        payload = "" # we ignore payload, as this is just a request to receive delta
+        delta = db.get_delta(thing)
+        add_time(delta)
+        answer_topic = "things/%s/delta" % thing
+        answer_payload = to_compact_json(delta)
+    else:
+        log.error("We got a message on a topic we should not be listening to: %s - %s" % (topic, payload))
+        answer_topic = ERROR_TOPIC
+        answer_payload = MESSAGE_NOT_HANDLED
+
+    return answer_topic, answer_payload
+
 
 class MqttOperator:
     def __init__(self, working_directory = DIR): 
@@ -64,66 +117,13 @@ class MqttOperator:
         client.subscribe("things/+/update")
         client.subscribe("things/+/get")
 
-    def get_answer(self, topic, payload_string):
-
-        db = self.db
-        log = logger.of("get_answer")
-
-        try:
-            payload = json.loads(payload_string)
-        except ValueError:
-            log.error("Payload is not a valid json. %s - %s" % (topic, payload_string), traceback=True)
-            answer_topic = ERROR_TOPIC
-            answer_payload = MESSAGE_NOT_JSON
-            return answer_topic, answer_payload
-
-        thing, action = parse_thing_action(topic)
-
-        if action == "update":
-            if not payload.get("state"):
-                log.error("Update payload does not begin with a state object. %s - %s" % (topic, payload))
-                answer_topic = ERROR_TOPIC
-                answer_payload = WRONG_FORMAT_STATE
-                return answer_topic, answer_payload
-
-            if payload["state"].get("reported"): # these come from things
-                try:
-                    db.update_reported(thing, payload["state"]["reported"])
-                except Exception:
-                    log.error("Updating reported failed with an exception.", traceback=True)
-                    e = sys.exc_info()[0]
-                    answer_topic = ERROR_TOPIC
-                    answer_payload = UPDATE_REPORTED_EXCEPTION % e
-
-                    return answer_topic, answer_payload
-            else:
-                log.error("Update does not contain reported. %s - %s" % (topic, payload))
-                answer_topic = ERROR_TOPIC
-                answer_payload = WRONG_FORMAT_REPORTED_DESIRED 
-                return answer_topic, answer_payload
-
-            answer_topic = ""
-            answer_payload = ""
-
-        elif action == "get": # these come from things
-            payload = "" # we ignore payload, as this is just a request to receive delta
-            delta = db.get_delta(thing)
-            add_time(delta)
-            answer_topic = "things/%s/delta" % thing
-            answer_payload = to_compact_json(delta)
-        else:
-            log.error("We got a message on a topic we should not be listening to: %s - %s" % (topic, payload))
-            answer_topic = ERROR_TOPIC
-            answer_payload = MESSAGE_NOT_HANDLED
-
-        return answer_topic, answer_payload
 
     def on_message(self, client, userdata, msg):
         log = logger.of("on_message")
         topic = msg.topic
         payload = msg.payload.decode('utf-8')
         log.info("[%s] %s" % (topic, payload))
-        answer_topic, answer_payload = self.get_answer(topic, payload)
+        answer_topic, answer_payload = get_answer(db, topic, payload)
         if answer_topic:
             log.info("Answering [%s] %s" % (answer_topic, answer_payload))
             self.client.publish(answer_topic, answer_payload)

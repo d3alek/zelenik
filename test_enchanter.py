@@ -303,7 +303,7 @@ class TestEnchanter(unittest.TestCase):
         self.cum_average = enchanter.cum_average(new, old, old_count)
 
     def when_updating_reported(self, reported):
-        self.db.update_reported(THING, reported)
+        self.db.update('reported', THING, reported)
 
     def when_enchanting(self, thing=THING, alias=True):
         self.enchanted = self.enchanter.enchant(thing, alias=alias)
