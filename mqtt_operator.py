@@ -123,7 +123,7 @@ class MqttOperator:
         topic = msg.topic
         payload = msg.payload.decode('utf-8')
         log.info("[%s] %s" % (topic, payload))
-        answer_topic, answer_payload = get_answer(db, topic, payload)
+        answer_topic, answer_payload = get_answer(self.db, topic, payload)
         if answer_topic:
             log.info("Answering [%s] %s" % (answer_topic, answer_payload))
             self.client.publish(answer_topic, answer_payload)
