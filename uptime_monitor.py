@@ -28,8 +28,8 @@ DIR = '/www/zelenik/'
 
 RUN_EVERY = 30 # seconds
 THING_SUMMARY = 'thing-summary.json'
-UP_SINCE = '%s is up\nSince: %s\nhttp://otselo.eu/na/%s'
-DOWN_LAST_SEEN = '%s is down\nLast seen: %s\nhttp://otselo.eu/na/%s'
+UP_SINCE = '%s is up\nSince: %s\nhttp://otselo.eu/db/%s'
+DOWN_LAST_SEEN = '%s is down\nLast seen: %s\nhttp://otselo.eu/db/%s'
 
 def local_day_hour_minute(dt):
     if dt == None:
@@ -72,9 +72,9 @@ class UptimeMonitor:
                 # if a thing state has changed, report it
                 if value not in previous_summary[key]:
                     if key == 'up':
-                        log.warning(up_message(alias, since))
+                        log.warning(up_message(self.db, alias, since))
                     elif key == 'down':
-                        log.error(down_message(alias, since))
+                        log.error(down_message(self.db, alias, since))
                     else:
                         log.error(error_message(alias))
 
@@ -133,11 +133,12 @@ class UptimeMonitor:
 
         return summary
 
-def up_message(thing, since):
-    return UP_SINCE % (thing, since, thing)
+def up_message(db, thing, since):
+    return UP_SINCE % (thing, since, db.resolve_thing(thing))
 
-def down_message(thing, last_seen): 
-    return DOWN_LAST_SEEN % (thing, last_seen, thing)
+def down_message(db, thing, last_seen): 
+    return DOWN_LAST_SEEN % (thing, last_seen, db.resolve_thing(thing))
+
 
 def error_message(thing):
     return "%s entered error state" % thing
