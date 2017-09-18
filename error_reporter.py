@@ -49,7 +49,8 @@ class ErrorReporter:
                     subject = split[0].strip()
                     content = "\n".join(split[1:])
                     notify_human_operator(subject, self.sign(content, logger_name))
-                    if logger_name not in ALWAYS_REPORT_FROM:
+                    logger_service = logger_name.split('.')[0]
+                    if logger_service not in ALWAYS_REPORT_FROM:
                         already_reported.add(message)
 
     def sign(self, message, source):
