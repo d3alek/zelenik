@@ -33,14 +33,33 @@ class TestStateProcessor(unittest.TestCase):
 
         self.then_exploded(exploded)
 
-    def test_preserve_boot_time_if_sleeping(self):
-        compact = '{"b":1498465149}'
-        exploded = '{"boot_utc": "2017-06-26 08:19:09"}'
-        previous_exploded = '{"boot_utc": "2017-06-26 08:17:00", "config":{"sleep":60}, "timestamp_utc": "2017-06-26 08:18:00"}'
+    def test_explode_preserve_boot_time_on_small_delta(self):
+        compact = '{"b":1498465149}' # 2017-06-26 08:19:09
+        exploded = '{"boot_utc": "2017-06-26 08:19:07"}'
+        previous_exploded = '{"boot_utc": "2017-06-26 08:19:07", "timestamp_utc": "2017-06-26 08:18:00"}'
 
         self.when_exploding(compact, previous_exploded)
 
         self.then_exploded(exploded)
+
+    def test_explode_fix_boot_time_on_previous_in_the_future(self):
+        compact = '{"b":1498465149}'
+        exploded = '{"boot_utc": "2017-06-26 08:19:09"}'
+        previous_exploded = '{"boot_utc": "2117-06-26 08:17:00", "timestamp_utc": "2017-06-26 08:18:00"}'
+
+        self.when_exploding(compact, previous_exploded)
+
+        self.then_exploded(exploded)
+
+    # TODO This test won't work as we are using datetime.utcnow() until we either start passing now or mock datetime
+    #def test_preserve_boot_time_if_sleeping(self):
+    #    compact = '{"b":1498465149}' # 2017-06-26 08:19:09
+    #    exploded = '{"boot_utc": "2017-06-26 08:17:00"}'
+    #    previous_exploded = '{"boot_utc": "2017-06-26 08:17:00", "config":{"sleep":60}, "timestamp_utc": "2017-06-26 08:18:00"}'
+
+    #    self.when_exploding(compact, previous_exploded)
+
+    #    self.then_exploded(exploded)
 
     def test_adjust_boot_time_if_overslept(self):
         compact = '{"b":1498465149}'

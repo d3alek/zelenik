@@ -207,7 +207,7 @@ def datetime_from_epoch(seconds):
     return datetime.utcfromtimestamp(seconds)
 
 def almost_equal(a, b, max_delta):
-    return a > b - max_delta and a < b + max_delta
+    return abs(a - b) < max_delta
 
 def explode(json, previous_json={}, previous_timestamp_string=None):
     exploded = {}
@@ -224,14 +224,15 @@ def explode(json, previous_json={}, previous_timestamp_string=None):
                 previous_boot_utc = parse_isoformat(previous_boot_utc_string)
 
                 sleep_seconds = json.get('config', {}).get('sleep', 0)
-                delta_seconds = (boot_utc - previous_boot_utc).total_seconds()
+                abs_delta_seconds = abs((boot_utc - previous_boot_utc).total_seconds())
 
-                if delta_seconds < 3: # expected fluctuations due to clock inaccuracies
+                if abs_delta_seconds < 3: # expected fluctuations due to clock inaccuracies
                     boot_utc = previous_boot_utc
                 elif previous_timestamp_string:
                     update_delta_seconds = (datetime.utcnow() - parse_isoformat(previous_timestamp_string)).total_seconds()
+                    print("Update delta seconds is", update_delta_seconds)
                     if almost_equal(update_delta_seconds, sleep_seconds, TYPICAL_AWAKE_SECONDS):
-                        log.info('Looks like device has slept, adjusting boot for %d seconds ago' % delta_seconds)
+                        log.info('Looks like device has slept, adjusting boot for %d seconds ago' % abs_delta_seconds)
                         boot_utc = previous_boot_utc
 
             exploded_value = boot_utc.isoformat(sep=' ')
