@@ -3,89 +3,89 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
   <url>
-    <loc>http://otselo.eu/pricing/pricing/</loc>
+    <loc>/pricing/pricing/</loc>
     <lastmod>2017-09-01T17:39:43+02:00</lastmod>
   </url>
   
   <url>
-    <loc>http://otselo.eu/about/</loc>
+    <loc>/about/</loc>
     <priority>0</priority>
   </url>
   
   <url>
-    <loc>http://otselo.eu/categories/</loc>
+    <loc>/categories/</loc>
     <priority>0</priority>
     <xhtml:link
                 rel="alternate"
                 hreflang="en"
-                href="http://otselo.eu/en/categories/"
+                href="/en/categories/"
                 />
     <xhtml:link
                 rel="alternate"
                 hreflang="bg"
-                href="http://otselo.eu/categories/"
+                href="/categories/"
                 />
   </url>
   
   <url>
-    <loc>http://otselo.eu/pricing/</loc>
+    <loc>/pricing/</loc>
     <lastmod>2017-09-01T17:39:43+02:00</lastmod>
     <priority>0</priority>
   </url>
   
   <url>
-    <loc>http://otselo.eu/services/</loc>
+    <loc>/services/</loc>
     <priority>0</priority>
   </url>
   
   <url>
-    <loc>http://otselo.eu/tags/</loc>
+    <loc>/tags/</loc>
     <priority>0</priority>
     <xhtml:link
                 rel="alternate"
                 hreflang="en"
-                href="http://otselo.eu/en/tags/"
+                href="/en/tags/"
                 />
     <xhtml:link
                 rel="alternate"
                 hreflang="bg"
-                href="http://otselo.eu/tags/"
+                href="/tags/"
                 />
   </url>
   
   <url>
-    <loc>http://otselo.eu/services/automation/</loc>
+    <loc>/services/automation/</loc>
   </url>
   
   <url>
-    <loc>http://otselo.eu/services/in-action/</loc>
+    <loc>/services/in-action/</loc>
   </url>
   
   <url>
-    <loc>http://otselo.eu/about/about/</loc>
+    <loc>/about/about/</loc>
   </url>
   
   <url>
-    <loc>http://otselo.eu/services/zelenik-1/</loc>
+    <loc>/services/zelenik-1/</loc>
   </url>
   
   <url>
-    <loc>http://otselo.eu/services/monitoring/</loc>
+    <loc>/services/monitoring/</loc>
   </url>
   
   <url>
-    <loc>http://otselo.eu/</loc>
+    <loc>/</loc>
     <lastmod>2017-09-01T17:39:43+02:00</lastmod>
     <priority>0</priority>
     <xhtml:link
                 rel="alternate"
                 hreflang="en"
-                href="http://otselo.eu/en/"
+                href="/en/"
                 />
     <xhtml:link
                 rel="alternate"
                 hreflang="bg"
-                href="http://otselo.eu/"
+                href="/"
                 />
   </url>
   

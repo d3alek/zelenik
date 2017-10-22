@@ -4,8 +4,11 @@
 
 git checkout blog &&\
 git pull &&\
+git checkout master &&\
+git merge --squash -s subtree --no-commit --allow-unrelated-histories blog
+
 git checkout landing &&\
 git pull &&\
 git checkout master &&\
-git merge --squash -s subtree --no-commit blog landing
+git merge --squash -s subtree --no-commit  --allow-unrelated-histories landing
 
