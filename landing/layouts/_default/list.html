@@ -1,0 +1,34 @@
+{{ define "title" }}{{ if not .IsHome }}{{ lower .Title | i18n | title }} - {{ end }}{{ end }}
+
+{{ define "main" }}
+<div class="mrow">
+  <div class="mcol c8">
+
+    {{ if not .IsHome }}
+    <header class="page-title">
+      <h1 class="title">{{ lower .Title | i18n | title }}</h1>
+    </header>
+    {{ end }}
+
+    <div class="articles">
+      <div class="mrow">
+        {{ range (.Paginate .Data.Pages).Pages }}
+        <div class="mcol c6">
+        {{ if eq .Section "projects" }}
+        {{ .Render "li_project" }}
+        {{ else }}
+        {{ .Render "li_post" }}
+        {{ end }}
+        </div>
+        {{ end }}
+      </div>
+    </div>
+
+    {{ partial "pagination.html" . }}
+  </div>
+  <div class="mcol c4">
+    {{ partial "sidebar.html" . }}
+  </div>
+</div>
+{{ end }}
+

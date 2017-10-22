@@ -1,0 +1,15 @@
+<section class="sidebar">
+{{ with $posts := (where .Site.Pages "Section" "posts") }}
+{{ if not (eq (len $posts) 0) }}
+
+    <header>{{i18n "latests"}}</header>
+  <div>
+    <div class="articles sm">
+      {{ range $i, $p := (first 10 $posts) }}
+      {{ .Render "li_sm" }}
+      {{ end }}
+    </div>
+  </div>
+{{ end }}
+{{ end }}
+</section>

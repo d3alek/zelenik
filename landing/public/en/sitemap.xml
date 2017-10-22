@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+  xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  
+  <url>
+    <loc>http://otselo.eu/en/projects/zelenik-automated-gardening/</loc>
+    <lastmod>2017-09-28T22:33:55+03:00</lastmod>
+    <xhtml:link
+                rel="alternate"
+                hreflang="bg"
+                href="http://otselo.eu/projects/zelenik-automated-gardening/"
+                />
+    <xhtml:link
+                rel="alternate"
+                hreflang="en"
+                href="http://otselo.eu/en/projects/zelenik-automated-gardening/"
+                />
+  </url>
+  
+  <url>
+    <loc>http://otselo.eu/en/categories/</loc>
+    <priority>0</priority>
+    <xhtml:link
+                rel="alternate"
+                hreflang="bg"
+                href="http://otselo.eu/categories/"
+                />
+    <xhtml:link
+                rel="alternate"
+                hreflang="en"
+                href="http://otselo.eu/en/categories/"
+                />
+  </url>
+  
+  <url>
+    <loc>http://otselo.eu/en/</loc>
+    <lastmod>2017-09-28T22:33:55+03:00</lastmod>
+    <priority>0</priority>
+    <xhtml:link
+                rel="alternate"
+                hreflang="bg"
+                href="http://otselo.eu/"
+                />
+    <xhtml:link
+                rel="alternate"
+                hreflang="en"
+                href="http://otselo.eu/en/"
+                />
+  </url>
+  
+  <url>
+    <loc>http://otselo.eu/en/projects/</loc>
+    <lastmod>2017-09-28T22:33:55+03:00</lastmod>
+    <priority>0</priority>
+    <xhtml:link
+                rel="alternate"
+                hreflang="bg"
+                href="http://otselo.eu/projects/"
+                />
+    <xhtml:link
+                rel="alternate"
+                hreflang="en"
+                href="http://otselo.eu/en/projects/"
+                />
+  </url>
+  
+  <url>
+    <loc>http://otselo.eu/en/tags/</loc>
+    <priority>0</priority>
+    <xhtml:link
+                rel="alternate"
+                hreflang="bg"
+                href="http://otselo.eu/tags/"
+                />
+    <xhtml:link
+                rel="alternate"
+                hreflang="en"
+                href="http://otselo.eu/en/tags/"
+                />
+  </url>
+  
+  <url>
+    <loc>http://otselo.eu/en/categories/technology/</loc>
+    <lastmod>2017-09-28T22:33:55+03:00</lastmod>
+    <priority>0</priority>
+    <xhtml:link
+                rel="alternate"
+                hreflang="bg"
+                href="http://otselo.eu/categories/technology/"
+                />
+    <xhtml:link
+                rel="alternate"
+                hreflang="en"
+                href="http://otselo.eu/en/categories/technology/"
+                />
+  </url>
+  
+  <url>
+    <loc>http://otselo.eu/en/tags/zelenik/</loc>
+    <lastmod>2017-09-28T22:33:55+03:00</lastmod>
+    <priority>0</priority>
+    <xhtml:link
+                rel="alternate"
+                hreflang="bg"
+                href="http://otselo.eu/tags/zelenik/"
+                />
+    <xhtml:link
+                rel="alternate"
+                hreflang="en"
+                href="http://otselo.eu/en/tags/zelenik/"
+                />
+  </url>
+  
+</urlset>

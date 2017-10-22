@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Technology on От село</title>
+    <link>http://otselo.eu/categories/technology/</link>
+    <description>Recent content in Technology on От село</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Sat, 23 Sep 2017 22:33:55 +0300</lastBuildDate>
+    
+	<atom:link href="http://otselo.eu/categories/technology/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Зеленик - автоматичен градинар</title>
+      <link>http://otselo.eu/projects/zelenik-automated-gardening/</link>
+      <pubDate>Sat, 23 Sep 2017 22:33:55 +0300</pubDate>
+      
+      <guid>http://otselo.eu/projects/zelenik-automated-gardening/</guid>
+      <description>&lt;p&gt;Какво може Зеленик?
+&lt;/p&gt;</description>
+    </item>
+    
+  </channel>
+</rss>
