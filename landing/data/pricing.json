@@ -1,14 +1,14 @@
-[
+{"bg":[
     {
         "name": "Зеленик-1",
         "linkText": "195 лева",
         "features": [
             {
-                "name": "+ 1 датчик температура 5м",
+                "name": "+ 1 датчик температура 5 метра",
                 "description": "My feature 1 can do..."
             },
             {
-                "name": "+ 1 датчик влага на почва 5м",
+                "name": "+ 1 датчик влага на почва 5 метра",
                 "description": "with feature 2 you can..."
             },
             {
@@ -18,8 +18,8 @@
         ]
     },
     {
-        "name": "Датичк температура",
-        "linkText": "30лв",
+        "name": "Датчик температура",
+        "linkText": "30 лева",
         "features": [
             {
                 "name": "Водозащитен",
@@ -38,7 +38,7 @@
     {
         "name": "Датчик влага на почва",
         "link": "signup/premium",
-        "linkText": "50лв",
+        "linkText": "50 лева",
         "features": [
             {
                 "name": "Водозащитен",
@@ -73,4 +73,81 @@
         ]
     }
 
+],
+"en":[
+    {
+        "name": "Zelenik-1",
+        "linkText": "195 levas",
+        "features": [
+            {
+                "name": "+ 1 temperature sensor 5 meters",
+                "description": "My feature 1 can do..."
+            },
+            {
+                "name": "+ 1 soil humidity sensor 5 meters",
+                "description": "with feature 2 you can..."
+            },
+            {
+                "name": "+ 1 year subscription to Zelenik Portal",
+                "description": ""
+            }
+        ]
+    },
+    {
+        "name": "Temperature Sensor",
+        "linkText": "30 levas",
+        "features": [
+            {
+                "name": "Waterproof",
+                "description": "you can do..."
+            },
+            {
+                "name": "5 meters cable",
+                "description": "more details"
+            },
+            {
+                "name": "-55C to 125C (accuracy 0.5C)",
+                "description": "you can't believe it"
+            }
+        ]
+    },
+    {
+        "name": "Soil humidity sensor",
+        "link": "signup/premium",
+        "linkText": "50 levas",
+        "features": [
+            {
+                "name": "Waterproof",
+                "description": "you can do..."
+            },
+            {
+                "name": "5 meters cable",
+                "description": "you can do..."
+            },
+            {
+                "name": "Capacitive measurement",
+                "description": "more details"
+            }
+        ]
+    },
+    {
+        "name": "Other",
+        "linkText": "Ask us",
+        "features": [
+            {
+                "name": "Controling windows, watering, heating",
+                "description": "you can do..."
+            },
+            {
+                "name": "Custom sensor",
+                "description": "you can do..."
+            },
+            {
+                "name": "Custom project and installation",
+                "description": "more details"
+            }
+        ]
+    }
+
 ]
+}
