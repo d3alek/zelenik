@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+  xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  
+  <url>
+    <loc>http://otselo.eu/pricing/pricing/</loc>
+    <lastmod>2017-09-01T17:39:43+02:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>http://otselo.eu/about/</loc>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>http://otselo.eu/categories/</loc>
+    <priority>0</priority>
+    <xhtml:link
+                rel="alternate"
+                hreflang="en"
+                href="http://otselo.eu/en/categories/"
+                />
+    <xhtml:link
+                rel="alternate"
+                hreflang="bg"
+                href="http://otselo.eu/categories/"
+                />
+  </url>
+  
+  <url>
+    <loc>http://otselo.eu/pricing/</loc>
+    <lastmod>2017-09-01T17:39:43+02:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>http://otselo.eu/services/</loc>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>http://otselo.eu/tags/</loc>
+    <priority>0</priority>
+    <xhtml:link
+                rel="alternate"
+                hreflang="en"
+                href="http://otselo.eu/en/tags/"
+                />
+    <xhtml:link
+                rel="alternate"
+                hreflang="bg"
+                href="http://otselo.eu/tags/"
+                />
+  </url>
+  
+  <url>
+    <loc>http://otselo.eu/services/automation/</loc>
+  </url>
+  
+  <url>
+    <loc>http://otselo.eu/services/in-action/</loc>
+  </url>
+  
+  <url>
+    <loc>http://otselo.eu/about/about/</loc>
+  </url>
+  
+  <url>
+    <loc>http://otselo.eu/services/zelenik-1/</loc>
+  </url>
+  
+  <url>
+    <loc>http://otselo.eu/services/monitoring/</loc>
+  </url>
+  
+  <url>
+    <loc>http://otselo.eu/</loc>
+    <lastmod>2017-09-01T17:39:43+02:00</lastmod>
+    <priority>0</priority>
+    <xhtml:link
+                rel="alternate"
+                hreflang="en"
+                href="http://otselo.eu/en/"
+                />
+    <xhtml:link
+                rel="alternate"
+                hreflang="bg"
+                href="http://otselo.eu/"
+                />
+  </url>
+  
+</urlset>

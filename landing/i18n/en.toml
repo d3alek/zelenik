@@ -1,0 +1,36 @@
+[latests]
+other = "latests"
+[categories]
+other = "categories"
+[tags]
+other = "tags"
+[farming]
+other = "farming"
+[animals]
+other = "animals"
+[donkey]
+other = "donkey"
+[info]
+other = "info"
+[zelenik]
+other = "zelenik"
+[technology]
+other = "technology"
+[projects]
+other = "projects"
+[posts]
+other = "posts"
+[top]
+other = "top"
+[About]
+other= "About"
+[Products]
+other= "Products"
+[Pricing]
+other= "Pricing"
+[Contact]
+other= "Contact"
+[CompanyNameFooter]
+other = "Seloto Ltd. All rights reserved."
+[Home]
+other = "Home"

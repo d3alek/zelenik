@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+  xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  
+  <url>
+    <loc>http://otselo.eu/en/categories/</loc>
+    <priority>0</priority>
+    <xhtml:link
+                rel="alternate"
+                hreflang="bg"
+                href="http://otselo.eu/categories/"
+                />
+    <xhtml:link
+                rel="alternate"
+                hreflang="en"
+                href="http://otselo.eu/en/categories/"
+                />
+  </url>
+  
+  <url>
+    <loc>http://otselo.eu/en/</loc>
+    <priority>0</priority>
+    <xhtml:link
+                rel="alternate"
+                hreflang="bg"
+                href="http://otselo.eu/"
+                />
+    <xhtml:link
+                rel="alternate"
+                hreflang="en"
+                href="http://otselo.eu/en/"
+                />
+  </url>
+  
+  <url>
+    <loc>http://otselo.eu/en/tags/</loc>
+    <priority>0</priority>
+    <xhtml:link
+                rel="alternate"
+                hreflang="bg"
+                href="http://otselo.eu/tags/"
+                />
+    <xhtml:link
+                rel="alternate"
+                hreflang="en"
+                href="http://otselo.eu/en/tags/"
+                />
+  </url>
+  
+</urlset>

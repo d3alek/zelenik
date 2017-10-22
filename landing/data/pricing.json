@@ -1,0 +1,76 @@
+[
+    {
+        "name": "Зеленик-1",
+        "linkText": "195 лева",
+        "features": [
+            {
+                "name": "+ 1 датчик температура 5м",
+                "description": "My feature 1 can do..."
+            },
+            {
+                "name": "+ 1 датчик влага на почва 5м",
+                "description": "with feature 2 you can..."
+            },
+            {
+                "name": "+ 1 година абонамент за Зеленик Портал",
+                "description": ""
+            }
+        ]
+    },
+    {
+        "name": "Датичк температура",
+        "linkText": "30лв",
+        "features": [
+            {
+                "name": "Водозащитен",
+                "description": "you can do..."
+            },
+            {
+                "name": "5 метра кабел",
+                "description": "more details"
+            },
+            {
+                "name": "-55C до 125C (точност 0.5C)",
+                "description": "you can't believe it"
+            }
+        ]
+    },
+    {
+        "name": "Датчик влага на почва",
+        "link": "signup/premium",
+        "linkText": "50лв",
+        "features": [
+            {
+                "name": "Водозащитен",
+                "description": "you can do..."
+            },
+            {
+                "name": "5 метра кабел",
+                "description": "you can do..."
+            },
+            {
+                "name": "Капацитивно измерване",
+                "description": "more details"
+            }
+        ]
+    },
+    {
+        "name": "Другo",
+        "linkText": "попитай ни",
+        "features": [
+            {
+                "name": "Управление на прозорци, поливане, отопление",
+                "description": "you can do..."
+            },
+            {
+                "name": "Датчик по поръчка",
+                "description": "you can do..."
+            },
+            {
+                "name": "Индивидуален проект и монтаж",
+                "description": "more details"
+            }
+        ]
+    }
+
+]

@@ -1,0 +1,36 @@
+[latests]
+other = "последни писма"
+[categories]
+other = "категории"
+[tags]
+other = "тагове"
+[farming]
+other = "земеделие"
+[animals]
+other = "животни"
+[donkey]
+other = "магаре"
+[info]
+other = "информация"
+[zelenik]
+other = "зеленик"
+[technology]
+other = "технологии"
+[projects]
+other = "проекти"
+[posts]
+other = "писма"
+[top]
+other = "начало"
+[About]
+other = "За нас"
+[Products]
+other = "Продукти"
+[Pricing]
+other = "Цени"
+[Contact]
+other = "За връзка"
+[CompanyNameFooter]
+other = "Селото ЕООД. Всички права запазени."
+[Home]
+other = "Начало"

@@ -1,0 +1,31 @@
+# Site settings
+baseurl = "http://otselo.eu/"
+defaultContentLanguage = "bg"
+theme = "landing-page-hugo"
+
+[params]
+    
+[Languages]
+[Languages.bg]
+    title = "От село"
+    description = "Устойчиво земеделие в мащаб"
+[Languages.en]
+    title = "From the village"
+    description = "Sustainable agriculture at scale"
+
+[taxonomies]
+    tags = "tags"
+    categories = "categories"
+    
+[[params.social]]
+    title="email"
+    icon="envelope-o"
+    url="mailto:akodzhabashev@gmail.com"
+
+[[params.social]]
+    title="facebook"
+    icon="facebook"
+    url="https://www.facebook.com/otseloeu"
+
+
+   
