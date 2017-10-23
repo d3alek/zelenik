@@ -34,3 +34,9 @@ other= "Contact"
 other = "Seloto Ltd. All rights reserved."
 [Home]
 other = "Home"
+[subscribeForEmails]
+other = "Subscribe for our newsletter (at most 1 email per week)"
+[subscribe]
+other = "Subscribe"
+[emailPlaceholder]
+other = "your@email"

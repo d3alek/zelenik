@@ -34,3 +34,9 @@ other = "За връзка"
 other = "Селото ЕООД. Всички права запазени."
 [Home]
 other = "Начало"
+[subscribeForEmails]
+other = "Запиши се за нашия бюлетин (най-много 1 писмо на седмица)"
+[subscribe]
+other = "Записване"
+[emailPlaceholder]
+other = "твоята@епоща"

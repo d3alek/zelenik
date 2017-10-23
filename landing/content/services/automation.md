@@ -1,6 +1,6 @@
 ---
 Title: Автоматизация
-Img: automation.png
+Img: automation.svg
 Category: Services
 Draft: false
 Position: 1

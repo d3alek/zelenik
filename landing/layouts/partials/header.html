@@ -39,29 +39,42 @@
 </nav>
 
 <section id="intro">
-	<!-- Header -->
-	<div class="intro-header">
+    <!-- Header -->
+    <div class="intro-header">
 
-	    <div class="container">
+        <div class="container">
 
-		<div class="row">
-		    <div class="col-lg-12">
-			<div class="intro-message">
-			    <h1>{{ .Site.Title }}</h1>
-			    <h3>{{ .Site.Params.description }}</h3>
-			    <hr class="intro-divider">
-			    {{ if isset .Site.Params "social" }}
-			    <ul class="list-inline intro-social-buttons">
-				        {{ partial "social.html" . }}
-			    </ul>
-			    {{ end }}
-			</div>
-		    </div>
-		</div>
+            <div class="row">
+                <div class="col-lg-12">
+                    <div class="intro-message">
+                        <h1>{{ .Site.Title }}</h1>
+                        <h3>{{ .Site.Params.description }}</h3>
+                        <hr class="intro-divider">
+                        {{ if isset .Site.Params "social" }}
+                        <ul class="list-inline intro-social-buttons">
+                            {{ partial "social.html" . }}
+                        </ul>
+                        {{ end }}
+                    </div>
+                    <div class="col-lg-3">
+                    </div>
+                    <form class="col-lg-6 form-inline subscribe-form">
+                        <h4>{{ i18n "subscribeForEmails" }}</h4>
+                        <div class="form-group">
+                            <input type="email" class="form-control input-lg" id="email" placeholder={{i18n "emailPlaceholder"}}>
+                        </div>
+                        <button type="submit" class="btn btn-default btn-lg">
+                            {{ i18n "subscribe" }}
+                            <span class="fa fa-send"/>
+                        </button>
+                    </form>
+                    <div class="col-lg-3">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- /.container -->
 
-	    </div>
-	    <!-- /.container -->
-
-	</div>
-	<!-- /.intro-header -->
+    </div>
+    <!-- /.intro-header -->
 </section>

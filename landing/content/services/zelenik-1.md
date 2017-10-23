@@ -1,6 +1,6 @@
 ---
 Title: Зеленик-1
-Img: zelenik-1.png
+Img: zelenik-1.jpg
 Category: Services
 Draft: false
 Position: 0

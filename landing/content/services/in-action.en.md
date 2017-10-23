@@ -1,6 +1,6 @@
 ---
 Title: In Action
-Img: in-action.png
+Img: in-action.jpg
 Category: Services
 Draft: false
 Position: 3

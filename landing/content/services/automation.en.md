@@ -1,6 +1,6 @@
 ---
 Title: Automation
-Img: automation.png
+Img: automation.en.svg
 Category: Services
 Draft: false
 Position: 1
