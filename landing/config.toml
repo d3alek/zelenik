@@ -2,6 +2,7 @@
 baseurl = "http://otselo.eu/"
 defaultContentLanguage = "bg"
 theme = "landing-page-hugo"
+googleAnalytics = "UA-108452990-1"
 
 [params]
 custom_css = ["css/local.css"]
