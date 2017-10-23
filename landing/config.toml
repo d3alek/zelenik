@@ -5,7 +5,7 @@ theme = "landing-page-hugo"
 
 [params]
 custom_css = ["css/local.css"]
-googleAnalytics = "UA-108452990-1"
+googleAnalytics = "UA-64684947-3"
 
 [[params.social]]
     title="email"
