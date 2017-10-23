@@ -1,6 +1,6 @@
 ---
 Title: Наблюдение
-Img: monitoring.svg
+Img: monitoring.png
 Category: Services
 Draft: false
 Position: 2

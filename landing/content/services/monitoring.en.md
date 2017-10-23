@@ -1,6 +1,6 @@
 ---
 Title: Monitoring
-Img: monitoring.en.svg
+Img: monitoring.en.png
 Category: Services
 Draft: false
 Position: 2
