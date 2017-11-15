@@ -24,11 +24,11 @@ def add_time(d):
     d['t'] = int(time.time()) # seconds since EPOCH, Posix time
 
 def parse_username_password():
-    with open(DIR + 'secret/mqtt_password_file') as f:
+    with open(DIR + 'secret/mqtt_password_file', encoding='utf-8') as f:
         contents = f.read()
     username, _ = contents.split(':')
 
-    with open(DIR + 'secret/mqtt_password') as f:
+    with open(DIR + 'secret/mqtt_password', encoding='utf-8') as f:
         password = f.read()
 
     return username.strip(), password.strip()

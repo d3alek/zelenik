@@ -131,7 +131,7 @@ class DatabaseDriver:
 
         state_file = self._get_state_path(thing, state)
 
-        with history_state_file.open('a+') as f:
+        with history_state_file.open('a+', encoding='utf-8') as f:
             f.write(to_compact_json(previous_value))
             f.write('\n')
             log_updated.append('history')
@@ -153,7 +153,7 @@ class DatabaseDriver:
                 log.info('No aliases applied because file does not exist')
                 return d
 
-            with a.open() as f:
+            with a.open(encoding='utf-8') as f:
                 displayables = json.loads(f.read())
                 aliases = flat_map(displayables, 'alias')
 
@@ -206,7 +206,7 @@ class DatabaseDriver:
                 continue
 
             old_history_file = history
-            with old_history_file.open() as f:
+            with old_history_file.open(encoding='utf-8') as f:
                 lines = f.readlines()
 
             error_free_contents = "\n".join(map(to_compact_json, [x for x in map(safe_json_loads, lines) if x is not None]))
@@ -254,7 +254,7 @@ class DatabaseDriver:
             logger.of('update').error('Unknown update state %s' % state)
             raise Exception('Unknown update state %s' % state)
 
-        with (self.directory / 'last-modified.txt').open('w') as f:
+        with (self.directory / 'last-modified.txt').open('w', encoding='utf-8') as f:
             f.write(timestamp(datetime.utcnow()))
 
     # Level 2: mqtt_operator callables
@@ -276,7 +276,7 @@ class DatabaseDriver:
         state_file = self._get_state_path(thing, state)
 
         if state_file.exists():
-            with state_file.open() as f:
+            with state_file.open(encoding='utf-8') as f:
                 previous_value = json.loads(f.read())
             result = self._append_history(thing, state, previous_value)
             log_updated.extend(result)
@@ -294,7 +294,7 @@ class DatabaseDriver:
             log_updated.append('created_desired')
         
         encapsulated_value = encapsulate_and_timestamp(value, "state")
-        with state_file.open('w') as f:
+        with state_file.open('w', encoding='utf-8') as f:
             f.write(pretty_json(encapsulated_value))
             log_updated.append('state')
 
@@ -364,7 +364,9 @@ class DatabaseDriver:
             with state_file.open(encoding='utf-8') as f:
                 contents = f.read()
 
-            deserialized = json.loads(contents)
+            deserialized = safe_json_loads(contents)
+            if deserialized is None:
+                return {}
             return deserialized
         else:
             log = logger.of('load_state')
@@ -428,14 +430,14 @@ class DatabaseDriver:
         state_file = self._get_state_path(thing, state)
 
         if state_file.exists():
-            with state_file.open() as f:
+            with state_file.open(encoding='utf-8') as f:
                 previous_value = json.loads(f.read())
 
             encapsulated_previous_value = encapsulate_and_timestamp(previous_value, 'state')
             result = self._append_history(thing, state, encapsulated_previous_value)
             log_updated.extend(result)
             
-        with state_file.open('w') as f:
+        with state_file.open('w', encoding='utf-8') as f:
             f.write(pretty_json(value))
             log_updated.append('state')
 
@@ -461,14 +463,14 @@ class DatabaseDriver:
         state_file = self._get_state_path(thing, state)
 
         if state_file.exists():
-            with state_file.open() as f:
+            with state_file.open(encoding='utf-8') as f:
                 previous_value = f.read()
 
             encapsulated_previous_value = encapsulate_and_timestamp(previous_value, 'config')
             result = self._append_history(thing, state, encapsulated_previous_value)
             log_updated.extend(result)
             
-        with state_file.open('w') as f:
+        with state_file.open('w', encoding='utf-8') as f:
             # refresh aliases
             value = self._apply_aliases(thing, self._dealias(value))
 
@@ -499,14 +501,14 @@ class DatabaseDriver:
         state_file = self._get_state_path(thing, state)
 
         if state_file.exists():
-            with state_file.open() as f:
+            with state_file.open(encoding='utf-8') as f:
                 previous_value = json.loads(f.read())
 
             encapsulated_previous_value = encapsulate_and_timestamp(previous_value, 'state')
             result = self._append_history(thing, state, encapsulated_previous_value)
             log_updated.extend(result)
             
-        with state_file.open('w') as f:
+        with state_file.open('w', encoding='utf-8') as f:
             f.write(pretty_json(value))
             log_updated.append('state')
 
@@ -531,7 +533,7 @@ class DatabaseDriver:
         history_file = history_path.with_suffix(".%s.txt" % day.isoformat())
 
         if history_file.exists():
-            with history_file.open() as f:
+            with history_file.open(encoding='utf-8') as f:
                 states = [x for x in map(safe_json_loads, f.readlines()) if x is not None]
         else:
             log = logger.of("load_history_for_day")
@@ -574,7 +576,7 @@ class DatabaseDriver:
         return [thing_path.name for thing_path in self.directory.iterdir() if thing_path.is_dir() and thing_path.name not in ('na', 'stado')]
 
     def last_modified(self):
-        with (self.directory / 'last-modified.txt').open() as f:
+        with (self.directory / 'last-modified.txt').open(encoding='utf-8') as f:
             modified = parse_isoformat(f.read())
         return modified
 

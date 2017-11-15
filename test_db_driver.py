@@ -73,7 +73,7 @@ class TestDatabaseDriver(unittest.TestCase):
     def given_state(self, state, value):
         p = self.db_directory / THING / state
         p = p.with_suffix('.json')
-        with p.open('w') as f:
+        with p.open('w', encoding='utf-8') as f:
             f.write(value)
 
     def when_updating_reported(self, value):
@@ -88,7 +88,7 @@ class TestDatabaseDriver(unittest.TestCase):
     def then_state_exists(self, state, value):
         p = self.db_directory / THING / state 
         p = p.with_suffix('.json')
-        with p.open() as f:
+        with p.open(encoding='utf-8') as f:
             contents = timeless(json.loads(f.read()))
 
         expected_value = timeless(json.loads(value))
@@ -194,7 +194,7 @@ class TestDatabaseDriverUpdate(TestDatabaseDriver):
 
     def given_modified(self, timestamp):
         modified = self.db_directory / "last-modified.txt"
-        with modified.open('w') as f:
+        with modified.open('w', encoding='utf-8') as f:
             f.write(db_driver.timestamp(timestamp))
 
     def then_modified(self, expected):
@@ -231,7 +231,7 @@ class TestDatabaseDriverUpdate(TestDatabaseDriver):
     def then_has_timestamp(self, state):
         p = self.db_directory / THING / state 
         p = p.with_suffix('.json')
-        with p.open() as f:
+        with p.open(encoding='utf-8') as f:
             contents = json.loads(f.read())
 
         self.assertTrue(contents.get('timestamp_utc'))
@@ -509,7 +509,7 @@ class TestDatabaseDriverHistory(TestDatabaseDriver):
             p.mkdir()
         p = p / state
         p = p.with_suffix('.%s.txt' % day.isoformat())
-        with p.open('w') as f:
+        with p.open('w', encoding='utf-8') as f:
             f.write(value)
             f.write('\n')
 
@@ -533,7 +533,7 @@ class TestDatabaseDriverHistory(TestDatabaseDriver):
     def then_history_has_timestamp(self, state):
         p = self.db_directory / THING / 'history' / state 
         p = p.with_suffix('.%s.txt' % date.today().isoformat())
-        with p.open() as f:
+        with p.open(encoding='utf-8') as f:
             contents = json.loads(f.read())
 
         self.assertTrue(contents.get('timestamp_utc'))
@@ -546,7 +546,7 @@ class TestDatabaseDriverHistory(TestDatabaseDriver):
     def then_history_exists(self, state, value, day = date.today()):
         p = self.db_directory / THING / "history" / state 
         p = p.with_suffix('.%s.txt' % day.isoformat())
-        with p.open() as f:
+        with p.open(encoding='utf-8') as f:
             lines = f.readlines()
             actual = [timeless(json.loads(line)) for line in lines]
         values = value.split('\n')

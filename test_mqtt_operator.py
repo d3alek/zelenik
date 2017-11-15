@@ -78,7 +78,7 @@ class TestMqttOperator(unittest.TestCase):
         p = self.db_directory / THING / state
         p.mkdir(parents=True)
         p = p.with_suffix('.json')
-        with p.open('w') as f:
+        with p.open('w', encoding='utf-8') as f:
             f.write(value)
 
     def given_message(self, topic, payload):
@@ -111,7 +111,7 @@ class TestMqttOperator(unittest.TestCase):
     def then_state_exists(self, state, expected_value, thing=THING):
         p = self.db_directory / thing / state 
         p = p.with_suffix('.json')
-        with p.open() as f:
+        with p.open(encoding='utf-8') as f:
             contents = f.read()
 
         value = json.loads(contents)['state']

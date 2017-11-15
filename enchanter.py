@@ -193,7 +193,7 @@ class Enchanter:
         enchanted = self.enchant(thing)
 
         enchanted_path = thing_path / 'enchanted.json'
-        with enchanted_path.open('w') as f:
+        with enchanted_path.open('w', encoding='utf-8') as f:
             f.write(pretty_json(enchanted))
 
         should_enchant.unlink()

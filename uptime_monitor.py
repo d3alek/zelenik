@@ -82,7 +82,7 @@ class UptimeMonitor:
             
             thing_summary = self.db_path / THING_SUMMARY
 
-            with thing_summary.open('w') as f:
+            with thing_summary.open('w', encoding='utf-8') as f:
                 f.write(pretty_json(summary))
         else:
             log.info('Slave host - doing nothing')
@@ -128,7 +128,7 @@ class UptimeMonitor:
     def read_thing_summary(self):
         thing_summary = self.db_path / THING_SUMMARY
 
-        with thing_summary.open() as f:
+        with thing_summary.open(encoding='utf-8') as f:
             summary = json.loads(f.read())
 
         return summary

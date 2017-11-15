@@ -281,19 +281,19 @@ class TestEnchanter(unittest.TestCase):
             thing_directory.mkdir()
         p = thing_directory / state
         p = p.with_suffix('.json')
-        with p.open('w') as f:
+        with p.open('w', encoding='utf-8') as f:
             f.write(json.dumps(value))
 
     def given_config(self, config):
         p = self.db_directory / THING / "enchanter.json"
         
-        with p.open('w') as f:
+        with p.open('w', encoding='utf-8') as f:
             f.write(json.dumps(config))
 
     def given_alias(self, key, value):
         p = self.db_directory / THING / "displayables.json"
         
-        with p.open('w') as f:
+        with p.open('w', encoding='utf-8') as f:
             f.write(json.dumps({key : aliased(DISP, value)}))
 
     def when_calculating_average(self, values):
@@ -329,7 +329,7 @@ class TestEnchanter(unittest.TestCase):
     def then_state_exists(self, state, expected_value):
         p = self.db_directory / THING / state 
         p = p.with_suffix('.json')
-        with p.open() as f:
+        with p.open(encoding='utf-8') as f:
             contents = json.loads(f.read())
 
         self.assertEqual(timeless(expected_value), timeless(contents))
