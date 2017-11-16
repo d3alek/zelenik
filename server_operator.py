@@ -98,17 +98,10 @@ class ServerOperator:
             if self.role == 'master':
                 log.info('Master mode, skipping backup')
             else:
-                log.info('Slave mode, backing up')
-                log.info(" ".join(["rsync", "-az", "--delete", "--rsh=ssh -p8902 -i " + DIR + "secret/otselo_id_rsa", "otselo@otselo.eu:/www/zelenik/db", DIR]))
-                try:
-                    subprocess.check_call(["rsync", "-az", "--delete", "--rsh=ssh -p8902 -i " + DIR + "secret/otselo_id_rsa", "otselo@otselo.eu:/www/zelenik/db", DIR])
-                    log.info('Backup successful')
-                except subprocess.CalledProcessError as e:
-                    if e.returncode == 24:
-                        pass # this happens when some files were indexed but were deleted before rsync finished - this tends to happen with our database
-                    else:
-                        log.error('%s failed to backup server' % self.hostname, traceback=True)
-
+                log.info('Slave mode, syncing up two-way')
+                self.sync("otselo@otselo.eu:/www/zelenik/db", DIR)
+                self.sync(DIR + "db", "otselo@otselo.eu:/www/zelenik")
+                
             retry_on_none(self.check_in, 3)
 
         else:
@@ -117,6 +110,19 @@ class ServerOperator:
         if self.running:
             t = threading.Timer(RUN_EVERY, self.operate)
             t.start()
+
+    def sync(self, source, destination):
+        log = logger.of('sync')
+        log.info(" ".join(["rsync", "-azut", "--rsh=ssh -p8902 -i " + DIR + "secret/otselo_id_rsa", source, destination]))
+        try:
+            subprocess.check_call(["rsync", "-azut", "--rsh=ssh -p8902 -i " + DIR + "secret/otselo_id_rsa", source, destination])
+            log.info('Backup successful')
+        except subprocess.CalledProcessError as e:
+            if e.returncode == 24:
+                pass # this happens when some files were indexed but were deleted before rsync finished - this tends to happen with our database
+            else:
+                log.error('%s failed to sync %s -> %s' % (self.hostname, source, destination), traceback=True)
+
 
     def start(self):
         logger.of('start').info('Starting')
