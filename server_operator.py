@@ -3,16 +3,17 @@
 from logger import Logger
 import subprocess
 import threading 
-import db_driver
 import requests
 import json
 import time
+from db_driver import timestamp
 
 from socket import gethostname
 
 logger = Logger("server_operator")
 
-DIR = '/www/zelenik/'
+DIR = '/www/zelenik/db'
+AUTHENTICATION_KEY = '/www/zelenik/secret/otselo_id_rsa'
 
 RUN_EVERY = 3*60 # seconds
 
@@ -60,14 +61,12 @@ def get_process_start_time():
     return datetime.utcfromtimestamp(p.create_time())
 
 class ServerOperator:
-    def __init__(self, working_directory = DIR):
+    def __init__(self, sync_directory = DIR):
 
-        self.working_directory = working_directory
-        self.db = db_driver.DatabaseDriver(working_directory)
+        self.sync_directory = sync_directory 
 
     def get_state(self):
-        db_last_modified = self.db.last_modified()
-        return {'hostname': self.hostname, 'role': self.role, 'type': 'server', 'db_last_modified': db_driver.timestamp(db_last_modified), 'boot_utc': db_driver.timestamp(get_process_start_time())}
+        return {'hostname': self.hostname, 'role': self.role, 'type': 'server', 'boot_utc': timestamp(get_process_start_time())}
 
     def check_in(self):
         log = logger.of('check_in')
@@ -96,33 +95,25 @@ class ServerOperator:
         if self.master_hostname:
             self.role = 'master' if self.master_hostname == self.hostname else 'slave'
             if self.role == 'master':
-                log.info('Master mode, skipping backup')
+                log.info('Master mode, skipping sync up')
             else:
-                log.info('Slave mode, syncing up two-way')
-                self.sync("otselo@otselo.eu:/www/zelenik/db", DIR)
-                self.sync(DIR + "db", "otselo@otselo.eu:/www/zelenik")
-                
+                self.slave_operate()
+               
             retry_on_none(self.check_in, 3)
 
         else:
-            log.error("server is down\nLast backup: %s" % local_day_hour_minute(self.db.last_modified()))
+            log.error("server is down")
 
         if self.running:
             t = threading.Timer(RUN_EVERY, self.operate)
             t.start()
 
-    def sync(self, source, destination):
-        log = logger.of('sync')
-        log.info(" ".join(["rsync", "-azut", "--rsh=ssh -p8902 -i " + DIR + "secret/otselo_id_rsa", source, destination]))
-        try:
-            subprocess.check_call(["rsync", "-azut", "--rsh=ssh -p8902 -i " + DIR + "secret/otselo_id_rsa", source, destination])
-            log.info('Backup successful')
-        except subprocess.CalledProcessError as e:
-            if e.returncode == 24:
-                pass # this happens when some files were indexed but were deleted before rsync finished - this tends to happen with our database
-            else:
-                log.error('%s failed to sync %s -> %s' % (self.hostname, source, destination), traceback=True)
+    def slave_operate(self, destination_host="otselo@otselo.eu"):
+        log = logger.of('slave_operate')
+        log.info('Slave mode, sync-up two-way')
 
+        self.sync_to(destination_host, self.sync_directory)
+        self.sync_from(destination_host, self.sync_directory)
 
     def start(self):
         logger.of('start').info('Starting')
@@ -132,6 +123,40 @@ class ServerOperator:
     def stop(self):
         logger.of('stop').info('Stopping')
         self.running = False
+
+    def sync_to(self, host, directory, authenticate=True):
+        source_descriptor = "%s/" % self.sync_directory
+        if host == 'localhost':
+            destination_descriptor = directory
+        else:
+            destination_descriptor = "%s:%s" % (host, directory)
+        sync( source_descriptor, destination_descriptor, authenticate)
+
+    def sync_from(self, host, directory, authenticate=True):
+        if host == 'localhost':
+            source_descriptor = "%s/" % directory
+        else:
+            source_descriptor = "%s:%s/" % (host, directory)
+        destination_descriptor = str(self.sync_directory)
+        sync(source_descriptor, destination_descriptor, authenticate)
+
+# copies source contents into destination
+def sync(source, destination, authenticate=True):
+    log = logger.of('sync')
+    authentication = "--rsh=ssh -p8902 -i " + AUTHENTICATION_KEY
+
+    command = ["rsync", "-azu", source, destination]
+    if authenticate:
+        command.insert(2, authentication)
+    log.info(" ".join(command))
+    try:
+        subprocess.check_call(command)
+        log.info('Backup successful')
+    except subprocess.CalledProcessError as e:
+        if e.returncode == 24:
+            pass # this happens when some files were indexed but were deleted before rsync finished - this tends to happen with our database
+        else:
+            log.error('failed to sync %s -> %s' % (source, destination), traceback=True)
 
 if __name__ == '__main__':
     server_operator = ServerOperator()

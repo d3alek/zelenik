@@ -580,3 +580,6 @@ class DatabaseDriver:
             modified = parse_isoformat(f.read())
         return modified
 
+    def get_directory(self):
+        return self.directory
+
