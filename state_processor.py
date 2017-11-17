@@ -16,6 +16,8 @@ ACTION_PATTERN = re.compile(r'^([a-zA-Z0-9-]+)\|(\d+)\|([HL])\|(\d+)\|(\d+)$')
 
 WRONG_VALUE_INT = -1003 # taken from EspIdiot, keep it in sync
 
+WIFI_WAIT = 'wifi_wait'
+
 # parse iso format datetime with sep=' '
 def parse_isoformat(s):
     try:
@@ -214,7 +216,11 @@ def explode(json, previous_json={}, previous_timestamp_string=None):
     log = logger.of('explode')
     for key, value in json.items():
         previous_value = previous_json.get(key, {})
-        if key == 'b':
+        if key == 'ww':
+            key = WIFI_WAIT 
+            exploded_value = value
+
+        elif key == 'b':
             key = 'boot_utc'
             boot_utc = datetime_from_epoch(int(value))
 
@@ -252,7 +258,10 @@ def compact(json):
     compacted = {}
 
     for key, value in json.items():
-        if key == 'actions':
+        if key == WIFI_WAIT:
+            key = 'ww'
+            compacted_value = value
+        elif key == 'actions':
             compacted_value = compact_actions(value)
         elif key == 'time' and type(value) is str:
             compacted_value = timestamp_to_seconds(value)
