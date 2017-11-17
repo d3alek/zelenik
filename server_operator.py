@@ -143,7 +143,7 @@ class ServerOperator:
 # copies source contents into destination
 def sync(source, destination, authenticate=True):
     log = logger.of('sync')
-    authentication = "--rsh=ssh -p8902 -i " + AUTHENTICATION_KEY
+    authentication = '--rsh=ssh -p8902 -o "StrictHostKeyChecking no" -i ' + AUTHENTICATION_KEY
 
     command = ["rsync", "-azu", source, destination]
     if authenticate:
