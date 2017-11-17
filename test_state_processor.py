@@ -33,14 +33,6 @@ class TestStateProcessor(unittest.TestCase):
 
         self.then_exploded(exploded)
 
-    def test_explode_wifi_wait(self):
-        compact = '{"ww":5}'
-        exploded = '{"wifi_wait": 5}'
-
-        self.when_exploding(compact)
-
-        self.then_exploded(exploded)
-
     def test_explode_preserve_boot_time_on_small_delta(self):
         compact = '{"b":1498465149}' # 2017-06-26 08:19:09
         exploded = '{"boot_utc": "2017-06-26 08:19:07"}'
@@ -141,14 +133,6 @@ class TestStateProcessor(unittest.TestCase):
         one_hour = 3600 
         exploded = ACTIONS % "[%s]" % action('time', 1, 'high', '11:25', '1:00')
         compact = ACTIONS % '["time|1|H|%d|%d"]' % (seconds_from_midnight, one_hour)
-
-        self.when_compacting(exploded)
-
-        self.then_compact(compact)
-
-    def test_compact_wifi_wait(self):
-        exploded = '{"wifi_wait":5}'
-        compact = '{"ww":5}'
 
         self.when_compacting(exploded)
 
