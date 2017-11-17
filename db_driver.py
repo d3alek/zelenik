@@ -579,7 +579,3 @@ class DatabaseDriver:
         with (self.directory / 'last-modified.txt').open(encoding='utf-8') as f:
             modified = parse_isoformat(f.read())
         return modified
-
-    def get_directory(self):
-        return self.directory
-
