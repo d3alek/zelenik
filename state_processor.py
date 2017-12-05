@@ -157,49 +157,22 @@ def explode_sense(value):
 
     return enriched_sense
 
-def explode_senses(senses, previous_senses, previous_timestamp):
+def explode_senses(senses):
     log = logger.of('explode_senses')
     exploded = {}
     for key, value in senses.items():
-        previous_value = previous_senses.pop(key, {})
         if key == 'time' and isinstance(value, Number):
             exploded[key] = seconds_to_timestamp(value)
             continue
 
         enriched_sense = explode_sense(value)
-        previous_enriched_sense = previous_value
 
         if enriched_sense is None:
             log.info('Not exploding sense %s:%s because of a parsing failure' % (key, value))
             exploded[key] = value
             continue
 
-        if 'value' not in enriched_sense.keys() and 'expected' not in enriched_sense.keys():
-            # Pick value or expected from previous, idea is to always have an estimate of what a sensor shows and idea of how recent that showing is (leave it a UI responsibility)
-            if previous_enriched_sense:
-                if 'value' in previous_enriched_sense.keys():
-                    enriched_sense['value'] = previous_enriched_sense['value']
-                    enriched_sense['from'] = previous_timestamp
-                elif 'expected' in previous_enriched_sense.keys():
-                    enriched_sense['expected'] = previous_enriched_sense['expected']
-                    enriched_sense['from'] = previous_timestamp
-                if 'from' in previous_enriched_sense.keys():
-                    enriched_sense['from'] = previous_enriched_sense['from']
         exploded[key] = enriched_sense
-
-    if previous_senses: 
-        if less_than_a_day_ago(previous_timestamp):
-            # some senses remain from the past, take them if they are up to a day old
-            for key, value in previous_senses.items():
-                if isinstance(value, dict):
-                    timestamp = value.get('from', previous_timestamp)
-                    if less_than_a_day_ago(timestamp):
-                        value['from'] = previous = timestamp
-                        exploded[key] = value
-                    else:
-                        log.info("Forgetting previous sense %s because more than a day old: %s" % (key, timestamp))
-        else:
-            log.info("Forgetting previous senses because more than a day old: %s" % previous_timestamp)
 
     return exploded
 
@@ -240,7 +213,7 @@ def explode(json, previous_json={}, previous_timestamp_string=None):
         elif key == 'actions':
             exploded_value = explode_actions(value)
         elif key == 'senses':
-            exploded_value = explode_senses(value, previous_value, previous_timestamp_string)
+            exploded_value = explode_senses(value)
         elif type(value) is dict:
             exploded_value = explode(value, previous_value, previous_timestamp_string)
         else:

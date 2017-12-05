@@ -33,7 +33,7 @@ def timeless(d):
 
 class TestDatabaseDriver(unittest.TestCase):
     def list_directory(self, directory):
-        d = self.db_directory / THING / directory
+        d = self.db.directory / THING / directory
         print("%s:" % d)
         for x in d.iterdir():
             print(x)
@@ -42,36 +42,26 @@ class TestDatabaseDriver(unittest.TestCase):
     def setUp(self):
         self.temp_directory = TemporaryDirectory()
         self.temp_directory_path = Path(self.temp_directory.name)
-        self.db_directory = self.temp_directory_path / "db"
-        self.db_directory.mkdir()
-
-        self.view_directory = self.temp_directory_path / "view"
-        view_location = self.view_directory.name
-        self.view_directory.mkdir()
-        index = self.view_directory  / "index.html"
-        index.touch()
-        style = self.view_directory / "style.html"
-        style.touch()
-
+        db_driver.prepare_test_directory(self.temp_directory_path)
         self.db = db_driver.DatabaseDriver(working_directory=self.temp_directory.name)
 
     def tearDown(self):
         self.temp_directory.cleanup()
 
     def given_thing(self):
-        p = self.db_directory / THING
+        p = self.db.directory / THING
         p.mkdir()
 
     def given_aliased_thing(self, alias):
-        p = self.db_directory / "na"
+        p = self.db.directory / "na"
         if not p.is_dir():
             p.mkdir()
 
         p = p / alias 
-        p.symlink_to(self.db_directory / THING)
+        p.symlink_to(self.db.directory / THING)
 
     def given_state(self, state, value):
-        p = self.db_directory / THING / state
+        p = self.db.directory / THING / state
         p = p.with_suffix('.json')
         with p.open('w', encoding='utf-8') as f:
             f.write(value)
@@ -86,7 +76,7 @@ class TestDatabaseDriver(unittest.TestCase):
         self.delta = self.db.get_delta(THING)  
 
     def then_state_exists(self, state, value):
-        p = self.db_directory / THING / state 
+        p = self.db.directory / THING / state 
         p = p.with_suffix('.json')
         with p.open(encoding='utf-8') as f:
             contents = timeless(json.loads(f.read()))
@@ -185,15 +175,15 @@ class TestDatabaseDriverUpdate(TestDatabaseDriver):
         self.then_modified(now)
 
     def given_graph(self):
-        p = self.db_directory / THING / "graph.png"
+        p = self.db.directory / THING / "graph.png"
         p.touch()
 
     def given_weekly_graph(self):
-        p = self.db_directory / THING / "graph-7.png"
+        p = self.db.directory / THING / "graph-7.png"
         p.touch()
 
     def given_modified(self, timestamp):
-        modified = self.db_directory / "last-modified.txt"
+        modified = self.db.directory / "last-modified.txt"
         with modified.open('w', encoding='utf-8') as f:
             f.write(db_driver.timestamp(timestamp))
 
@@ -201,35 +191,35 @@ class TestDatabaseDriverUpdate(TestDatabaseDriver):
         self.assertEqual(expected, self.db.last_modified())
 
     def then_no_graph(self):
-        p = self.db_directory / THING / "graph.png"
+        p = self.db.directory / THING / "graph.png"
         self.assertFalse(p.exists())
 
-        p = self.db_directory / THING / "graph-7.png"
+        p = self.db.directory / THING / "graph-7.png"
         self.assertFalse(p.exists())
 
-        p = self.db_directory / THING / "graph-31.png"
+        p = self.db.directory / THING / "graph-31.png"
         self.assertFalse(p.exists())
 
-        p = self.db_directory / THING / "graph-366.png"
+        p = self.db.directory / THING / "graph-366.png"
         self.assertFalse(p.exists())
 
     def then_one_thing(self):
-        p = self.db_directory
+        p = self.db.directory
         things = [x for x in p.iterdir() if not x.name.endswith('.txt')]
         self.assertEqual(len(things), 1)
 
     def then_thing_exists(self):
-        p = self.db_directory / THING
+        p = self.db.directory / THING
         self.assertTrue(p.exists())
 
     def then_thing_has_view(self):
-        p = self.db_directory / THING / "index.html"
+        p = self.db.directory / THING / "index.html"
         self.assertTrue(p.exists())
-        p = self.db_directory / THING / "view"
+        p = self.db.directory / THING / "view"
         self.assertTrue(p.exists())
 
     def then_has_timestamp(self, state):
-        p = self.db_directory / THING / state 
+        p = self.db.directory / THING / state 
         p = p.with_suffix('.json')
         with p.open(encoding='utf-8') as f:
             contents = json.loads(f.read())
@@ -504,7 +494,7 @@ class TestDatabaseDriverHistory(TestDatabaseDriver):
         self.then_history_has_timestamp("desired")
 
     def given_history(self, state, value, day=date.today()):
-        p = self.db_directory / THING / "history"
+        p = self.db.directory / THING / "history"
         if not p.is_dir():
             p.mkdir()
         p = p / state
@@ -515,7 +505,7 @@ class TestDatabaseDriverHistory(TestDatabaseDriver):
 
     def given_archive(self, state, value, day):
         year = day.year
-        p = self.db_directory / THING / "history" / "archive" / str(year)
+        p = self.db.directory / THING / "history" / "archive" / str(year)
         if not p.is_dir():
             p.mkdir(parents=True)
         p = p / state
@@ -531,7 +521,7 @@ class TestDatabaseDriverHistory(TestDatabaseDriver):
         self.history = self.db.load_history(THING, 'reported', since_days=since_days)
 
     def then_history_has_timestamp(self, state):
-        p = self.db_directory / THING / 'history' / state 
+        p = self.db.directory / THING / 'history' / state 
         p = p.with_suffix('.%s.txt' % date.today().isoformat())
         with p.open(encoding='utf-8') as f:
             contents = json.loads(f.read())
@@ -539,12 +529,12 @@ class TestDatabaseDriverHistory(TestDatabaseDriver):
         self.assertTrue(contents.get('timestamp_utc'))
 
     def then_two_histories(self, state):
-        p = self.db_directory / THING / "history"
+        p = self.db.directory / THING / "history"
         histories = [x for x in p.iterdir() if x.match('%s*' % state)]
         self.assertEqual(len(histories), 2)
 
     def then_history_exists(self, state, value, day = date.today()):
-        p = self.db_directory / THING / "history" / state 
+        p = self.db.directory / THING / "history" / state 
         p = p.with_suffix('.%s.txt' % day.isoformat())
         with p.open(encoding='utf-8') as f:
             lines = f.readlines()
@@ -555,7 +545,7 @@ class TestDatabaseDriverHistory(TestDatabaseDriver):
 
     def then_archive_exists(self, state, value, day):
         year = day.year
-        p = self.db_directory / THING / "history" / "archive" / str(year) / state 
+        p = self.db.directory / THING / "history" / "archive" / str(year) / state 
 
         p = p.with_suffix(".%s.zip" % day.isoformat())
         with ZipFile(str(p)) as zf:
@@ -613,11 +603,11 @@ class TestDatabaseDriverThingAlias(TestDatabaseDriver):
         self.db.update('thing-alias', THING, alias)
 
     def then_thing_alias_exists(self, alias):
-        p = self.db_directory / "na" / alias 
+        p = self.db.directory / "na" / alias 
         self.assertTrue(p.is_symlink())
 
     def then_thing_alias_does_not_exist(self, alias):
-        p = self.db_directory / "na" / alias 
+        p = self.db.directory / "na" / alias 
         self.assertFalse(p.is_symlink())
 
 if __name__ == '__main__':
