@@ -9,6 +9,7 @@
 
             <link href="view/style/style.css" rel="stylesheet" type="text/css" />
             <link href="view/style/switch.css" rel="stylesheet" type="text/css" />
+            <link href="view/style/graph.css" rel="stylesheet" type="text/css" />
         </head>
         <body>
             <!--# block name="none" -->None<!--# endblock -->
@@ -40,15 +41,18 @@
                 <img class="plot-image" class="unselectable" src="plot.png">
 
             </div>
-            <div id="graph">
-                <img src="graph-1-median-3.png">
-                <ul class="horizontal-list">
-                    <li>Ден</li>
-                    <li><a href="graph-2-median-3.png">Два дни</a></li>
-                    <li><a href="graph-7-median-3.png">Седмица</a></li>
-                    <li><a href="graph-31-median-3.png">Месец</a></li>
-                    <li><a href="graph-256-median-3.png">Година</a></li>
-                </ul>
+            <div id="graph-container">
+              <div id="graph"></div>
+              <ul class="horizontal-list">
+                <li><button class="button graph-since" data-url="senses?since=1" disabled>Ден</button></li>
+                <button class="button graph-since selected" data-url="senses?since=2">Два дни</button></li>
+                <li><button class="button graph-since selected" data-url="senses?since=7">Седмица</button></li>
+                <li><button class="button graph-since selected" data-url="senses?since=31">Месец</button></li>
+                <li><button class="button graph-since selected" data-url="senses?since=356">Година</button></li>
+              </ul>
+              </div>
+
+              <!--<img src="graph-1-median-3.png">
                 <form action="graph" method="POST">
                     <input type="radio" name="since" value="1" checked>Ден</input>
                     <input type="radio" name="since" value="2">Два дни</input>
@@ -61,7 +65,7 @@
                     </div>
                     <div class="clear"></div>
                     <input type="submit" class="button" value="Направи графика">
-                </form>
+                </form>-->
             </div>
 
             <button class="button" id="show-configuration">Настройки</button>
@@ -118,7 +122,10 @@
             </footer>
             <script src="view/scripts/event.js"></script>
             <script src="view/scripts/plot.js"></script>
-            <script src="view/scripts/graph.js"></script>
+            <!--<script src="view/scripts/graph.js"></script>-->
+            <script src="view/scripts/moment.js"></script>
+            <script src="view/scripts/d3.js"></script>
+            <script src="view/scripts/d3-graph.js"></script>
             <script src="view/scripts/status.js"></script>
             <script src="view/scripts/script.js"></script>
         </body>
