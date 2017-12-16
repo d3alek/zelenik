@@ -16,23 +16,26 @@ app.config.update(dict(
     DATABASE=Path(app.root_path).parent
 ))
 
-def timestamped_sense_values(state):
+def timestamped(state):
     ret = {"timestamp_utc": state.get("timestamp_utc")}
     senses = flat_map(state.get("state", {}).get("senses", {}), "value", strict=True)
+    senses = { ("sense(%s)" % key) : value for key, value in senses.items() }
     ret.update(senses)
+    writes = state.get("state", {}).get("write", {})
+    writes = { ("write(%s)" % key) : value for key, value in writes.items() }
+    ret.update(writes)
     return ret
-
 
 """
 Format:
 
-timestamp,sense1,sense2,...,senseN
-2017-11-30 22:05:50,30.3,40.1,..,20.2
+timestamp,sense(sense1),sense(sense2),...,sense(senseN), write(write1),..., write(writeN)
+2017-11-30 22:05:50,30.3,40.1,..,20.2, 0, ..., 1
 ...
 
 """
-@app.route("/na/<a_thing>/senses", methods=["GET"])
-@app.route("/db/<a_thing>/senses", methods=["GET"])
+@app.route("/na/<a_thing>/history", methods=["GET"])
+@app.route("/db/<a_thing>/history", methods=["GET"])
 def history(a_thing):
     db = DatabaseDriver(app.config["DATABASE"])
     since_argument = request.args.get('since', None)
@@ -49,19 +52,19 @@ def history(a_thing):
     if not history:
         return b"\r\n"
 
-    sense_values_history = [*map(timestamped_sense_values, history)]
-    all_sense_names = set()
-    for sense_values in sense_values_history:
-        all_sense_names.update(sense_values.keys())
-    all_sense_names.remove("timestamp_utc")
+    values_history = [*map(timestamped, history)]
+    all_names = set()
+    for values in values_history:
+        all_names.update(values.keys())
+    all_names.remove("timestamp_utc")
 
-    ordered_sense_names = sorted(list(all_sense_names))
-    ordered_sense_names.insert(0, "timestamp_utc")
+    ordered_names = sorted(list(all_names))
+    ordered_names.insert(0, "timestamp_utc")
 
     s = StringIO()
-    writer = csv.DictWriter(s, ordered_sense_names)
+    writer = csv.DictWriter(s, ordered_names)
     writer.writeheader()
-    writer.writerows(sense_values_history)
+    writer.writerows(values_history)
     return s.getvalue()
 
 

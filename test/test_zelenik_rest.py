@@ -16,14 +16,17 @@ import db_driver
 def thing(index):
     return "thing-%d" % index
 
-def today():
+def now():
     return datetime.utcnow()
 
 def sense(index):
-    return "sense-%d" % index
+    return "sense(%s)" % index
+
+def write(index):
+    return "write(%s)" % index
 
 def to_string(sense):
-    if not sense:
+    if sense is None:
         return ""
     else:
         return str(sense)
@@ -44,91 +47,99 @@ class ZelenikRestTestCase(unittest.TestCase):
 
     def test_empty_history(self):
         self.given_thing(thing(1))
-        rv = self.app.get("/db/%s/senses" % thing(1))
+        rv = self.app.get("/db/%s/history" % thing(1))
         self.assertEqual(b'\r\n', rv.data)
 
     def test_simple(self):
         self.given_thing(thing(1))
         self.given_reported(thing(1),
-                {sense(1) : {"value": 1}}, 
-                today())
+                {'s' : {"value": 1}}, 
+                {'w' : 0}, 
+                now())
 
-        self.when_getting("/db/%s/senses" % thing(1))
+        self.when_getting("/db/%s/history" % thing(1))
 
         self.then_result(
-                ("timestamp_utc", sense(1)), 
-                (today(), 1))
+                ("timestamp_utc", sense('s'), write('w')), 
+                (now(), 1, 0))
 
     def test_aliased(self):
         self.given_thing(thing(1))
         self.given_reported(thing(1),
-                {sense(1) : {"value": 1}}, 
-                today())
+                {'s' : {"value": 1}}, 
+                {'w' : 0}, 
+                now())
 
-        self.when_getting("/na/%s/senses" % thing(1))
+        self.when_getting("/na/%s/history" % thing(1))
 
         self.then_result(
-                ("timestamp_utc", sense(1)), 
-                (today(), 1))
+                ("timestamp_utc", sense('s'), write('w')), 
+                (now(), 1, 0))
 
     def test_many_values(self):
         self.given_thing(thing(1))
-        a_minute_ago = today() - timedelta(minutes=1)
-        now = today()
+        n = now()
+        a_minute_ago = n - timedelta(minutes=1)
         self.given_reported(thing(1),
-                {sense(1) : {"value": 1}}, 
+                {'s' : {"value": 1}}, 
+                {}, 
                 a_minute_ago)
         self.given_reported(thing(1),
-                {sense(1) : {"value": 2}}, 
-                now)
+                {'s' : {"value": 2}}, 
+                {}, 
+                n)
 
-        self.when_getting("/db/%s/senses" % thing(1))
+        self.when_getting("/db/%s/history" % thing(1))
 
         self.then_result(
-                ("timestamp_utc", sense(1)), 
+                ("timestamp_utc", sense('s')), 
                 (a_minute_ago, 1),
-                (now, 2)
+                (now(), 2)
                 )
 
     def test_many_senses(self):
         self.given_thing(thing(1))
         self.given_reported(thing(1),
-                {sense(1) : {"value": 1},
-                 sense(2) : {"value": 2}}, 
-                today())
+                {'s1' : {"value": 1},
+                 's2' : {"value": 2}}, 
+                {}, 
+                now())
 
-        self.when_getting("/db/%s/senses" % thing(1))
+        self.when_getting("/db/%s/history" % thing(1))
 
         self.then_result(
-                ("timestamp_utc", sense(1), sense(2)), 
-                (today(), 1, 2)
+                ("timestamp_utc", sense('s1'), sense('s2')), 
+                (now(), 1, 2)
                 )
 
     def test_missing_senses(self):
         self.given_thing(thing(1))
 
-        a_minute_ago = today() - timedelta(minutes=1)
-        now = today()
+        n = now()
+        a_minute_ago = n - timedelta(minutes=1)
         self.given_reported(thing(1),
-                {sense(1) : {"value": 1}}, 
+                {'s1' : {"value": 1}}, 
+                {}, 
                 a_minute_ago)
         self.given_reported(thing(1),
-                {sense(2) : {"value": 2}}, 
-                now)
+                {'s2' : {"value": 2}}, 
+                {}, 
+                n)
 
-        self.when_getting("/db/%s/senses" % thing(1))
+        self.when_getting("/db/%s/history" % thing(1))
 
         self.then_result(
-                ("timestamp_utc", sense(1), sense(2)), 
+                ("timestamp_utc", sense('s1'), sense('s2')), 
                 (a_minute_ago, 1, None),
-                (now, None, 2)
+                (n, None, 2)
                 )
 
     def given_thing(self, thing):
         self.db._prepare_directory(self.db.directory / thing)
 
-    def given_reported(self, thing, senses, time):
+    def given_reported(self, thing, senses, writes, time):
         state = { "senses": senses }
+        state["write"] = writes
         self.db._update_reported(thing, state, time)
 
     def when_getting(self, url):

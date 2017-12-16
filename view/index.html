@@ -10,6 +10,7 @@
             <link href="view/style/style.css" rel="stylesheet" type="text/css" />
             <link href="view/style/switch.css" rel="stylesheet" type="text/css" />
             <link href="view/style/graph.css" rel="stylesheet" type="text/css" />
+            <link href="view/style/dual-ring.css" rel="stylesheet" type="text/css" />
         </head>
         <body>
             <!--# block name="none" -->None<!--# endblock -->
@@ -42,13 +43,18 @@
 
             </div>
             <div id="graph-container">
+              <div class="loading hidden">
+                <div style="width:100%;height:100%;top:150px;left:350px;" class="lds-dual-ring">
+                  <div></div>
+                </div>
+              </div>
+
               <div id="graph"></div>
               <ul class="horizontal-list">
-                <li><button class="button graph-since" data-url="senses?since=1" disabled>Ден</button></li>
-                <button class="button graph-since selected" data-url="senses?since=2">Два дни</button></li>
-                <li><button class="button graph-since selected" data-url="senses?since=7">Седмица</button></li>
-                <li><button class="button graph-since selected" data-url="senses?since=31">Месец</button></li>
-                <li><button class="button graph-since selected" data-url="senses?since=356">Година</button></li>
+                <li><button class="button graph-since" data-url="history?since=1" disabled>Час</button></li>
+                <li><button class="button graph-since" data-url="history?since=24">Ден</button></li>
+                <li><button class="button graph-since selected" data-url="history?since=48">Два дни</button></li>
+                <li><button class="button graph-since selected" data-url="history?since=161">Седмица</button></li>
               </ul>
               </div>
 
