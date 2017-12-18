@@ -452,7 +452,6 @@ class TestDatabaseDriverHistory(TestDatabaseDriver):
         self.then_history_values_are([2, 3])
 
 
-
     def test_load_history_since_days(self):
         today = datetime.utcnow().isoformat(sep=' ')
         yesterday = (datetime.utcnow() - timedelta(days=1)).isoformat(sep=' ')
@@ -462,6 +461,18 @@ class TestDatabaseDriverHistory(TestDatabaseDriver):
         self.given_history("reported", FORMAT_TS % (JSN % 1, yesterday))
 
         self.when_loading_reported_history(since_days=1)
+
+        self.then_history_values_are([2])
+
+    def test_load_history_since_hours(self):
+        today = datetime.utcnow().isoformat(sep=' ')
+        hour_ago = (datetime.utcnow() - timedelta(hours=2)).isoformat(sep=' ')
+
+        self.given_thing()
+        self.given_state("reported", FORMAT_TS % (JSN % 2, today))
+        self.given_history("reported", FORMAT_TS % (JSN % 1, hour_ago))
+
+        self.when_loading_reported_history(since_days=0, since_hours=1)
 
         self.then_history_values_are([2])
 
@@ -517,8 +528,8 @@ class TestDatabaseDriverHistory(TestDatabaseDriver):
             arcname = '%s.%s.txt' % (state, suffix)
             zf.writestr(arcname, value + '\n')
 
-    def when_loading_reported_history(self, since_days=366):
-        self.history = self.db.load_history(THING, 'reported', since_days=since_days)
+    def when_loading_reported_history(self, since_days=366, since_hours=0):
+        self.history = self.db.load_history(THING, 'reported', since_days=since_days, since_hours=since_hours)
 
     def then_history_has_timestamp(self, state):
         p = self.db.directory / THING / 'history' / state 

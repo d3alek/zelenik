@@ -47,7 +47,7 @@ class ZelenikRestTestCase(unittest.TestCase):
 
     def test_empty_history(self):
         self.given_thing(thing(1))
-        rv = self.app.get("/db/%s/history" % thing(1))
+        rv = self.app.get("/db/%s/history?since_days=1" % thing(1))
         self.assertEqual(b'\r\n', rv.data)
 
     def test_simple(self):
@@ -57,7 +57,7 @@ class ZelenikRestTestCase(unittest.TestCase):
                 {'w' : 0}, 
                 now())
 
-        self.when_getting("/db/%s/history" % thing(1))
+        self.when_getting("/db/%s/history?since_days=1" % thing(1))
 
         self.then_result(
                 ("timestamp_utc", sense('s'), write('w')), 
@@ -70,7 +70,7 @@ class ZelenikRestTestCase(unittest.TestCase):
                 {'w' : 0}, 
                 now())
 
-        self.when_getting("/na/%s/history" % thing(1))
+        self.when_getting("/na/%s/history?since_days=1" % thing(1))
 
         self.then_result(
                 ("timestamp_utc", sense('s'), write('w')), 
@@ -89,7 +89,7 @@ class ZelenikRestTestCase(unittest.TestCase):
                 {}, 
                 n)
 
-        self.when_getting("/db/%s/history" % thing(1))
+        self.when_getting("/db/%s/history?since_days=1" % thing(1))
 
         self.then_result(
                 ("timestamp_utc", sense('s')), 
@@ -105,7 +105,7 @@ class ZelenikRestTestCase(unittest.TestCase):
                 {}, 
                 now())
 
-        self.when_getting("/db/%s/history" % thing(1))
+        self.when_getting("/db/%s/history?since_days=1" % thing(1))
 
         self.then_result(
                 ("timestamp_utc", sense('s1'), sense('s2')), 
@@ -126,7 +126,7 @@ class ZelenikRestTestCase(unittest.TestCase):
                 {}, 
                 n)
 
-        self.when_getting("/db/%s/history" % thing(1))
+        self.when_getting("/db/%s/history?since_days=1" % thing(1))
 
         self.then_result(
                 ("timestamp_utc", sense('s1'), sense('s2')), 

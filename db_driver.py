@@ -560,28 +560,40 @@ class DatabaseDriver:
 
         return states
 
-    def load_history(self, a_thing, state_name, since_days=1):
+    def load_history(self, a_thing, state_name, since_days=1, since_hours=0):
+        if since_days and since_hours:
+            log = logger.of("load_history")
+            log.error("Called with both since_days and since_hours. Ignoring since_days")
+            since_hours = 0
+        if since_hours > 24:
+            log = logger.of("load_history")
+            log.error("Called with since_hours %d - too big. Transforming to days and ignoring remainder hours." % since_hours)
+            since_days = since_hours // 24
+            since_hours = 0
+
         thing = self.resolve_thing(a_thing)
 
         thing_directory = self.directory / thing
 
         history_path = thing_directory / "history"/ state_name
         today = date.today()
-        yesterday = today - timedelta(days=1)
         history = []
-
+        
         for since_day in reversed(range(2, since_days+1)):
             day = today - timedelta(days=since_day)
             history.extend(self._load_archive_for_day(thing, state_name, day))
 
-        history.extend(self._load_history_for_day(thing, state_name, yesterday))
+        if since_days > 0:
+            yesterday = today - timedelta(days=1)
+            history.extend(self._load_history_for_day(thing, state_name, yesterday))
+
         history.extend(self._load_history_for_day(thing, state_name, today))
 
         state = self.load_state(thing, state_name)
         if state:
             history.append(state)
 
-        since_datetime = datetime.utcnow() - timedelta(days=since_days)
+        since_datetime = datetime.utcnow() - timedelta(days=since_days, hours=since_hours)
         filtered_history = list(filter(lambda s: parse_isoformat(s['timestamp_utc']) > since_datetime, history))
         return filtered_history 
 

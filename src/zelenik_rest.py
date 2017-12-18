@@ -38,16 +38,28 @@ timestamp,sense(sense1),sense(sense2),...,sense(senseN), write(write1),..., writ
 @app.route("/db/<a_thing>/history", methods=["GET"])
 def history(a_thing):
     db = DatabaseDriver(app.config["DATABASE"])
-    since_argument = request.args.get('since', None)
-    if since_argument:
+    since_days_argument = request.args.get('since_days', None)
+    since_hours_argument = request.args.get('since_hours', None)
+    if not (since_days_argument or since_hours_argument):
+        abort(400) # Bad Request
+
+    if since_days_argument:
         try:
-            since_days = int(since_argument)
+            since_days = int(since_days_argument)
         except ValueError:
             abort(400) # Bad Request
     else:
-        since_days = 1
+        since_days = 0
 
-    history = db.load_history(a_thing, "reported", since_days=since_days)
+    if since_hours_argument:
+        try:
+            since_hours = int(since_hours_argument)
+        except ValueError:
+            abort(400) # Bad Request
+    else:
+        since_hours = 0
+
+    history = db.load_history(a_thing, "reported", since_days=since_days, since_hours=since_hours)
 
     if not history:
         return b"\r\n"

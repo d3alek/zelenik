@@ -41,16 +41,25 @@ function getColor(sense_id) {
   return color;
 };
 
-d3.selectAll(".graph-since").on("click", function() {
+function fetch_and_redraw() {
   d3.event.preventDefault();
   d3.select(".loading").classed("hidden", false);
-  d3.csv(this.dataset.url, type, redraw);
+  since_days = this.dataset.sinceDays;
+  since_hours = this.dataset.sinceHours;
+  if (since_days) 
+    query = "since_days=" + since_days
+  if (since_hours)
+    query = "since_hours=" + since_hours 
+
+  d3.csv("history?" + query, type, redraw)
   d3.select(".graph-since[disabled]").attr("disabled", null);
   d3.select(this).attr("disabled", true);
-});
+};
+
+d3.selectAll(".graph-since").on("click", fetch_and_redraw);
 
 d3.select(".loading").classed("hidden", false);
-d3.csv("history", type, redraw);
+d3.csv("history?since_hours=1", type, redraw);
 
 function unwrap(wrapped) {
   return wrapped.split("(")[1].split(")")[0]
@@ -247,7 +256,8 @@ function redraw(error, data) {
   d3.select(".loading").classed("hidden", true);
 
   var mouseG = svgEnter.append("g")
-    .attr("class", "mouse-over-effects");
+    .attr("class", "mouse-over-effects")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
   mouseG.enter().append("path") // black vertical line to follow mouse
     .attr("class", "mouse-line")
