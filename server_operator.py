@@ -61,9 +61,9 @@ def get_process_start_time():
     return datetime.utcfromtimestamp(p.create_time())
 
 class ServerOperator:
-    def __init__(self, sync_directory = DIR):
-
-        self.sync_directory = sync_directory 
+    def __init__(self, source_directory = DIR, destination_directory = DIR):
+        self.source_directory = source_directory
+        self.destination_directory = destination_directory
 
     def get_state(self):
         return {'hostname': self.hostname, 'role': self.role, 'type': 'server', 'boot_utc': timestamp(get_process_start_time())}
@@ -112,8 +112,8 @@ class ServerOperator:
         log = logger.of('slave_operate')
         log.info('Slave mode, sync-up two-way')
 
-        self.sync_to(destination_host, self.sync_directory)
-        self.sync_from(destination_host, self.sync_directory)
+        self.sync_to(destination_host, new_files=False)
+        self.sync_from(destination_host)
 
     def start(self):
         logger.of('start').info('Starting')
@@ -124,30 +124,34 @@ class ServerOperator:
         logger.of('stop').info('Stopping')
         self.running = False
 
-    def sync_to(self, host, directory, authenticate=True):
-        source_descriptor = "%s/" % self.sync_directory
+    def sync_to(self, host, authenticate=True, new_files=True):
+        source_descriptor = "%s/" % self.source_directory
         if host == 'localhost':
-            destination_descriptor = directory
+            destination_descriptor = self.destination_directory
         else:
-            destination_descriptor = "%s:%s" % (host, directory)
-        sync( source_descriptor, destination_descriptor, authenticate)
+            destination_descriptor = "%s:%s" % (host, self.destination_directory)
+        sync( source_descriptor, destination_descriptor, authenticate, new_files)
 
-    def sync_from(self, host, directory, authenticate=True):
+    def sync_from(self, host, authenticate=True):
         if host == 'localhost':
-            source_descriptor = "%s/" % directory
+            source_descriptor = "%s/" % self.destination_directory
         else:
-            source_descriptor = "%s:%s/" % (host, directory)
-        destination_descriptor = str(self.sync_directory)
+            source_descriptor = "%s:%s/" % (host, self.destination_directory)
+        destination_descriptor = self.source_directory
         sync(source_descriptor, destination_descriptor, authenticate)
 
 # copies source contents into destination
-def sync(source, destination, authenticate=True):
+def sync(source, destination, authenticate=True, new_files=True):
     log = logger.of('sync')
     authentication = '--rsh=ssh -p8902 -o "StrictHostKeyChecking no" -i ' + AUTHENTICATION_KEY
+    existing = "--existing"
 
     command = ["rsync", "-azu", source, destination]
     if authenticate:
         command.insert(2, authentication)
+    if not new_files:
+        command.insert(3, existing)
+
     log.info(" ".join(command))
     try:
         subprocess.check_call(command)
