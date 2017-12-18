@@ -71,7 +71,7 @@ class TestServerOperator(unittest.TestCase):
 
     # Slave does sync_to master, but if aliases have changed in master slave would undo that
     # Same holds for history files that the master archives and removes - slave would restore them. Here we want to prevent these things.
-    def test_slave_to_does_not_add_new_files(self):
+    def test_slave_operate_does_not_add_new_files(self):
         new_a = ('a.txt', 'new-content')
         self.given_source_file(new_a)
  
