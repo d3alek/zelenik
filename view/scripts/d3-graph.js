@@ -1,12 +1,17 @@
-margin = {top: 20, right: 80, bottom: 100, left: 80};
-width = 960 - margin.left - margin.right,
-  height = 500 - margin.top - margin.bottom;
+var margin = {top: 20, right: 80, bottom: 30, left: 80};
+var width = 960 - margin.left - margin.right,
+  height = 500 - margin.top - margin.bottom,
+  writes_height = 50,
+  senses_height = height - writes_height;
+
+var green = "#4CAF50";
+
+var timeformat = d3.timeFormat("%I:%M");
 
 var x = d3.scaleTime().range([0, width]),
-    numbers_y = d3.scaleLinear().range([height/2, 0]),
-    percents_y = d3.scaleLinear().range([height, height/2 + 10]),
-    z = d3.scaleOrdinal(d3.schemeCategory10); // TODO remove
-    writes_y = d3.scaleBand()
+    numbers_y = d3.scaleLinear().range([senses_height/2, 0]),
+    percents_y = d3.scaleLinear().range([senses_height, senses_height/2 + 10]),
+    writes_y = d3.scaleBand().range([height, senses_height + 10]);
 
 var numbers_line = d3.line()
     .curve(d3.curveBasis)
@@ -25,6 +30,21 @@ var writes_area = d3.area()
     .defined(function(d) { return d.value !== 0; });
 
 var displayables_config = JSON.parse(document.getElementById("displayables-input").textContent);
+
+function senses_line(id) {
+  if (displayables_config[id].type == "percent")
+    return percents_line;    
+  
+  return numbers_line;
+}
+
+function senses_y(id) {
+  if (displayables_config[id].type == "percent")
+    return percents_y;    
+  
+  return numbers_y;
+}
+
 function getAlias(sense_id) {
   var config = displayables_config[sense_id];
   if (!config) return sense_id;
@@ -86,14 +106,14 @@ function redraw(error, data) {
   var numbers = senses.filter(function(d) {
     return displayables_config[d.id].type !== "percent";
   });
-  var percents = senses.filter(function(d) {
-    return displayables_config[d.id].type == "percent";
-  });
 
   write_columns = data.columns.slice(1).filter(function(d) {
     return d.lastIndexOf("write(", 0) == 0
   });
-  var writes = write_columns.map(function(id) {
+  visible_write_columns = write_columns.filter(function(d) {
+    return displayables_config[unwrap(d)].graph == "yes";
+  });
+  var writes = visible_write_columns.map(function(id) {
     return {
       id: unwrap(id),
       values: data.map(function(d) {
@@ -111,17 +131,12 @@ function redraw(error, data) {
 
   percents_y.domain([0, 100]);
 
-  //writes_y.range(write_columns.map(function(d) { return unwrap(d)}))
   write_height = 10;
   writes_length = write_columns.length;
   below_x = 30
-  writes_y.range([height + 100, height + 30]);
   writes_y.domain(write_columns.map(function(d) { return unwrap(d)}))
-  //  writes_y.domain(d3.range(0, write_columns.length))
 
-  z.domain(senses.map(function(c) { return c.id; }));
-
-  var dict = {"numbers": numbers, "percents": percents, "writes": writes};
+  var dict = {"senses": senses, "writes": writes};
   var svg = d3.select("#graph")
     .selectAll("svg")
     .data([dict])
@@ -140,33 +155,13 @@ function redraw(error, data) {
         .attr("transform", "translate(0," + height + ")")
 
   gEnter.append("g")
-        .attr("class", "axis axis-numbers-y")
-        .append("text")
-          .attr("transform", "rotate(-90)")
-          .attr("y", 6)
-          .attr("dy", "0.71em")
-          .attr("fill", "#000")
-          .text("Numbers");
+        .attr("class", "axis axis-numbers-y");
 
   gEnter.append("g")
-        .attr("class", "axis axis-percents-y")
-        .append("text")
-          .attr("transform", "rotate(-90)")
-          .attr("y", 6)
-          .attr("x", - (height/2)) // because of the transform above
-          .attr("dy", "0.71em")
-          .attr("fill", "#000")
-          .text("Percents");
+        .attr("class", "axis axis-percents-y");
 
   gEnter.append("g")
-        .attr("class", "axis axis-writes-y")
-        .append("text")
-          .attr("transform", "rotate(-90)")
-          .attr("y", 6)
-          .attr("x", - (height + 30)) // because of the transform above
-          .attr("dy", "0.71em")
-          .attr("fill", "#000")
-          .text("Writes");
+        .attr("class", "axis axis-writes-y");
 
   var g = svgEnter.merge(svg).select("g");
   g.select("g.axis.axis--x").transition().call(d3.axisBottom(x));
@@ -174,60 +169,32 @@ function redraw(error, data) {
   g.select("g.axis.axis-percents-y").transition().call(d3.axisLeft(percents_y));
   g.select("g.axis.axis-writes-y").transition().call(d3.axisLeft(writes_y).tickFormat(getAlias));
 
-  var number = g.selectAll(".number")
-    .data(function(d) { return d["numbers"]; }, function(d) {return d.id; });
+  var sense = g.selectAll(".sense")
+    .data(function(d) { return d["senses"]; }, function(d) {return d.id; });
 
-  var numberEnter = number.enter()
+  var senseEnter = sense.enter()
     .append("g")
-    .attr("class", "number");
+    .attr("class", "sense");
 
-  numberEnter.append("path")
+  senseEnter.append("path")
     .attr("class", "line");
 
-  numberEnter.append("text")
+  senseEnter.append("text")
     .attr("x", 3)
     .attr("dy", "0.35em")
     .style("font", "10px sans-serif");
   
-  numberEnter.merge(number).select("path.line")
+  senseEnter.merge(sense).select("path.line")
     .style("stroke", function(d) { return getColor(d.id); })
     .transition() 
-      .attr("d", function(d) { return numbers_line(d.values); })
+      .attr("d", function(d) { return senses_line(d.id)(d.values); })
  
-  numberEnter.merge(number).select("text")
+  senseEnter.merge(sense).select("text")
     .datum(function(d) { return {id: d.id, value: d.values[d.values.length - 1]}; })
-    .attr("transform", function(d) { return "translate(" + x(d.value.date) + "," + numbers_y(d.value.value) + ")"; })
+    .attr("transform", function(d) { return "translate(" + x(d.value.date) + "," + senses_y(d.id)(d.value.value) + ")"; })
     .text(function(d) { return getAlias(d.id); });
 
-  number.exit()
-    .remove();
-
-  var percent = g.selectAll(".percent")
-    .data(function(d) { return d["percents"]; }, function(d) {return d.id; });
-
-  var percentEnter = percent.enter()
-    .append("g")
-    .attr("class", "percent");
-
-  percentEnter.append("path")
-    .attr("class", "line");
-
-  percentEnter.append("text")
-    .attr("x", 3)
-    .attr("dy", "0.35em")
-    .style("font", "10px sans-serif");
-  
-  percentEnter.merge(percent).select("path.line")
-    .style("stroke", function(d) { return getColor(d.id); })
-    .transition() 
-      .attr("d", function(d) { return percents_line(d.values); })
- 
-  percentEnter.merge(percent).select("text")
-    .datum(function(d) { return {id: d.id, value: d.values[d.values.length - 1]}; })
-    .attr("transform", function(d) { return "translate(" + x(d.value.date) + "," + percents_y(d.value.value) + ")"; })
-    .text(function(d) { return getAlias(d.id); });
-
-  percent.exit()
+  sense.exit()
     .remove();
 
   var write = g.selectAll(".write")
@@ -240,11 +207,6 @@ function redraw(error, data) {
   writeEnter.append("path")
     .attr("class", "area");
 
-  writeEnter.append("text")
-    .attr("x", 3)
-    .attr("dy", writes_y.bandwidth()/2 + 6)
-    .style("font", "10px sans-serif");
-  
   writeEnter.merge(write).select("path.area")
     .style("fill", function(d) { return getColor(d.id); })
     .transition() 
@@ -259,24 +221,27 @@ function redraw(error, data) {
     .attr("class", "mouse-over-effects")
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-  mouseG.enter().append("path") // black vertical line to follow mouse
+  mouseG.append("path") // black vertical line to follow mouse
     .attr("class", "mouse-line")
-    .style("stroke", "black")
+    .style("stroke", green)
     .style("stroke-width", "1px")
     .style("opacity", "0");
 
-  var lines = document.getElementsByClassName('line'); // todo use d3 selector
+  mouseG.append("text")
+    .attr("class", "x-text")
+    .style("text-anchor", "middle")
+    .style("fill", green);
+
+  var lines = document.getElementsByClassName('line'); // TODO use d3 selector
   var mousePerLineEnter = mouseG.selectAll('.mouse-per-line')
-    .data(function(d) { return d.numbers; })
+    .data(function(d) { return d.senses; })
     .enter()
     .append("g")
     .attr("class", "mouse-per-line");
 
   mousePerLineEnter.append("circle")
     .attr("r", 7)
-    .style("stroke", function(d) {
-      return getColor(d.id)
-    })
+    .style("stroke", green)
     .style("fill", "none")
     .style("stroke-width", "1px")
     .style("opacity", "0");
@@ -284,7 +249,7 @@ function redraw(error, data) {
   mousePerLineEnter.append("text")
     .attr("transform", "translate(10,3)");
 
-  mouseG.append("svg:rect") // append a rect to catch mouse movements on canvas<Paste>
+  mouseG.append("svg:rect") // append a rect to catch mouse movements on canvas
     .attr("width", width + margin.left + margin.right)
 		.attr("height", height + margin.top + margin.bottom)
 		.attr("fill", "none")
@@ -299,9 +264,13 @@ function redraw(error, data) {
 		})
 		.on("mousemove", function() { 
 			var mouse = d3.mouse(this);
+      var xDate = x.invert(mouse[0]);
+      d3.select(".x-text")
+        .attr("transform", "translate(" + mouse[0] + ", " + (height + 30) + ")")
+        .text(timeformat(xDate));
 			d3.select(".mouse-line")
 				.attr("d", function() {
-					var d = "M" + mouse[0] + "," + height;
+					var d = "M" + mouse[0] + "," + (height + 10);
 					d += " " + mouse[0] + "," + 0;
 					return d;
 				});
@@ -309,9 +278,9 @@ function redraw(error, data) {
 				.attr("transform", function(d, i) {
 					console.log(d);
 					console.log(width/mouse[0]);
-					var xDate = x.invert(mouse[0]),
-							bisect = d3.bisector(function(d) { return d.date; }).right;
+					var bisect = d3.bisector(function(d) { return d.date; }).right;
 					var idx = bisect(d.values, xDate);
+          console.log(xDate);
 
 					var beginning = 0,
 							end = lines[i].getTotalLength(),
@@ -329,7 +298,7 @@ function redraw(error, data) {
 					}
 
 					d3.select(this).select("text")
-						.text(numbers_y.invert(pos.y).toFixed(2));
+						.text(senses_y(d.id).invert(pos.y).toFixed(2));
 
 					return "translate(" + mouse[0] + "," + pos.y + ")";
 				});
