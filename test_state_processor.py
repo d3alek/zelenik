@@ -207,57 +207,8 @@ class TestStateProcessor(unittest.TestCase):
 
         self.then_compact(exploded)
 
-    def test_explode_picks_missing_from_previous(self):
-        compact = SENSES % '{"OW-x": "100|80|100|c"}'
-        previous_exploded = SENSES % '{"OW-y": {"value": 80}}'
-        exploded = SENSES % '{"OW-x": {"value": 100, "expected":80, "ssd":100}, "OW-y": {"value": 80, "from": "%s"}}' % timestamp(two_hours_ago())
-
-        self.when_exploding(compact, previous_exploded, timestamp(two_hours_ago()))
-        self.then_exploded(exploded)
-
-    def test_explode_does_not_pick_missing_from_old_previous(self):
-        compact = SENSES % '{"OW-x": "100|100|100|c"}'
-        previous_exploded = SENSES % '{"OW-y": {"value": 80}}'
-        exploded = SENSES % '{"OW-x": {"value": 100, "expected": 100, "ssd": 100}}'
-
-        self.when_exploding(compact, previous_exploded, timestamp(yesterday()))
-        self.then_exploded(exploded)
-
-    def test_explode_does_not_pick_missing_from_old_sense(self):
-        compact = SENSES % '{"OW-x": "100|100|100|c"}'
-        previous_exploded = SENSES % '{"OW-y": {"value": 80, "from": "%s"}}' % timestamp(yesterday())
-        exploded = SENSES % '{"OW-x": {"value": 100, "expected": 100, "ssd": 100}}'
-
-        self.when_exploding(compact, previous_exploded, timestamp(two_hours_ago()))
-        self.then_exploded(exploded)
-
-    def test_explode_wrong_value_picks_expected(self):
-        compact = SENSES % '{"I2C-8": "1000|800|100|w"}'
-        previous_exploded = SENSES % '{"I2C-8": {"value": 800}}'
-        exploded = SENSES % '{"I2C-8": {"wrong": 1000, "ssd":100, "expected": 800}}'
-
-        self.when_exploding(compact, previous_exploded, "yesterday")
-        self.then_exploded(exploded)
-
-    def test_explode_wrong_no_expected_picks_previous_good(self):
-        compact = SENSES % '{"I2C-8": "1000|%s|100|w"}' % WRONG_VALUE_INT
-        previous_exploded = SENSES % '{"I2C-8": {"value": 800}}'
-        exploded = SENSES % '{"I2C-8": {"wrong": 1000, "value":800, "ssd": 100, "from": "yesterday"}}'
-
-        self.when_exploding(compact, previous_exploded, "yesterday")
-        self.then_exploded(exploded)
-
-    def test_explode_wrong_value_picks_previous_good_and_timestamp(self):
-        compact = SENSES % '{"I2C-8": "700|%s|100|w"}' % WRONG_VALUE_INT
-        previous_exploded = SENSES % '{"I2C-8": {"wrong": 1000, "value": 800, "from": "two-days-ago"}, "timestamp_utc": "yesterday"}'
-        exploded = SENSES % '{"I2C-8": {"wrong": 700, "value": 800,"ssd": 100, "from": "two-days-ago"}}'
-
-        self.when_exploding(compact, previous_exploded)
-
-        self.then_exploded(exploded)
-
-    def when_exploding(self, json_string, previous = "{}", previous_timestamp = None):
-        self.exploded = state_processor.explode(json.loads(json_string), json.loads(previous), previous_timestamp)
+    def when_exploding(self, json_string, previous_exploded = "{}"):
+        self.exploded = state_processor.explode(json.loads(json_string), json.loads(previous_exploded))
 
     def when_compacting(self, json_string):
         self.compact = state_processor.compact(json.loads(json_string))

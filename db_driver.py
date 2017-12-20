@@ -1,4 +1,8 @@
 from pathlib import Path
+import sys
+root_path = Path(__file__).parent.parent
+sys.path.append(str(root_path.absolute()))
+
 from datetime import date
 from zipfile import ZipFile, ZIP_DEFLATED
 import json
@@ -82,16 +86,30 @@ def timestamp(time):
     time = time.replace(microsecond=0)
     return time.isoformat(sep=' ')
 
-def encapsulate_and_timestamp(value, parent_name):
-    return {parent_name: value, "timestamp_utc": timestamp(datetime.utcnow())}
+def encapsulate_and_timestamp(value, parent_name, time=datetime.utcnow()):
+    return {parent_name: value, "timestamp_utc": timestamp(time)}
 
-def flat_map(d, field):
+def flat_map(d, field, default="", strict=False):
     filtered = {}
     for key, value in d.items():
         if type(value) is dict:
-            filtered[key] = value.get(field, "")
+            if strict and field not in value:
+                continue
+            filtered[key] = value.get(field, default)
 
     return filtered
+
+def prepare_test_directory(directory_path):
+    db_directory = directory_path / "db"
+    db_directory.mkdir()
+
+    view_directory = directory_path / "view"
+    view_location = view_directory.name
+    view_directory.mkdir()
+    index = view_directory  / "index.html"
+    index.touch()
+    style = view_directory / "style.html"
+    style.touch()
 
 class DatabaseDriver:
     def __init__(self, working_directory="", directory="db", view='view'):
@@ -259,7 +277,7 @@ class DatabaseDriver:
 
     # Level 2: mqtt_operator callables
 
-    def _update_reported(self, thing, value):
+    def _update_reported(self, thing, value, time=datetime.utcnow()):
         log = logger.of('update_reported')
         validate_input(thing, "reported", value)
         if value.get('state') and not isinstance(value.get('state'), str): # there is a string state attribute that can get confused with a top level state object
@@ -286,14 +304,14 @@ class DatabaseDriver:
             previous_state = {}
             previous_timestamp = None
 
-        value = state_processor.explode(value, previous_state, previous_timestamp)
+        value = state_processor.explode(value)
         
         desired_file = self._get_state_path(thing, "desired")
         if not desired_file.exists():
             self._update_desired(thing, value.get('config', {}))
             log_updated.append('created_desired')
         
-        encapsulated_value = encapsulate_and_timestamp(value, "state")
+        encapsulated_value = encapsulate_and_timestamp(value, "state", time=time)
         with state_file.open('w', encoding='utf-8') as f:
             f.write(pretty_json(encapsulated_value))
             log_updated.append('state')
@@ -542,27 +560,40 @@ class DatabaseDriver:
 
         return states
 
-    def load_history(self, a_thing, state_name, since_days=1):
+    def load_history(self, a_thing, state_name, since_days=1, since_hours=0):
+        if since_days and since_hours:
+            log = logger.of("load_history")
+            log.error("Called with both since_days and since_hours. Ignoring since_days")
+            since_hours = 0
+        if since_hours > 24:
+            log = logger.of("load_history")
+            log.error("Called with since_hours %d - too big. Transforming to days and ignoring remainder hours." % since_hours)
+            since_days = since_hours // 24
+            since_hours = 0
+
         thing = self.resolve_thing(a_thing)
 
         thing_directory = self.directory / thing
 
         history_path = thing_directory / "history"/ state_name
         today = date.today()
-        yesterday = today - timedelta(days=1)
         history = []
-
+        
         for since_day in reversed(range(2, since_days+1)):
             day = today - timedelta(days=since_day)
             history.extend(self._load_archive_for_day(thing, state_name, day))
 
-        history.extend(self._load_history_for_day(thing, state_name, yesterday))
+        if since_days > 0:
+            yesterday = today - timedelta(days=1)
+            history.extend(self._load_history_for_day(thing, state_name, yesterday))
+
         history.extend(self._load_history_for_day(thing, state_name, today))
 
         state = self.load_state(thing, state_name)
-        history.append(state)
+        if state:
+            history.append(state)
 
-        since_datetime = datetime.utcnow() - timedelta(days=since_days)
+        since_datetime = datetime.utcnow() - timedelta(days=since_days, hours=since_hours)
         filtered_history = list(filter(lambda s: parse_isoformat(s['timestamp_utc']) > since_datetime, history))
         return filtered_history 
 

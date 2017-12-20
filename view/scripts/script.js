@@ -32,8 +32,6 @@ AttachEvent(document.getElementById("plot-input"), "change", function() {
     plot_image.src = plot_image.src + "?refresh=yes";
 });
 
-fill_graphable_checkboxes(senses, document.getElementById("graphable-checkboxes"));
-
 if (!plot_image.complete) {
     AttachEvent(plot_image, "load", initialize_or_hide_plot);
 }

@@ -156,7 +156,6 @@ def handle_graph(db, a_thing, since_days=DEFAULT_SINCE_DAYS, median_kernel=DEFAU
     senses = list(map(lambda s: get_senses(s['state']), enchanted_history))
     writes = list(map(lambda s: get_write(s['state']), enchanted_history))
 
-
     f = plt.figure(figsize=(12, 6), dpi=100)
 
     gs = gridspec.GridSpec(2, 1, height_ratios=[7,1])

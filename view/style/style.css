@@ -148,9 +148,20 @@ ul li {
     margin: 8px;
 }
 
+.button-warn {
+    background-color: orange; /* Green */
+}
+
 .button:hover {
     background-color: #f44336;; /* Red */
     color: white;
+}
+
+.button:disabled,
+.button[disabled]{
+  border: 1px solid #999999;
+  background-color: #cccccc;
+  color: #666666;
 }
 
 #plot-input {

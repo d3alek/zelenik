@@ -1,0 +1,21 @@
+.axis--x path {
+  display: none;
+}
+
+.line {
+  fill: none;
+  stroke: steelblue;
+  stroke-width: 1.5px;
+}
+
+.area {
+  fill: steelblue;
+  stroke-width: 0;
+}
+
+#graph {
+  min-width: 960px;
+  min-height: 500px;
+}
+
+
