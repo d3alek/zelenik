@@ -13,5 +13,9 @@
   stroke-width: 0;
 }
 
+#graph {
+  min-width: 960px;
+  min-height: 500px;
+}
 
 

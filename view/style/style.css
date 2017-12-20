@@ -148,6 +148,10 @@ ul li {
     margin: 8px;
 }
 
+.button-warn {
+    background-color: orange; /* Green */
+}
+
 .button:hover {
     background-color: #f44336;; /* Red */
     color: white;
