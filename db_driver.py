@@ -86,7 +86,9 @@ def timestamp(time):
     time = time.replace(microsecond=0)
     return time.isoformat(sep=' ')
 
-def encapsulate_and_timestamp(value, parent_name, time=datetime.utcnow()):
+def encapsulate_and_timestamp(value, parent_name, time=None):
+    if not time:
+        time = datetime.utcnow()
     return {parent_name: value, "timestamp_utc": timestamp(time)}
 
 def flat_map(d, field, default="", strict=False):
@@ -277,7 +279,9 @@ class DatabaseDriver:
 
     # Level 2: mqtt_operator callables
 
-    def _update_reported(self, thing, value, time=datetime.utcnow()):
+    def _update_reported(self, thing, value, time=None):
+        if not time:
+            time = datetime.utcnow()
         log = logger.of('update_reported')
         validate_input(thing, "reported", value)
         if value.get('state') and not isinstance(value.get('state'), str): # there is a string state attribute that can get confused with a top level state object

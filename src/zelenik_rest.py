@@ -64,7 +64,7 @@ def history(a_thing):
 
     history = db.load_history(a_thing, "reported", since_days=since_days, since_hours=since_hours)
     if len(history) > GOOD_PERFORMANCE_LENGTH:
-        rate = math.ceil(len(history) / GOOD_PERFORMANCE_LENGTH) # ceil so we are concervative
+        rate = math.ceil(len(history) / GOOD_PERFORMANCE_LENGTH) # ceil so we are conservative
         history = history[:-1:rate]
 
     if not history:
