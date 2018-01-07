@@ -63,16 +63,16 @@ function getColor(sense_id) {
 
 d3.select("#switch-graph").on("click", function() {
   selected = d3.select(this)
-  if (selected.text() == "Стар чертеж") {
+  if (selected.text() == "Стара графика") {
     d3.select("#graph-container").classed("hidden", true);
     d3.select("#old-graph-container").classed("hidden", false);
-    selected.text("Нов чертеж");
+    selected.text("Нова графика");
   }
     
   else {
     d3.select("#graph-container").classed("hidden", false);
     d3.select("#old-graph-container").classed("hidden", true);
-    selected.text("Стар чертеж");
+    selected.text("Стара графика");
   }
 });
 
