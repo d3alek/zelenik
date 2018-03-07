@@ -10,7 +10,7 @@ sys.path.append(str(root_path))
 
 from db_driver import DatabaseDriver, flat_map, timestamp
 
-GOOD_PERFORMANCE_LENGTH = 300
+GOOD_PERFORMANCE_LENGTH = 1000 
 
 app = Flask(__name__)
 app.config.from_object(__name__)
