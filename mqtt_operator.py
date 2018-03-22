@@ -5,6 +5,7 @@ import db_driver
 import json
 import re
 import time
+import sys
 
 from db_driver import to_compact_json
 
@@ -67,8 +68,8 @@ def get_answer(db, topic, payload_string):
         if payload["state"].get("reported"): # these come from things
             try:
                 db.update('reported', thing, payload["state"]["reported"])
-            except Exception:
-                log.error("Updating reported failed with an exception.", traceback=True)
+            except Exception as e:
+                log.error("Updating reported failed with an exception %s" % e, traceback=True)
                 e = sys.exc_info()[0]
                 answer_topic = ERROR_TOPIC
                 answer_payload = UPDATE_REPORTED_EXCEPTION % e

@@ -143,8 +143,8 @@ def explode_sense(value):
             return None
 
         enriched_sense = {}
-        if int(split[1]) != WRONG_VALUE_INT:
-            enriched_sense['expected'] = int(split[1])
+        if float(split[1]) != WRONG_VALUE_INT:
+            enriched_sense['expected'] = float(split[1])
         if int(split[2]) != WRONG_VALUE_INT:
             enriched_sense['ssd'] = int(split[2])
         if split[3] == 'w':

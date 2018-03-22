@@ -114,8 +114,11 @@ def seconds_today():
     boot_seconds = state['b']
     return (boot_seconds + seconds()) % (60*60*24)
 
+def sense(value, expected=0.1, ssd=0):
+    return "%.1f|%.1f|%d|c" % (value, expected, ssd)
+
 def update_senses():
-    state['senses'] = {'percent': random.randint(0, 100), 'temp': random.randint(0,50), "time": seconds_today()}
+    state['senses'] = {'percent': sense(random.randint(0, 100)), 'temp': sense(random.randint(0,50)), "time": seconds_today()}
 
 write_to_int = {'low': 0, 'high': 1}
 def do_actions():
