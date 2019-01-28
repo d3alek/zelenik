@@ -242,3 +242,10 @@ ul li {
 .status-since:before {
     content:" от ";
 }
+
+line.grid {
+  fill: none;
+  stroke: lightgrey;
+  opacity: 0.8;
+  stroke-width: 1px;
+}

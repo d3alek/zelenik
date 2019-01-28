@@ -100,6 +100,28 @@ function unwrap(wrapped) {
   return wrapped.split("(")[1].split(")")[0]
 };
 
+function addHorizontalGrid(g, y, c) {
+  g.selectAll("line.grid.horizontal."+c).data(y.ticks(4)).enter()
+    .append("line")
+        .attr('class', 'grid horizontal')
+        .attr('x1', 4)
+        .attr('x2', width)
+        .attr('y1', function(d){ return y(d)})
+        .attr('y2', function(d){ return y(d)})
+        .attr('shape-rendering', 'crispEdges');
+}
+
+function addVerticalGrid(g, x) {
+  g.selectAll("line.grid.vertical").data(x.ticks(4)).enter()
+    .append("line")
+        .attr('class', 'grid vertical')
+        .attr('x1', function(d) { return x(d) })
+        .attr('x2', function(d) { return x(d)})
+        .attr('y1', 0)
+        .attr('y2', height)
+        .attr('shape-rendering', 'crispEdges');
+}
+
 function redraw(error, data) {
   if (error) throw error;
   
@@ -192,6 +214,12 @@ function redraw(error, data) {
   g.select("g.axis.axis-numbers-y").transition().call(d3.axisLeft(numbers_y));
   g.select("g.axis.axis-percents-y").transition().call(d3.axisLeft(percents_y));
   g.select("g.axis.axis-writes-y").transition().call(d3.axisLeft(writes_y).tickFormat(getAlias));
+
+  // source https://stackoverflow.com/a/17871021 
+
+  addHorizontalGrid(g, numbers_y, 'numbers');
+  addHorizontalGrid(g, percents_y, 'percents');
+  addVerticalGrid(g, x);
 
   var sense = g.selectAll(".sense")
     .data(function(d) { return d["senses"]; }, function(d) {return d.id; });
