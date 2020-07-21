@@ -361,7 +361,7 @@ class DatabaseDriver:
             if len(diff) == 1:
                 if len(diff[0]) > 1 and diff[0][0] == 'actions':
                     delete_which = diff[0][1]
-                    actions = from_state['actions']
+                    actions = compact_from['actions']
                     actions.pop(delete_which)
                     delta_dict.update({"actions":actions})
                 else:
