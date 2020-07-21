@@ -318,6 +318,15 @@ class TestDatabaseDriverGetDelta(TestDatabaseDriver):
 
         self.then_delta_is('{}')
 
+    def test_get_delta_remove_action(self):
+        self.given_thing()
+        self.given_state("reported", FORMAT % BASE_STATE % '{"actions":["I2C-8|4|H|10|1", "I2C-9|4|H|10|2"]}')
+        self.given_state("desired", '{"actions":["I2C-8|4|H|10|1"]}')
+
+        self.when_getting_delta()
+
+        self.then_delta_is('{"actions":["I2C-8|4|H|10|1"]}')
+
     def when_getting_reported_desired_delta(self, base_state_supplement, reported_substitution, desired_substitution):
         state_reported = FORMAT % BASE_STATE % base_state_supplement
         state_desired = base_state_supplement

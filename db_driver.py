@@ -359,8 +359,13 @@ class DatabaseDriver:
         for diff in delta_stanza:
             path_parts = diff[0]
             if len(diff) == 1:
-                #TODO happens when something existing in from is not in to - then only the path to the thing in from is given, signaling delete
-                log.info("No value specified in diff, seems like field present in from is missing in to - skipping. %s %s" % (thing, diff))
+                if len(diff[0]) > 1 and diff[0][0] == 'actions':
+                    delete_which = diff[0][1]
+                    actions = from_state['actions']
+                    actions.pop(delete_which)
+                    delta_dict.update({"actions":actions})
+                else:
+                    log.info("No value specified in diff, seems like field present in from is missing in to - skipping. %s %s" % (thing, diff))
                 continue
             value = diff[1]
             path_parts, value = change_action_diff_format(path_parts, value, compact_to)
