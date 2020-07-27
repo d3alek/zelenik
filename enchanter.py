@@ -89,6 +89,8 @@ def cum_average(new, old, old_count, window=None):
     
     return (new + old_count * old) / count, count
 
+def sum_formula(new, old, count):
+    return new + old, count + 1
 
 class Enchanter:
     def __init__(self, working_directory = DIR):
@@ -336,6 +338,27 @@ class Enchanter:
              
             from_value = get_only_element(from_sense_values)
             value, count = (cum_average(from_value, old_value, old_count, window))
+            senses[key] = {'value': value, 'count': count}
+
+        elif formula == 'sum':
+            reset_at_string = formula_config.get('reset_at')
+
+            if reset_at_string is None:
+                reset_at = None
+            else:
+                reset_at = today_at(parse_time(reset_at_string), now=now)
+
+            old = old_enchanted_senses.get(key)
+            if old is None or (reset_at and old_time <= reset_at and reset_at < now):
+                log.info("Starting new sum at %s" % now )
+                old_value = 0
+                old_count = 0
+            else:
+                old_value = old.get('value', 0)
+                old_count = old.get('count', 0)
+             
+            from_value = get_only_element(from_sense_values)
+            value, count = (sum_formula(from_value, old_value, old_count))
             senses[key] = {'value': value, 'count': count}
 
         else:

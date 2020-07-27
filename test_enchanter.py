@@ -24,6 +24,8 @@ CUM_AVERAGE_RESET_CONFIG = [{"name":"cum-average", "formula": "cum_average", "fr
 
 CUM_AVERAGE_WINDOW_CONFIG = [{"name":"cum-average", "formula": "cum_average", "from": "OW-1", "window": 2}]
 
+SUM_RESET_CONFIG = [{"name":"sum", "formula": "sum", "from": "OW-1", "reset_at": "01:00"}]
+
 DISP = {"alias":"","color":"purple","position":"0,0","type":"number","plot":"yes","graph":"yes"}
 
 def colored(d, color):
@@ -264,6 +266,24 @@ class TestEnchanter(unittest.TestCase):
         self.when_enchanting(alias=False)
 
         self.then_enchanted(state(senses({'OW-1': 25, 'cum-average': {"value":25, "count": 1}})))
+
+    def test_enchanter_sum_resets(self):
+        self.given_config(SUM_RESET_CONFIG)
+        self.given_state('enchanted', state(senses({'sum': {"value":24, "count": 1}}), yesterday()))
+        self.given_state('reported', state(senses({'OW-1': 25}), today()))
+
+        self.when_enchanting(alias=False)
+
+        self.then_enchanted(state(senses({'OW-1': 25, 'sum': {"value":25, "count": 1}})))
+
+    def test_enchanter_sum(self):
+        self.given_config(SUM_RESET_CONFIG)
+        self.given_state('enchanted', state(senses({'sum': {"value":24, "count": 1}}), today()))
+        self.given_state('reported', state(senses({'OW-1': 25}), today()))
+
+        self.when_enchanting(alias=False)
+
+        self.then_enchanted(state(senses({'OW-1': 25, 'sum': {"value":49, "count": 2}})))
 
     def test_enchanter_cum_average_window(self):
         self.given_config(CUM_AVERAGE_WINDOW_CONFIG)
