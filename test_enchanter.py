@@ -24,7 +24,7 @@ CUM_AVERAGE_RESET_CONFIG = [{"name":"cum-average", "formula": "cum_average", "fr
 
 CUM_AVERAGE_WINDOW_CONFIG = [{"name":"cum-average", "formula": "cum_average", "from": "OW-1", "window": 2}]
 
-SUM_RESET_CONFIG = [{"name":"sum", "formula": "sum", "from": "OW-1", "reset_at": "01:00"}]
+SUM_RESET_CONFIG = [{"name":"sum", "formula": "sum", "from": "OW-1", "reset_at": "20:00"}]
 
 DISP = {"alias":"","color":"purple","position":"0,0","type":"number","plot":"yes","graph":"yes"}
 

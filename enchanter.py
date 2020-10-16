@@ -92,6 +92,19 @@ def cum_average(new, old, old_count, window=None):
 def sum_formula(new, old, count):
     return new + old, count + 1
 
+def should_reset(formula_config, old_time, now):
+    reset_at_string = formula_config.get('reset_at')
+
+    if reset_at_string is None:
+        reset_at = None
+    else:
+        reset_at = today_at(parse_time(reset_at_string), now=now)
+
+    return reset_at \
+        and old_time <= reset_at \
+        and (reset_at < now \
+            or reset_at - timedelta(days=1) > old_time)
+
 class Enchanter:
     def __init__(self, working_directory = DIR):
         self.working_directory = working_directory
@@ -319,16 +332,10 @@ class Enchanter:
             senses[key] = average(from_sense_values)
 
         elif formula == 'cum_average':
-            reset_at_string = formula_config.get('reset_at')
             window = formula_config.get('window')
 
-            if reset_at_string is None:
-                reset_at = None
-            else:
-                reset_at = today_at(parse_time(reset_at_string), now=now)
-
             old = old_enchanted_senses.get(key)
-            if old is None or (reset_at and old_time <= reset_at and reset_at < now):
+            if old is None or should_reset(formula_config, old_time, now):
                 log.info("Starting new cumulative average at %s" % now )
                 old_value = 0
                 old_count = 0
@@ -341,15 +348,8 @@ class Enchanter:
             senses[key] = {'value': value, 'count': count}
 
         elif formula == 'sum':
-            reset_at_string = formula_config.get('reset_at')
-
-            if reset_at_string is None:
-                reset_at = None
-            else:
-                reset_at = today_at(parse_time(reset_at_string), now=now)
-
             old = old_enchanted_senses.get(key)
-            if old is None or (reset_at and old_time <= reset_at and reset_at < now):
+            if old is None or should_reset(formula_config, old_time, now):
                 log.info("Starting new sum at %s" % now )
                 old_value = 0
                 old_count = 0
